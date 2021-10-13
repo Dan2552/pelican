@@ -1,4 +1,4 @@
-struct Point {
-  x: U32,
-  y: U32
+pub struct Point {
+  pub x: u32,
+  pub y: u32
 }
