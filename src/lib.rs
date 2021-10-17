@@ -1,5 +1,6 @@
 
 pub mod graphics;
+pub mod ui;
 
 #[cfg(test)]
 mod tests {
