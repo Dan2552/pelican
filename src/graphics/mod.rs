@@ -13,6 +13,9 @@ pub use rectangle::Rectangle;
 mod layer;
 pub use layer::Layer;
 
+// TODO: probably remove and reduce visibility to crate
+pub use layer::LayerDelegate;
+
 mod font;
 pub use font::Font;
 
@@ -28,3 +31,5 @@ trait Drawable {
 
 // TODO: doesn't belong here. Belongs in platform
 pub struct Bundle {}
+
+

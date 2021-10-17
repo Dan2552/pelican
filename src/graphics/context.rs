@@ -1,16 +1,26 @@
 use crate::graphics::Size;
 use crate::graphics::Point;
+use crate::graphics::Layer;
+use crate::graphics::Rectangle;
+
+use sdl2::rect::Rect;
+use sdl2::render::BlendMode;
+use sdl2::render::Texture;
 use sdl2::video::Window;
 use sdl2::video::WindowContext;
 use sdl2::render::TextureCreator;
 use sdl2::render::Canvas;
 use sdl2::pixels::Color;
+
+use std::rc::Rc;
+use std::cell::RefCell;
 use std::convert::TryInto;
 
+// Context for a graphics render target. E.g. a window.
 pub struct Context {
     size: Size,
     pub render_scale: f32,
-    pub(crate) canvas: Canvas<Window>,
+    canvas: Rc<RefCell<Canvas<Window>>>,
     pub(crate) texture_creator: TextureCreator<WindowContext>,
     // TODO: which one of these is the same as `size: Size`?
     render_size: Size,
@@ -32,7 +42,7 @@ impl Context {
         let (render_width, render_height) = window.size();
 
         let mut canvas = window.into_canvas().build().unwrap();
-        canvas.set_draw_color(Color::RGB(0, 255, 0));
+        canvas.set_draw_color(Color::RGB(0, 0, 0));
         canvas.clear();
         canvas.present();
 
@@ -48,14 +58,61 @@ impl Context {
         Context {
             size: size,
             render_scale: render_scale,
-            canvas: canvas,
+            canvas: Rc::new(RefCell::new(canvas)),
             render_size: render_size,
             pixel_size: pixel_size,
             texture_creator: texture_creator
         }
     }
 
-    fn draw(&self) {
-        // TODO: c__orbit
+    // TODO: pub(crate)
+    pub fn draw(&self) {
+        let mut canvas = self.canvas.borrow_mut();
+        canvas.clear();
+        canvas.present();
     }
+
+    // TODO: pub(crate)
+    pub fn draw_texture_in_context(&self, child: &Texture, destination: &Rectangle) {
+        let destination = Rect::new(
+            destination.position.x.try_into().unwrap(),
+            destination.position.y.try_into().unwrap(),
+            destination.size.width,
+            destination.size.height
+        );
+
+        let mut canvas = self.canvas.borrow_mut();
+        canvas.copy(child, None, destination).unwrap();
+    }
+
+    pub(crate) fn draw_texture_in_texture(&self, parent: &mut Texture, child: &Texture, destination: &Rectangle) {
+        let destination = Rect::new(
+            destination.position.x.try_into().unwrap(),
+            destination.position.y.try_into().unwrap(),
+            destination.size.width,
+            destination.size.height
+        );
+
+        let mut canvas = self.canvas.borrow_mut();
+
+        canvas.with_texture_canvas(parent, |canvas| {
+            canvas.copy(&child, None, destination).unwrap();
+        }).unwrap();
+    }
+
+    pub(crate) fn clear_texture(&self, texture: &mut Texture, color: Color) {
+        let mut canvas = self.canvas.borrow_mut();
+
+        canvas.with_texture_canvas(texture, |canvas| {
+            canvas.set_draw_color(color);
+        }).unwrap();
+    }
+
+    // pub(crate) fn inside_texture<F>(self, texture: Texture, f: F) where for<'r> F: FnOnce(&'r mut Canvas<sdl2::video::Window>),{
+    //     let mut canvas = self.canvas;
+    //     let mut texture = texture;
+    //     canvas.with_texture_canvas(&mut texture, |texture_canvas| {
+    //         f(texture_canvas);
+    //     }).unwrap();
+    // }
 }
