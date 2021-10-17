@@ -68,7 +68,6 @@ impl Context {
     // TODO: pub(crate)
     pub fn draw(&self) {
         let mut canvas = self.canvas.borrow_mut();
-        canvas.clear();
         canvas.present();
     }
 
@@ -82,6 +81,7 @@ impl Context {
         );
 
         let mut canvas = self.canvas.borrow_mut();
+        println!("drawing texture into canvas");
         canvas.copy(child, None, destination).unwrap();
     }
 
@@ -96,6 +96,7 @@ impl Context {
         let mut canvas = self.canvas.borrow_mut();
 
         canvas.with_texture_canvas(parent, |canvas| {
+            println!("drawing texture into another texture");
             canvas.copy(&child, None, destination).unwrap();
         }).unwrap();
     }
@@ -104,7 +105,9 @@ impl Context {
         let mut canvas = self.canvas.borrow_mut();
 
         canvas.with_texture_canvas(texture, |canvas| {
+            println!("clearing texture with color");
             canvas.set_draw_color(color);
+            canvas.clear();
         }).unwrap();
     }
 

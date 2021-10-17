@@ -58,6 +58,8 @@ impl Layer {
     }
 
     // TODO: pub(crate)
+    //
+    // Requests for the delegate to draw on this layer.
     pub fn draw(&mut self) {
         self.needs_display = false;
         self.delegate.layer_will_draw(&self);
@@ -92,7 +94,7 @@ impl Layer {
 
     pub fn clear_with_color(&self, color: Color) {
         let mut texture = self.texture.borrow_mut();
-        let mut context = &self.context;
+        let context = &self.context;
 
         context.clear_texture(&mut texture, color)
     }
