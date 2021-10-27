@@ -16,7 +16,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::convert::TryInto;
 
-// Context for a graphics render target. E.g. a window.
+/// Context for a graphics render target. E.g. a window.
 pub struct Context {
     size: Size,
     pub render_scale: f32,

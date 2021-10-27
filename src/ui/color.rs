@@ -1,12 +1,14 @@
+use crate::graphics;
+
 pub struct Color {
-    red: u32,
-    green: u32,
-    blue: u32,
-    alpha: u32
+    red: u8,
+    green: u8,
+    blue: u8,
+    alpha: u8
 }
 
 impl Color {
-    fn white() -> Color {
+    pub fn white() -> Color {
         Color {
             red: 255,
             green: 255,
@@ -15,7 +17,7 @@ impl Color {
         }
     }
 
-    fn black() -> Color {
+    pub fn black() -> Color {
         Color {
             red: 0,
             green: 0,
@@ -24,7 +26,7 @@ impl Color {
         }
     }
 
-    fn red() -> Color {
+    pub fn red() -> Color {
         Color {
             red: 255,
             green: 0,
@@ -33,7 +35,7 @@ impl Color {
         }
     }
 
-    fn green() -> Color {
+    pub fn green() -> Color {
         Color {
             red: 0,
             green: 255,
@@ -42,7 +44,7 @@ impl Color {
         }
     }
 
-    fn blue() -> Color {
+    pub fn blue() -> Color {
         Color {
             red: 0,
             green: 0,
@@ -51,12 +53,21 @@ impl Color {
         }
     }
 
-    fn clear() -> Color {
+    pub fn clear() -> Color {
         Color {
             red: 0,
             green: 0,
             blue: 0,
             alpha: 0
+        }
+    }
+
+    pub fn to_graphics_color(&self) -> graphics::Color {
+        graphics::Color {
+            r: self.red,
+            g: self.green,
+            b: self.blue,
+            a: self.alpha
         }
     }
 }
@@ -67,5 +78,5 @@ impl PartialEq for Color {
             self.green == rhs.green &&
             self.blue == rhs.blue &&
             self.alpha == rhs.alpha
-    }   
+    }
 }

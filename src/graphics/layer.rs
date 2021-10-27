@@ -14,13 +14,13 @@ use sdl2::video::Window;
 use std::rc::Rc;
 use std::cell::RefCell;
 
-// To use an analogy, this is a piece of paper that will be drawn on. It'll
-// then either be glued onto another layer, or onto the `Context` canvas.
-// These layers then make the full picture.
-//
-// It's important to note, the `Layer` itself doesn't really handle *what*
-// is going to be drawn on it, or in what order. It instead delegates this
-// behavior to `delegate`. Without a `delegate`, it wont draw anything.
+/// To use an analogy, this is a piece of paper that will be drawn on. It'll
+/// then either be glued onto another layer, or onto the `Context` canvas.
+/// These layers then make the full picture.
+///
+/// It's important to note, the `Layer` itself doesn't really handle *what*
+/// is going to be drawn on it, or in what order. It instead delegates this
+/// behavior to `delegate`. Without a `delegate`, it wont draw anything.
 pub struct Layer {
     context: Rc<Context>, // e.g. the window this layer is in
     texture: Rc<RefCell<Texture>>, // the texture this layer is drawn with
@@ -30,13 +30,18 @@ pub struct Layer {
     size: Size,
 
     needs_display: bool,
-    delegate: Box<dyn LayerDelegate>
+    delegate: Rc<RefCell<Box<dyn LayerDelegate>>>
 }
 
 // TODO: probably pub(crate)
 pub trait LayerDelegate {
-    fn layer_will_draw(&self, layer: &Layer);
-    fn draw_layer(&self, layer: &Layer);
+    fn layer_will_draw(&mut self, layer: &Layer);
+    fn draw_layer(&mut self, layer: &Layer);
+
+    // Drawing layer has resized, but hopefully it's a case of shuffling things
+    // around rather than redrawing all children from scratch.
+    //
+    fn layout_sublayers(&mut self, layer: &Layer) {}
 }
 
 impl Layer {
@@ -53,7 +58,7 @@ impl Layer {
             size: size,
             needs_display: true,
             texture: Rc::new(RefCell::new(texture)),
-            delegate: delegate
+            delegate: Rc::new(RefCell::new(delegate))
         }
     }
 
@@ -62,11 +67,19 @@ impl Layer {
     // Requests for the delegate to draw on this layer.
     pub fn draw(&mut self) {
         self.needs_display = false;
-        self.delegate.layer_will_draw(&self);
-        self.delegate.draw_layer(&self);
+        let mut delegate = {
+            self.delegate.borrow_mut()
+        };
+
+        delegate.layer_will_draw(self);
+        delegate.draw_layer(self);
     }
 
-    fn set_needs_display(mut self) {
+    pub(crate) fn get_needs_display(&self) -> bool {
+        self.needs_display
+    }
+
+    pub(crate) fn set_needs_display(&mut self) {
         self.needs_display = true
     }
 
@@ -97,5 +110,11 @@ impl Layer {
         let context = &self.context;
 
         context.clear_texture(&mut texture, color)
+    }
+}
+
+impl PartialEq for Layer {
+    fn eq(&self, rhs: &Layer) -> bool {
+        std::ptr::eq(self, rhs)
     }
 }
