@@ -34,13 +34,10 @@ impl pelican::graphics::LayerDelegate for FakeView  {
     }
 }
 
-
 pub fn main() -> Result<(), String> {
-    let sdl = sdl2::init().unwrap();
-
     let position = Point { x: 10, y: 10};
     let size = Size { width: 800, height: 600 };
-    let window1 = Rc::new(Context::new(&sdl, "hello world", position, size));
+    let window1 = Rc::new(Context::new("hello world", position, size));
 
     // let context_reference1 = Rc::new(RefCell::new(window1));
     // let context_reference2 = context_reference1.clone();
@@ -74,6 +71,9 @@ pub fn main() -> Result<(), String> {
     // let position = Point { x: 100, y: 100};
     // let size = Size { width: 300, height: 300 };
     // let window2 = Context::new(&sdl, "hello world", position, size);
+    let sdl: &sdl2::Sdl;
+    unsafe { sdl = pelican::graphics::SDL_CONTAINER.lazy(); }
+
 
     let mut event_pump = sdl.event_pump()?;
 

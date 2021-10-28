@@ -1,5 +1,6 @@
 mod context;
 pub use context::Context;
+pub use context::SDL_CONTAINER;
 
 mod point;
 pub use point::Point;

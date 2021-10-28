@@ -1,10 +1,8 @@
 use crate::graphics::Size;
 use crate::graphics::Point;
-use crate::graphics::Layer;
 use crate::graphics::Rectangle;
 
 use sdl2::rect::Rect;
-use sdl2::render::BlendMode;
 use sdl2::render::Texture;
 use sdl2::video::Window;
 use sdl2::video::WindowContext;
@@ -16,19 +14,55 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::convert::TryInto;
 
-/// Context for a graphics render target. E.g. a window.
+// TODO: make all SdlContainer related pub(crate)
+
+pub struct SdlContainer {
+    sdl: Option<Rc<sdl2::Sdl>>,
+}
+
+impl SdlContainer {
+    pub fn lazy(&mut self) -> &sdl2::Sdl {
+        if self.sdl.is_some() {
+            self.sdl.as_ref().unwrap()
+        } else {
+            self.sdl = Some(Rc::new(sdl2::init().unwrap()));
+            self.sdl.as_ref().unwrap()
+        }
+    }
+}
+
+pub static mut SDL_CONTAINER: SdlContainer = SdlContainer {
+    sdl: None
+};
+
+/// `Context` for a graphics render target. E.g. a window.
+///
+/// Each `Layer` for a given render target will use the `Context` to draw to
+/// screen.
 pub struct Context {
+    /// The size of the drawable canvas
     size: Size,
+
+    /// The render scale. This would be different if using a higher density
+    /// display.
     pub render_scale: f32,
+
+    /// Internal SDL canvas
     canvas: Rc<RefCell<Canvas<Window>>>,
+
+    /// Internal SDL texture creator
     pub(crate) texture_creator: TextureCreator<WindowContext>,
+
     // TODO: which one of these is the same as `size: Size`?
     render_size: Size,
     pixel_size: Size
 }
 
 impl Context {
-    pub fn new(sdl: &sdl2::Sdl, title: &str, position: Point, size: Size) -> Context {
+    pub fn new(title: &str, position: Point, size: Size) -> Context {
+        let sdl: &sdl2::Sdl;
+        unsafe { sdl = SDL_CONTAINER.lazy(); }
+
         let video_subsystem = sdl.video().unwrap();
 
         let window = video_subsystem
