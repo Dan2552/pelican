@@ -7,16 +7,60 @@ use std::rc::Rc;
 use std::rc::Weak;
 use std::cell::RefCell;
 
+pub trait WeakViewBehavior {
+    fn upgrade(&self) -> Option<Box<dyn ViewBehavior>>;
+}
+
+pub trait ViewBehavior {
+    fn data(&self) -> View;
+    fn add_subview(&mut self, child: Child) {
+        self.data().add_subview(child);
+    }
+
+    fn set_needs_display(&self) {
+        self.data().set_needs_display();
+    }
+
+    fn draw(&self) {
+        self.data().draw();
+    }
+
+    fn set_background_color(&self, color: Color) {
+        self.data().set_background_color(color);
+    }
+
+    fn set_hidden(&self, value: bool) {
+        self.data().set_hidden(value);
+    }
+}
+
+pub struct ViewParent {
+    pub(crate) view: Box<dyn WeakViewBehavior>
+}
+
+pub struct Child {
+    pub(crate) view: Box<dyn ViewBehavior>
+}
+
+impl PartialEq for Child {
+    fn eq(&self, rhs: &Child) -> bool {
+        let lhs_view = self.view.data();
+        let rhs_view = rhs.view.data();
+
+        lhs_view.id == rhs_view.id
+    }
+}
+
 pub struct View {
     /// Some way to compare `View`s (`==`) and `WeakView`s
-    id: uuid::Uuid,
+    pub id: uuid::Uuid,
 
     /// The actual view, wrapped in a reference count, so that this `View`
     /// object can easily be copied around (`clone()`).
-    inner_self: Rc<RefCell<ViewInner>>
+    pub(crate) inner_self: Rc<RefCell<ViewInner>>
 }
 
-struct ViewInner {
+pub(crate) struct ViewInner {
     /// The size and position (within its superview) of this View.
     ///
     /// Used for placing the view in the parent.
@@ -59,10 +103,10 @@ struct ViewInner {
     layer: Option<Layer>,
 
     /// The parent view; the view that contains (and owns) this one.
-    superview: WeakView,
+    pub(crate) superview: Option<ViewParent>,
 
     /// Children views; views that are contained (and owned) within this view.
-    subviews: Vec<View>,
+    pub(crate) subviews: Vec<Child>,
 
     /// Whether this view is visible or not. When hidden at the next render to
     /// screen, it'll behave the same as if it were not in the view hierarchy at
@@ -70,8 +114,12 @@ struct ViewInner {
     hidden: bool
 }
 
+trait ViewDelegate {
+
+}
+
 impl View {
-    pub fn new(frame: Rectangle) -> View {
+    pub fn new(frame: Rectangle) -> Self {
         let white = Color::white();
 
         let bounds = Rectangle {
@@ -85,33 +133,15 @@ impl View {
             background_color: white,
             z_index: 0,
             layer: None,
-            superview: WeakView::none(),
+            superview: None,
             subviews: Vec::new(),
-            hidden: false,
-            // _view_delegate: None
+            hidden: false
         };
 
         View {
             id: uuid::Uuid::new_v4(),
             inner_self: Rc::new(RefCell::new(inner_self))
         }
-    }
-
-    /// Adds a child `View` to this `View`.
-    ///
-    /// Also sets the parent (`superview`) of the child view to this `View`.
-    pub fn add_subview(&mut self, child: View) {
-        let weak_self = self.downgrade();
-        let mut inner_self = self.inner_self.borrow_mut();
-
-        // inner_self.add_subview(weak_self, child);
-
-        {
-            let mut child_inner = child.inner_self.borrow_mut();
-            child_inner.superview = weak_self;
-        }
-
-        inner_self.subviews.push(child);
     }
 
     /// Get a weak reference (`WeakView`) for this `View`
@@ -125,17 +155,29 @@ impl View {
             inner_self: weak_inner
         }
     }
+}
 
-    /// The parent view; the view that contains (and owns) this one.
-    fn superview(&self) -> Option<View> {
-        let inner_self = self.inner_self.borrow();
-        inner_self.superview.upgrade()
+impl ViewBehavior for View {
+    fn data(&self) -> View {
+        self.clone()
     }
 
-    /// Children views; views that are contained (and owned) within this view.
-    fn subviews(&self) -> Vec<View> {
-        let inner_self = self.inner_self.borrow();
-        inner_self.subviews.clone()
+    /// Adds a child `View` to this `View`.
+    ///
+    /// Also sets the parent (`superview`) of the child view to this `View`.
+    fn add_subview(&mut self, child: Child) {
+        let weak_self = self.downgrade();
+        let mut inner_self = self.inner_self.borrow_mut();
+
+        // inner_self.add_subview(weak_self, child);
+
+        {
+            let view = child.view.data();
+            let mut child_inner = view.inner_self.borrow_mut();
+            child_inner.superview = Some(ViewParent { view: Box::new(weak_self) });
+        }
+
+        inner_self.subviews.push(child);
     }
 
     /// Request for this view to be redrawn soon.
@@ -152,8 +194,12 @@ impl View {
 
             layer.set_needs_display();
 
-            if let Some(superview) = inner_self.superview.upgrade() {
-                superview.set_needs_display();
+            if let Some(parent) = &inner_self.superview {
+
+
+                if let Some(superview) = parent.view.upgrade() {
+                    superview.set_needs_display();
+                }
             }
         }
     }
@@ -174,17 +220,35 @@ impl View {
     }
 
     /// Change the background color for this view.
-    pub fn set_background_color(&self, color: Color) {
+    fn set_background_color(&self, color: Color) {
         let mut inner_self = self.inner_self.borrow_mut();
 
         inner_self.background_color = color;
         self.set_needs_display();
+    }
+
+    fn set_hidden(&self, value: bool) {
+        let mut inner_self = self.inner_self.borrow_mut();
+        inner_self.hidden = value;
     }
 }
 
 struct WeakView {
     id: uuid::Uuid,
     inner_self: Weak<RefCell<ViewInner>>
+}
+
+impl WeakViewBehavior for WeakView {
+    fn upgrade(&self) -> Option<Box<dyn ViewBehavior>> {
+        if let Some(inner_self) = self.inner_self.upgrade() {
+            Some(Box::new(View {
+                id: self.id,
+                inner_self: inner_self
+            }))
+        } else {
+            None
+        }
+    }
 }
 
 impl WeakView {
@@ -194,17 +258,6 @@ impl WeakView {
         WeakView {
             id: uuid::Uuid::new_v4(),
             inner_self: Weak::new()
-        }
-    }
-
-    fn upgrade(&self) -> Option<View> {
-        if let Some(inner_self) = self.inner_self.upgrade() {
-            Some(View {
-                id: self.id,
-                inner_self: inner_self
-            })
-        } else {
-            None
         }
     }
 }
@@ -283,7 +336,7 @@ mod tests {
     fn weak_view_upgrade() {
         let weak_view = WeakView::none();
 
-        assert_eq!(weak_view.upgrade(), None);
+        assert!(weak_view.upgrade().is_none());
     }
 
     #[test]
@@ -301,7 +354,7 @@ mod tests {
         let strong_clone = strong.clone();
 
         assert_eq!(strong.id, weak.id);
-        assert_eq!(weak.id, strong_again.id);
+        assert_eq!(weak.id, strong_again.data().id);
         assert_eq!(strong.id, strong_clone.id);
 
         let frame = Rectangle {
@@ -325,12 +378,17 @@ mod tests {
         let mut view_parent = View::new(frame.clone());
         let view_child = View::new(frame.clone());
 
-        view_parent.add_subview(view_child.clone());
+        view_parent.add_subview(Child { view: Box::new(view_child.clone()) });
 
-        assert_eq!(view_parent, view_child.superview().unwrap());
+        let view_child1 = view_child.clone();
+        let child_inner_self = &view_child1.inner_self.borrow();
+        let childs_parent = child_inner_self.superview.as_ref();
+        let childs_parent = &childs_parent.unwrap().view;
 
-        let contains_child = view_parent.subviews().contains(&view_child);
+        assert_eq!(view_parent, childs_parent.upgrade().unwrap().data());
 
+        let inner_self = view_parent.inner_self.borrow();
+        let contains_child = inner_self.subviews.contains(&Child { view: Box::new(view_child) });
         assert_eq!(contains_child, true);
     }
 }

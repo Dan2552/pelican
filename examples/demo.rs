@@ -10,7 +10,6 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
 use std::rc::Rc;
-use std::cell::RefCell;
 
 struct FakeView {
     a: u32
@@ -37,6 +36,8 @@ impl pelican::graphics::LayerDelegate for FakeView  {
 pub fn main() -> Result<(), String> {
     let position = Point { x: 10, y: 10};
     let size = Size { width: 800, height: 600 };
+
+    // TODO: abstract Rc<Context> similarly to how View is done
     let window1 = Rc::new(Context::new("hello world", position, size));
 
     // let context_reference1 = Rc::new(RefCell::new(window1));

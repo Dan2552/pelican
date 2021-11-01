@@ -12,3 +12,10 @@ mod timer;
 use timer::Timer;
 
 mod view;
+pub use view::View;
+
+mod view_controller;
+pub use view_controller::ViewController;
+
+mod window;
+pub use window::Window;
