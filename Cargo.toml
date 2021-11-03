@@ -10,5 +10,7 @@ uuid = { version = "0.8", features = ["v4"] }
 sdl2 = { version = "0.34.5", features = ["unsafe_textures"] }
 
 [[example]]
-name = "demo"
+name = "graphics"
 
+[[example]]
+name = "ui"

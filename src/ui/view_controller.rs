@@ -2,7 +2,6 @@ use crate::graphics::Point;
 use crate::graphics::Size;
 use crate::graphics::Rectangle;
 use crate::ui::View;
-use crate::ui::view::ViewBehavior;
 
 pub trait ViewControllerInner {
     fn new(view: View) -> Self;
@@ -23,9 +22,7 @@ impl<T> ViewController<T> where T: ViewControllerInner {
         let size = Size { width: 150, height: 150 };
         let frame = Rectangle { position, size };
 
-        let mut view = View::new(frame);
-
-
+        let view = View::new(frame);
         let view_controller_inner = T::new(view);
 
         let view_controller = ViewController {

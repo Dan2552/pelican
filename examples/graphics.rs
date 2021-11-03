@@ -16,7 +16,7 @@ struct FakeView {
 }
 
 impl pelican::graphics::LayerDelegate for FakeView  {
-    fn layer_will_draw(&mut self, layer: &Layer) {
+    fn layer_will_draw(&mut self, _layer: &Layer) {
 
     }
 

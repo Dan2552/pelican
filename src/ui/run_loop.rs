@@ -25,7 +25,7 @@ impl RunLoop {
         let mut default_timers = self.default_timers.borrow_mut();
 
         match mode {
-            Default => {
+            Mode::Default => {
                 default_timers.push(timer)
             }
         }
@@ -53,7 +53,7 @@ impl RunLoop {
 
     fn run_timers(&self, mode: Mode) {
         let mut timers = match mode {
-            Default => self.default_timers.borrow_mut()
+            Mode::Default => self.default_timers.borrow_mut()
         };
 
         timers.retain(|timer| {
