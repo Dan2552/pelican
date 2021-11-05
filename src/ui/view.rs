@@ -63,7 +63,13 @@ pub(crate) struct ViewInner {
     /// That is to say, the layer will call this view (it's `delegate`) to draw
     /// when the platform calls for it to be drawn (the `layer` itself will be
     /// the thing calling `#draw` for this view).
-    layer: Option<Layer>,
+    ///
+    /// A layer will only ever be present if this view is contained within a
+    /// window in the view heirarchy. It will be replaced with a fresh layer if
+    /// the parent view is ever changed.
+    ///
+    /// TODO: make remove_from_superview() clear this out
+    pub(crate) layer: Option<Layer>,
 
     /// The parent view; the view that contains (and owns) this one.
     pub(crate) superview: WeakView,
@@ -74,7 +80,7 @@ pub(crate) struct ViewInner {
     /// Whether this view is visible or not. When hidden at the next render to
     /// screen, it'll behave the same as if it were not in the view hierarchy at
     /// all.
-    hidden: bool
+    hidden: bool,
 }
 
 trait ViewDelegate {
@@ -163,6 +169,16 @@ impl Behavior for ViewBehavior {
         {
             let mut child_inner = child.inner_self.borrow_mut();
             child_inner.superview = weak_self;
+
+            if let Some(window) = view.get_window().upgrade() {
+                child_inner.layer = Some(
+                    Layer::new(
+                        window.get_context(),
+                        child_inner.frame.size.clone(),
+                        Box::new(child.clone())
+                    )
+                );
+            }
         }
 
         inner_self.subviews.push(child);
@@ -295,6 +311,17 @@ impl View {
     pub fn set_hidden(&self, value: bool) {
         let behavior = self.behavior.borrow();
         behavior.set_hidden(value);
+    }
+
+    /// Returns a reference to this view's window, if this view is contained
+    /// within one in the view heirarchy.
+    pub fn get_window(&self) -> WeakView {
+        // TODO: how to identify a view is a window?
+        WeakView::none()
+        // return self if self is window
+        // return none if superview is none
+        // return superview if superview.is_a? Window
+        // return superview.get_window()
     }
 
     /// Get a weak reference (`WeakView`) for this `View`

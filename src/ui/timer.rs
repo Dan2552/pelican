@@ -37,6 +37,14 @@ impl Timer {
         }
     }
 
+    pub fn new_once(action: fn() -> ()) -> Timer {
+        Timer::new(Duration::new(0, 0), false, action)
+    }
+
+    pub fn new_repeating(interval: Duration, action: fn() -> ()) -> Timer {
+        Timer::new(interval, true, action)
+    }
+
     // Run the action
     pub(crate) fn fire(&mut self) {
         let current_fire_at = SystemTime::now();

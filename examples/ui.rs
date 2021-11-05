@@ -7,10 +7,10 @@ use std::time::Duration;
 pub fn main() -> Result<(), String> {
     let frame = Rectangle {
         position: Point { x: 10, y: 10 },
-        size: Size { width: 50, height: 50 }
+        size: Size { width: 300, height: 300 }
     };
 
-    let window = Window::new(frame);
+    let window = Window::new("hello world", frame);
 
     let sdl: &sdl2::Sdl;
     unsafe { sdl = pelican::graphics::SDL_CONTAINER.lazy(); }

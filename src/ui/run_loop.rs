@@ -6,23 +6,25 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::time::Duration;
 
-struct RunLoop {
-    default_timers: Rc<RefCell<Vec<Timer>>>
+pub static mut MAIN: RunLoop = RunLoop {
+    default_timers: Vec::new(),
+};
+
+pub(crate) struct RunLoop {
+    default_timers: Vec<Timer>
 }
 
-enum Mode {
+pub enum Mode {
     Default
 }
 
-impl RunLoop {
-    fn new() -> RunLoop {
-        RunLoop {
-            default_timers: Rc::new(RefCell::new(Vec::new())),
-        }
+impl<'a> RunLoop {
+    pub fn main() -> &'a mut RunLoop {
+        &mut MAIN
     }
 
-    fn add_timer(&mut self, timer: Timer, mode: Mode) {
-        let mut default_timers = self.default_timers.borrow_mut();
+    pub fn add_timer(&mut self, timer: Timer, mode: Mode) {
+        let mut default_timers = self.default_timers;
 
         match mode {
             Mode::Default => {
@@ -53,7 +55,7 @@ impl RunLoop {
 
     fn run_timers(&self, mode: Mode) {
         let mut timers = match mode {
-            Mode::Default => self.default_timers.borrow_mut()
+            Mode::Default => self.default_timers
         };
 
         timers.retain(|timer| {

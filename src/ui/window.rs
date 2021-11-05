@@ -1,10 +1,14 @@
-use crate::graphics::Context;
-use crate::graphics::Rectangle;
+use crate::graphics::{Context, Rectangle};
 use crate::ui::view::{View, WeakView};
-// use crate::ui::view::Child;
 use crate::ui::Color;
-use crate::ui::view::Behavior;
-use crate::ui::view::ViewBehavior;
+use crate::ui::view::{Behavior, ViewBehavior};
+use crate::ui::Timer;
+use crate::ui::RunLoop;
+use crate::ui::run_loop::Mode;
+
+// TODO:
+// https://users.rust-lang.org/t/convert-generic-trait-t-back-to-struct/11581
+// maybe the solution is View<ViewBehavior> / View<WindowBehavior> ?
 
 struct WindowBehavior {
     view: WeakView,
@@ -15,7 +19,7 @@ struct WindowBehavior {
 
 pub struct Window {}
 impl Window {
-    pub fn new(frame: Rectangle) -> View {
+    pub fn new(title: &str, frame: Rectangle) -> View {
         let default_behavior = ViewBehavior {
             view: WeakView::none()
         };
@@ -23,7 +27,7 @@ impl Window {
         let context_frame = frame.clone();
 
         let graphics_context = Context::new(
-            "hello world",
+            title,
             context_frame.position,
             context_frame.size
         );
@@ -58,6 +62,22 @@ impl Behavior for WindowBehavior {
     fn get_view(&self) -> &WeakView {
         &self.view
     }
+
+    /// For the `WindowBehavior` specifically, this will actually add a timer to
+    /// the main loop to request a render.
+    fn set_needs_display(&self) {
+        let view = &self.view.upgrade().unwrap();
+        let inner_self = view.inner_self.borrow();
+        let layer = inner_self.layer.unwrap();
+        if layer.get_needs_display() {
+            return;
+        }
+
+        layer.set_needs_display();
+
+        let dirty_timer = Timer::new_once(window_display.clone());
+        RunLoop::main().add_timer(dirty_timer, Mode::Default);
+    }
 }
 
 impl PartialEq for WindowBehavior {
@@ -76,6 +96,10 @@ impl std::fmt::Debug for WindowBehavior {
     }
 }
 
+fn window_display() {
+
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -90,7 +114,7 @@ mod tests {
             size: Size { width: 50, height: 50 }
         };
 
-        let window = Window::new(frame);
+        let window = Window::new("test", frame);
 
         {
             let window_behavior = window.behavior.borrow();
@@ -107,7 +131,7 @@ mod tests {
             size: Size { width: 50, height: 50 }
         };
 
-        let mut view_parent = Window::new(frame.clone());
+        let mut view_parent = Window::new("test", frame.clone());
         let view_child = View::new(frame.clone());
 
         view_parent.add_subview(view_child.clone());

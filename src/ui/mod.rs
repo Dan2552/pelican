@@ -7,6 +7,7 @@ pub use color::Color;
 mod event_loop;
 
 mod run_loop;
+use run_loop::RunLoop;
 
 mod timer;
 use timer::Timer;
