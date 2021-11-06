@@ -3,11 +3,12 @@ use crate::graphics::Point;
 use crate::graphics::Layer;
 use crate::ui::Color;
 use crate::graphics::LayerDelegate;
+use crate::ui::window::WindowBehavior;
 use std::rc::Rc;
 use std::rc::Weak;
 use std::cell::RefCell;
 
-pub struct View {
+pub struct View<T> where T: Behavior {
     /// Some way to compare `View`s (`==`) and `WeakView`s
     pub id: uuid::Uuid,
 
@@ -20,7 +21,7 @@ pub struct View {
     /// implemented objects all as `View`.
     ///
     /// The default constructor for `View` uses the `ViewBehavior` struct.
-    pub(crate) behavior: Rc<RefCell<Box<dyn Behavior>>>
+    pub(crate) behavior: Rc<RefCell<T>>
 }
 
 pub(crate) struct ViewInner {
@@ -72,10 +73,10 @@ pub(crate) struct ViewInner {
     pub(crate) layer: Option<Layer>,
 
     /// The parent view; the view that contains (and owns) this one.
-    pub(crate) superview: WeakView,
+    pub(crate) superview: WeakView<dyn Behavior>,
 
     /// Children views; views that are contained (and owned) within this view.
-    pub(crate) subviews: Vec<View>,
+    pub(crate) subviews: Vec<View<dyn Behavior>>,
 
     /// Whether this view is visible or not. When hidden at the next render to
     /// screen, it'll behave the same as if it were not in the view hierarchy at
@@ -88,7 +89,7 @@ trait ViewDelegate {
 }
 
 pub trait Behavior {
-    fn super_behavior(&self) -> Option<&Box<dyn Behavior>> {
+    fn super_behavior(&self) -> Option<&dyn Behavior> {
         None
     }
 
@@ -96,17 +97,17 @@ pub trait Behavior {
         None
     }
 
-    fn set_super_behavior_view(&mut self, view: View) {
+    fn set_super_behavior_view(&mut self, view: View<dyn Behavior>) {
         if let Some(super_behavior) = self.mut_super_behavior() {
             super_behavior.set_view(view.downgrade());
             super_behavior.set_super_behavior_view(view);
         }
     }
 
-    fn set_view(&mut self, view: WeakView);
-    fn get_view(&self) -> &WeakView;
+    fn set_view(&mut self, view: WeakView<dyn Behavior>);
+    fn get_view(&self) -> &WeakView<dyn Behavior>;
 
-    fn add_subview(&self, child: View) {
+    fn add_subview(&self, child: View<dyn Behavior>) {
         if let Some(super_behavior) = self.super_behavior() {
             super_behavior.add_subview(child);
         } else {
@@ -146,21 +147,21 @@ pub trait Behavior {
 }
 
 pub struct ViewBehavior {
-    pub(crate) view: WeakView
+    pub(crate) view: WeakView<ViewBehavior>
 }
 impl Behavior for ViewBehavior {
-    fn set_view(&mut self, view: WeakView) {
+    fn set_view(&mut self, view: WeakView<ViewBehavior>) {
         self.view = view;
     }
 
-    fn get_view(&self) -> &WeakView {
+    fn get_view(&self) -> &WeakView<ViewBehavior> {
         &self.view
     }
 
     /// Adds a child `View` to this `View`.
     ///
     /// Also sets the parent (`superview`) of the child view to this `View`.
-    fn add_subview(&self, child: View) {
+    fn add_subview(&self, child: View<Box<dyn Behavior>>) {
         let view = self.get_view().upgrade().unwrap().clone();
 
         let weak_self = view.downgrade();
@@ -242,7 +243,7 @@ impl Behavior for ViewBehavior {
     }
 }
 
-impl View {
+impl View<ViewBehavior> {
     pub fn new(frame: Rectangle) -> Self {
         let behavior = ViewBehavior {
             view: WeakView::none()
@@ -252,8 +253,10 @@ impl View {
 
         view
     }
+}
 
-    pub fn new_with_behavior(behavior: Box<dyn Behavior>, frame: Rectangle) -> Self {
+impl<T> View<T> where T: Behavior {
+    pub fn new_with_behavior(behavior: Box<T>, frame: Rectangle) -> Self {
         let white = Color::white();
 
         let bounds = Rectangle {
@@ -288,7 +291,23 @@ impl View {
         view
     }
 
-    pub fn add_subview(&mut self, child: View) {
+    /// Get a weak reference (`WeakView`) for this `View`
+    ///
+    /// E.g. used to refer to a superview to not cause a cyclic reference.
+    fn downgrade(&self) -> WeakView<T> where T: Behavior {
+        let weak_inner = Rc::downgrade(&self.inner_self);
+        let weak_behavior = Rc::downgrade(&self.behavior);
+
+        WeakView {
+            id: self.id,
+            inner_self: weak_inner,
+            behavior: weak_behavior
+        }
+    }
+}
+
+impl<T> View<T> {
+    pub fn add_subview(&mut self, child: View<Box<dyn Behavior>>) {
         let behavior = self.behavior.borrow();
         behavior.add_subview(child);
     }
@@ -315,7 +334,7 @@ impl View {
 
     /// Returns a reference to this view's window, if this view is contained
     /// within one in the view heirarchy.
-    pub fn get_window(&self) -> WeakView {
+    pub fn get_window(&self) -> WeakView<WindowBehavior> {
         // TODO: how to identify a view is a window?
         WeakView::none()
         // return self if self is window
@@ -323,30 +342,16 @@ impl View {
         // return superview if superview.is_a? Window
         // return superview.get_window()
     }
-
-    /// Get a weak reference (`WeakView`) for this `View`
-    ///
-    /// E.g. used to refer to a superview to not cause a cyclic reference.
-    fn downgrade(&self) -> WeakView {
-        let weak_inner = Rc::downgrade(&self.inner_self);
-        let weak_behavior = Rc::downgrade(&self.behavior);
-
-        WeakView {
-            id: self.id,
-            inner_self: weak_inner,
-            behavior: weak_behavior
-        }
-    }
 }
 
-pub struct WeakView {
+pub struct WeakView<T> where T: Behavior {
     pub id: uuid::Uuid,
     inner_self: Weak<RefCell<ViewInner>>,
-    behavior: Weak<RefCell<Box<dyn Behavior>>>
+    behavior: Weak<RefCell<T>>
 }
 
-impl WeakView {
-    pub fn upgrade(&self) -> Option<View> {
+impl<T> WeakView<T> where T: Behavior {
+    pub fn upgrade(&self) -> Option<View<T>> {
         if let Some(inner_self) = self.inner_self.upgrade() {
             if let Some(behavior) = self.behavior.upgrade() {
                 Some(View {
@@ -364,7 +369,7 @@ impl WeakView {
 
     /// An empty WeakView. When trying to `upgrade()`, the `Option` result will
     /// be `None`.
-    pub fn none() -> WeakView {
+    pub fn none() -> WeakView<T> {
         WeakView {
             id: uuid::Uuid::new_v4(),
             inner_self: Weak::new(),
@@ -373,7 +378,7 @@ impl WeakView {
     }
 }
 
-impl LayerDelegate for View {
+impl<T> LayerDelegate for View<T> {
     fn layer_will_draw(&mut self, layer: &Layer) {
 
     }
@@ -390,7 +395,7 @@ impl LayerDelegate for View {
     }
 }
 
-impl Clone for View {
+impl<T> Clone for View<T> where T: Behavior {
     fn clone(&self) -> Self {
       View {
           id: self.id.clone(),
@@ -400,13 +405,13 @@ impl Clone for View {
     }
 }
 
-impl PartialEq for View {
-    fn eq(&self, rhs: &View) -> bool {
+impl<T> PartialEq for View<T> where T: Behavior {
+    fn eq(&self, rhs: &View<T>) -> bool {
         self.id == rhs.id
     }
 }
 
-impl std::fmt::Debug for View {
+impl<T> std::fmt::Debug for View<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let id = &self.id.to_string();
 
@@ -447,7 +452,7 @@ mod tests {
     #[test]
     /// A WeakView instantiated with `none()` is a `None` on `upgrade()`.
     fn weak_view_upgrade() {
-        let weak_view = WeakView::none();
+        let weak_view: WeakView<ViewBehavior> = WeakView::none();
 
         assert!(weak_view.upgrade().is_none());
     }
