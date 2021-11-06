@@ -10,8 +10,8 @@ use crate::ui::run_loop::Mode;
 // https://users.rust-lang.org/t/convert-generic-trait-t-back-to-struct/11581
 // maybe the solution is View<ViewBehavior> / View<WindowBehavior> ?
 
-pub struct WindowBehavior {
-    view: WeakView<WindowBehavior>,
+struct WindowBehavior {
+    view: WeakView,
     super_behavior: Box<dyn Behavior>,
 
     graphics_context: Context
@@ -19,7 +19,7 @@ pub struct WindowBehavior {
 
 pub struct Window {}
 impl Window {
-    pub fn new(title: &str, frame: Rectangle) -> View<WindowBehavior> {
+    pub fn new(title: &str, frame: Rectangle) -> View {
         let default_behavior = ViewBehavior {
             view: WeakView::none()
         };
@@ -55,11 +55,11 @@ impl Behavior for WindowBehavior {
         Some(self.super_behavior.as_mut())
     }
 
-    fn set_view(&mut self, view: WeakView<WindowBehavior>) {
+    fn set_view(&mut self, view: WeakView) {
         self.view = view;
     }
 
-    fn get_view(&self) -> &WeakView<WindowBehavior> {
+    fn get_view(&self) -> &WeakView {
         &self.view
     }
 
