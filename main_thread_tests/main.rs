@@ -5,24 +5,23 @@ use pelican::graphics::Point;
 use pelican::graphics::Size;
 
 pub fn main() -> Result<(), String> {
+    println!("custom test: behavior");
+    behavior();
+
+    println!("custom test: parent_child_relationship");
     parent_child_relationship();
     Ok(())
 }
 
-// fn initialize() {
-//     let frame = Rectangle {
-//         position: Point { x: 10, y: 10 },
-//         size: Size { width: 50, height: 50 }
-//     };
+fn behavior() {
+    let frame = Rectangle {
+        position: Point { x: 10, y: 10 },
+        size: Size { width: 50, height: 50 }
+    };
 
-//     let window = Window::new("test", frame);
-
-//     {
-//         let window_behavior = window.behavior.borrow();
-//         let view = window_behavior.get_view();
-//         assert_eq!(window, view.upgrade().unwrap());
-//     }
-// }
+    let window = Window::new("test", frame);
+    assert!(window.is_window());
+}
 
 /// Tests add_subview and superview
 fn parent_child_relationship() {

@@ -105,6 +105,10 @@ pub trait Behavior {
         }
     }
 
+    fn is_window(&self) -> bool {
+        false
+    }
+
     fn as_any(&self) -> &dyn std::any::Any;
 
     fn set_view(&mut self, view: WeakView);
@@ -315,6 +319,11 @@ impl View {
     pub fn set_hidden(&self, value: bool) {
         let behavior = self.behavior.borrow();
         behavior.set_hidden(value);
+    }
+
+    pub fn is_window(&self) -> bool {
+        let behavior = self.behavior.borrow();
+        behavior.is_window()
     }
 
     /// Get a weak reference (`WeakView`) for this `View`

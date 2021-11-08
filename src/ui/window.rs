@@ -64,6 +64,10 @@ impl Behavior for WindowBehavior {
         self
     }
 
+    fn is_window(&self) -> bool {
+        true
+    }
+
     /// For the `WindowBehavior` specifically, this will actually add a timer to
     /// the main loop to request a render.
     fn set_needs_display(&self) {
