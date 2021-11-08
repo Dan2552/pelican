@@ -2,6 +2,7 @@ use crate::graphics::Rectangle;
 use crate::graphics::Point;
 use crate::graphics::Layer;
 use crate::ui::Color;
+use crate::ui::window::WindowBehavior;
 use crate::graphics::LayerDelegate;
 use std::rc::Rc;
 use std::rc::Weak;
@@ -68,7 +69,8 @@ pub(crate) struct ViewInner {
     /// window in the view heirarchy. It will be replaced with a fresh layer if
     /// the parent view is ever changed.
     ///
-    /// TODO: make remove_from_superview() clear this out
+    /// `window::window_display()` itself manages the lifecycle of this; it is
+    /// not refreshed immediately upon changes to the view heirarchy.
     pub(crate) layer: Option<Layer>,
 
     /// The parent view; the view that contains (and owns) this one.
@@ -102,6 +104,8 @@ pub trait Behavior {
             super_behavior.set_super_behavior_view(view);
         }
     }
+
+    fn as_any(&self) -> &dyn std::any::Any;
 
     fn set_view(&mut self, view: WeakView);
     fn get_view(&self) -> &WeakView;
@@ -157,6 +161,10 @@ impl Behavior for ViewBehavior {
         &self.view
     }
 
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
     /// Adds a child `View` to this `View`.
     ///
     /// Also sets the parent (`superview`) of the child view to this `View`.
@@ -168,17 +176,9 @@ impl Behavior for ViewBehavior {
 
         {
             let mut child_inner = child.inner_self.borrow_mut();
-            child_inner.superview = weak_self;
 
-            if let Some(window) = view.get_window().upgrade() {
-                child_inner.layer = Some(
-                    Layer::new(
-                        window.get_context(),
-                        child_inner.frame.size.clone(),
-                        Box::new(child.clone())
-                    )
-                );
-            }
+            // Set the child superview
+            child_inner.superview = weak_self;
         }
 
         inner_self.subviews.push(child);
@@ -193,6 +193,10 @@ impl Behavior for ViewBehavior {
 
         let mut inner_self = view.inner_self.borrow_mut();
 
+        // The layer may not yet exist for this view if it's not drawn to the
+        // context at least once. But this is ok, because when a layer is set
+        // by `window::window_display()` it will be be implied needs display as
+        // default.
         if let Some(layer) = &mut inner_self.layer {
             if layer.get_needs_display() {
                 return;
@@ -313,17 +317,6 @@ impl View {
         behavior.set_hidden(value);
     }
 
-    /// Returns a reference to this view's window, if this view is contained
-    /// within one in the view heirarchy.
-    pub fn get_window(&self) -> WeakView {
-        // TODO: how to identify a view is a window?
-        WeakView::none()
-        // return self if self is window
-        // return none if superview is none
-        // return superview if superview.is_a? Window
-        // return superview.get_window()
-    }
-
     /// Get a weak reference (`WeakView`) for this `View`
     ///
     /// E.g. used to refer to a superview to not cause a cyclic reference.
@@ -336,6 +329,21 @@ impl View {
             inner_self: weak_inner,
             behavior: weak_behavior
         }
+    }
+
+    pub fn superview(&self) -> WeakView {
+        let inner_self = self.inner_self.borrow();
+
+        if let Some(superview) = inner_self.superview.upgrade() {
+            superview.downgrade()
+        } else {
+            WeakView::none()
+        }
+    }
+
+    pub fn subviews(&self) -> Vec<View> {
+        let inner_self = self.inner_self.borrow();
+        inner_self.subviews.clone()
     }
 }
 
@@ -369,6 +377,14 @@ impl WeakView {
             id: uuid::Uuid::new_v4(),
             inner_self: Weak::new(),
             behavior: Weak::new()
+        }
+    }
+
+    pub fn is_none(&self) -> bool {
+        if let Some(_) = self.upgrade() {
+            true
+        } else {
+            false
         }
     }
 }

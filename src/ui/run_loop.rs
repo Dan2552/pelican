@@ -6,12 +6,12 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::time::Duration;
 
-pub static mut MAIN: RunLoop = RunLoop {
-    default_timers: Vec::new(),
+static mut MAIN: RunLoop = RunLoop {
+    timers: Vec::new(),
 };
 
 pub(crate) struct RunLoop {
-    default_timers: Vec<Timer>
+    timers: Vec<Timer>
 }
 
 pub enum Mode {
@@ -20,20 +20,14 @@ pub enum Mode {
 
 impl<'a> RunLoop {
     pub fn main() -> &'a mut RunLoop {
-        &mut MAIN
+        unsafe { &mut MAIN }
     }
 
     pub fn add_timer(&mut self, timer: Timer, mode: Mode) {
-        let mut default_timers = self.default_timers;
-
-        match mode {
-            Mode::Default => {
-                default_timers.push(timer)
-            }
-        }
+        self.timers.push(timer)
     }
 
-    fn run(&self) {
+    fn run(&mut self) {
         let mut last_loop_instant = Instant::now();
 
         loop {
@@ -53,12 +47,8 @@ impl<'a> RunLoop {
         }
     }
 
-    fn run_timers(&self, mode: Mode) {
-        let mut timers = match mode {
-            Mode::Default => self.default_timers
-        };
-
-        timers.retain(|timer| {
+    fn run_timers(&mut self, mode: Mode) {
+        self.timers.retain(|timer| {
             if timer.is_valid() {
                 true
             } else {
@@ -66,7 +56,7 @@ impl<'a> RunLoop {
             }
         });
 
-        for timer in timers.iter_mut() {
+        for timer in self.timers.iter_mut() {
             if timer.fire_at() > SystemTime::now() {
                 timer.fire();
             }

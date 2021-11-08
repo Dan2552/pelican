@@ -14,3 +14,8 @@ name = "graphics"
 
 [[example]]
 name = "ui"
+
+[[test]]
+name = "main_thread_tests"
+path = "main_thread_tests/main.rs"
+harness = false
