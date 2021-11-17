@@ -1,12 +1,14 @@
-pub(crate) struct ApplicationMain {
-    delegate: Box<dyn ApplicationDelegate>
-}
+use crate::ui::Application;
 
 pub trait ApplicationDelegate {
     fn application_will_finish_launching(&self) {}
     fn application_did_finish_launching(&self) {}
     fn application_did_become_active(&self) {}
     fn application_will_terminate(&self) {}
+}
+
+pub(crate) struct ApplicationMain {
+    delegate: Box<dyn ApplicationDelegate>
 }
 
 impl ApplicationMain {

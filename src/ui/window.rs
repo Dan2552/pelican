@@ -1,7 +1,9 @@
-use crate::graphics::{Context, Rectangle};
+use crate::graphics::{Context, Layer, Rectangle, Point, Size};
 use crate::ui::view::{View, WeakView};
+use crate::ui::Application;
+use crate::ui::render;
 use crate::ui::Color;
-use crate::ui::view::{Behavior, ViewBehavior};
+use crate::ui::view::{Behavior, DefaultBehavior};
 use crate::ui::Timer;
 use crate::ui::RunLoop;
 use crate::ui::run_loop::Mode;
@@ -10,14 +12,13 @@ use std::rc::Rc;
 pub struct WindowBehavior {
     view: WeakView,
     super_behavior: Box<dyn Behavior>,
-
-    graphics_context: Context
+    pub(crate) graphics_context: Rc<Context>
 }
 
 pub struct Window {}
 impl Window {
     pub fn new(title: &str, frame: Rectangle) -> View {
-        let default_behavior = ViewBehavior {
+        let default_behavior = DefaultBehavior {
             view: WeakView::none()
         };
 
@@ -32,12 +33,16 @@ impl Window {
         let window = WindowBehavior {
             view: WeakView::none(),
             super_behavior: Box::new(default_behavior),
-            graphics_context: graphics_context
+            graphics_context: Rc::new(graphics_context)
         };
 
         let view = View::new_with_behavior(Box::new(window), frame);
         view.set_hidden(true);
         view.set_background_color(Color::white());
+
+        let mut application = Application::adopt();
+        application.add_window(view.clone());
+        application.disown();
 
         view
     }
@@ -73,8 +78,12 @@ impl Behavior for WindowBehavior {
     fn set_needs_display(&self) {
         self.super_behavior().unwrap().set_needs_display();
 
-        let dirty_timer = Timer::new_once(window_display.clone());
-        RunLoop::main().add_timer(dirty_timer, Mode::Default);
+        let window_view = self.get_view().upgrade().unwrap();
+
+        let mut run_loop = RunLoop::adopt();
+        let dirty_timer = Timer::new_once(move || render::window_display(window_view.clone()));
+        run_loop.add_timer(dirty_timer, Mode::Default);
+        run_loop.disown();
     }
 }
 
@@ -94,55 +103,8 @@ impl std::fmt::Debug for WindowBehavior {
     }
 }
 
-fn window_display() {
-// TODO: lazily create layer if view has none, or if mismatch
-// TODO: when lazily creating, ensure layer is set to needs display as default
+fn make_key_and_visible(view: &View) {
+    let mut application = Application::adopt();
+    application.set_key_window(view);
+    view.set_hidden(false);
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use crate::graphics::Rectangle;
-//     use crate::graphics::Point;
-//     use crate::graphics::Size;
-
-//     #[test]
-//     fn initialize() {
-//         let frame = Rectangle {
-//             position: Point { x: 10, y: 10 },
-//             size: Size { width: 50, height: 50 }
-//         };
-
-//         let window = Window::new("test", frame);
-
-//         {
-//             let window_behavior = window.behavior.borrow();
-//             let view = window_behavior.get_view();
-//             assert_eq!(window, view.upgrade().unwrap());
-//         }
-//     }
-
-//     #[test]
-//     /// Tests add_subview and superview
-//     fn parent_child_relationship() {
-//         let frame = Rectangle {
-//             position: Point { x: 10, y: 10 },
-//             size: Size { width: 50, height: 50 }
-//         };
-
-//         let mut view_parent = Window::new("test", frame.clone());
-//         let view_child = View::new(frame.clone());
-
-//         view_parent.add_subview(view_child.clone());
-
-//         let view_child1 = view_child.clone();
-//         let child_inner_self = &view_child1.inner_self.borrow();
-//         let childs_parent = &child_inner_self.superview;
-
-//         assert_eq!(view_parent, childs_parent.upgrade().unwrap());
-
-//         let inner_self = view_parent.inner_self.borrow();
-//         let contains_child = inner_self.subviews.contains(&view_child);
-//         assert_eq!(contains_child, true);
-//     }
-// }

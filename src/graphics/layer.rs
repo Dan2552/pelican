@@ -22,7 +22,7 @@ use std::cell::RefCell;
 /// is going to be drawn on it, or in what order. It instead delegates this
 /// behavior to `delegate`. Without a `delegate`, it wont draw anything.
 pub struct Layer {
-    context: Rc<Context>, // e.g. the window this layer is in
+    pub(crate) context: Rc<Context>, // e.g. the window this layer is in
     texture: Rc<RefCell<Texture>>, // the texture this layer is drawn with
 
     // TODO: should the size be updated using the following somewhere? Maybe it cannot change though without layer changing it?

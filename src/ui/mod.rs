@@ -14,9 +14,15 @@ use timer::Timer;
 
 mod view;
 pub use view::View;
+pub use view::WeakView;
 
 mod view_controller;
 pub use view_controller::ViewController;
 
 mod window;
 pub use window::Window;
+
+mod application;
+use application::Application;
+
+mod render;

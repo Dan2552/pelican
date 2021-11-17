@@ -5,7 +5,7 @@ use std::time::Duration;
 pub struct Timer {
     interval: Duration,
     repeats: bool,
-    action: fn() -> (),
+    action: Box<dyn Fn() -> ()>,
 
     // If set to invalid, the timer will no longer run, and the main loop will
     // recognise it should be removed. In addition, an invalid timer cannot be
@@ -24,33 +24,30 @@ pub struct Timer {
 }
 
 impl Timer {
-    pub fn new(interval: Duration, repeats: bool, action: fn() -> ()) -> Timer {
+    pub fn new(interval: Duration, repeats: bool, action: impl Fn() -> () + 'static) -> Self {
         let now = SystemTime::now();
-
-        Timer {
+        Self {
             interval,
             repeats,
-            action,
+            action: Box::new(action),
             is_valid: true,
             last_fired_at: now,
             fire_at: now + interval
         }
     }
 
-    pub fn new_once(action: fn() -> ()) -> Timer {
+    pub fn new_once(action: impl Fn() -> () + 'static) -> Self {
         Timer::new(Duration::new(0, 0), false, action)
     }
 
-    pub fn new_repeating(interval: Duration, action: fn() -> ()) -> Timer {
+    pub fn new_repeating(interval: Duration, action: impl Fn() -> () + 'static) -> Self {
         Timer::new(interval, true, action)
     }
 
     // Run the action
     pub(crate) fn fire(&mut self) {
         let current_fire_at = SystemTime::now();
-        let action = self.action;
-
-        action();
+        (self.action)();
 
         self.fire_at = current_fire_at + self.interval;
         self.last_fired_at = current_fire_at;

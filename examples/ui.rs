@@ -15,7 +15,6 @@ pub fn main() -> Result<(), String> {
     let sdl: &sdl2::Sdl;
     unsafe { sdl = pelican::graphics::SDL_CONTAINER.lazy(); }
 
-
     let mut event_pump = sdl.event_pump()?;
 
     'running: loop {

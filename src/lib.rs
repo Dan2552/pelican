@@ -4,3 +4,4 @@
 
 pub mod graphics;
 pub mod ui;
+pub mod singleton;

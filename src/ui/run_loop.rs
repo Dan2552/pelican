@@ -5,11 +5,9 @@ use std::time::SystemTime;
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::time::Duration;
+use crate::singleton;
 
-static mut MAIN: RunLoop = RunLoop {
-    timers: Vec::new(),
-};
-
+singleton::singleton!(RunLoop, timers: Vec::new());
 pub(crate) struct RunLoop {
     timers: Vec<Timer>
 }
@@ -18,11 +16,7 @@ pub enum Mode {
     Default
 }
 
-impl<'a> RunLoop {
-    pub fn main() -> &'a mut RunLoop {
-        unsafe { &mut MAIN }
-    }
-
+impl RunLoop {
     pub fn add_timer(&mut self, timer: Timer, mode: Mode) {
         self.timers.push(timer)
     }
