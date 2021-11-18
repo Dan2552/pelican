@@ -1,7 +1,6 @@
 use crate::ui::Timer;
 use std::time::Instant;
 use std::thread::sleep;
-use std::time::SystemTime;
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::time::Duration;
@@ -21,7 +20,7 @@ impl RunLoop {
         self.timers.push(timer)
     }
 
-    fn run(&mut self) {
+    pub(crate) fn run(&mut self) {
         let mut last_loop_instant = Instant::now();
 
         loop {
@@ -50,8 +49,10 @@ impl RunLoop {
             }
         });
 
+        println!("{} valid timers", self.timers.len());
         for timer in self.timers.iter_mut() {
-            if timer.fire_at() > SystemTime::now() {
+            if timer.fire_at() > Instant::now() {
+                println!("firing");
                 timer.fire();
             }
         }

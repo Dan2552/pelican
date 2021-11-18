@@ -1,5 +1,6 @@
 mod application_main;
-pub(crate) use application_main::ApplicationMain;
+pub use application_main::ApplicationMain;
+pub use application_main::ApplicationDelegate;
 
 mod color;
 pub use color::Color;

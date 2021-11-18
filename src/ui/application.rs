@@ -11,6 +11,7 @@ pub struct Application {
 
 impl<'a> Application {
     pub(crate) fn add_window(&mut self, view: View) {
+        println!("Application: add_window");
         self.windows.push(view);
     }
 

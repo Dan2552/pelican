@@ -1,11 +1,11 @@
-use std::time::SystemTime;
 use std::time::Duration;
+use std::time::Instant;
 
 // A repeating or once-off Timer object, to be run by the main loop.
 pub struct Timer {
     interval: Duration,
     repeats: bool,
-    action: Box<dyn Fn() -> ()>,
+    action: Box<dyn FnMut() -> ()>,
 
     // If set to invalid, the timer will no longer run, and the main loop will
     // recognise it should be removed. In addition, an invalid timer cannot be
@@ -14,18 +14,18 @@ pub struct Timer {
 
     // The last time the timer has fired. If it hasn't fired, it'll be the
     // time of initialization.
-    last_fired_at: SystemTime,
+    last_fired_at: Instant,
 
     // Next target time to fire. If there is a delay to fire, or the fire takes
     // too long, it
     //
     // When invalidated, the last fire date.
-    fire_at: SystemTime
+    fire_at: Instant
 }
 
 impl Timer {
-    pub fn new(interval: Duration, repeats: bool, action: impl Fn() -> () + 'static) -> Self {
-        let now = SystemTime::now();
+    pub fn new(interval: Duration, repeats: bool, action: impl FnMut() -> () + 'static) -> Self {
+        let now = Instant::now();
         Self {
             interval,
             repeats,
@@ -36,17 +36,17 @@ impl Timer {
         }
     }
 
-    pub fn new_once(action: impl Fn() -> () + 'static) -> Self {
+    pub fn new_once(action: impl FnMut() -> () + 'static) -> Self {
         Timer::new(Duration::new(0, 0), false, action)
     }
 
-    pub fn new_repeating(interval: Duration, action: impl Fn() -> () + 'static) -> Self {
+    pub fn new_repeating(interval: Duration, action: impl FnMut() -> () + 'static) -> Self {
         Timer::new(interval, true, action)
     }
 
     // Run the action
     pub(crate) fn fire(&mut self) {
-        let current_fire_at = SystemTime::now();
+        let current_fire_at = Instant::now();
         (self.action)();
 
         self.fire_at = current_fire_at + self.interval;
@@ -61,7 +61,7 @@ impl Timer {
         self.is_valid
     }
 
-    pub fn fire_at(&self) -> SystemTime {
+    pub fn fire_at(&self) -> Instant {
         self.fire_at
     }
 
@@ -71,5 +71,75 @@ impl Timer {
     pub fn invalidate(&mut self) {
         self.is_valid = false;
         self.fire_at = self.last_fired_at;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_fire_at() {
+        // by default
+        //   it returns the next time to fire (now + given interval)
+        let now = Instant::now();
+        let interval = Duration::from_secs(360);
+        let mut timer = Timer::new(interval, false, || {});
+
+        let fire_at = timer.fire_at();
+
+        assert!(fire_at > now, "fire_at should be higher than now");
+        assert!(fire_at >= now + interval, "fire_at should be higher or equal to now+interval");
+
+        // There's a wider gap here than expected intentionally, as extra time may have passed during the test execution
+        assert!(fire_at < now + Duration::from_secs(361), "fire_at should be lower than too far beyond the interval");
+
+        // when fired
+        //   it refreshes the fire_at
+        let now = Instant::now(); 
+        timer.fire();
+        assert_ne!(fire_at, timer.fire_at());
+        
+        let fire_at = timer.fire_at();
+
+        assert!(fire_at > now, "after fire; fire_at should be higher than now");
+        assert!(fire_at >= now + interval, "after fire; fire_at should be higher or equal to now+interval");
+
+        // There's a wider gap here than expected intentionally, as extra time may have passed during the test execution
+        assert!(fire_at < now + Duration::from_secs(361), "after fire; fire_at should be lower than too far beyond the interval");
+
+        // when invalidated
+        //   it sets the fire_at to the last time it fired
+        let now = Instant::now();
+        timer.invalidate();
+        let fire_at_after_invalidate = timer.fire_at();
+
+        assert_ne!(fire_at, fire_at_after_invalidate);
+        assert!(fire_at_after_invalidate < now, "after invalidate; fire_at should be lower than now");
+    }
+
+    #[test]
+    fn test_is_valid() {
+        let interval = Duration::from_secs(360);
+        let mut timer = Timer::new(interval, false, || {});
+
+        assert!(timer.is_valid());
+        timer.invalidate();
+        assert!(!timer.is_valid());
+    }
+    
+    static mut FIRED: bool = false;
+
+    #[test]
+    fn test_fire() {
+        let interval = Duration::from_secs(360);
+
+        let mut timer = Timer::new(interval, false, || {
+            unsafe { FIRED = true; } 
+        });
+
+        unsafe { assert!(!FIRED); }
+        timer.fire();
+        unsafe { assert!(FIRED); }
     }
 }
