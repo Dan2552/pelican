@@ -65,7 +65,6 @@ impl RunLoop {
             }
         });
 
-        println!("{} valid timers", timers.len());
         for timer in timers.iter_mut() {
             if timer.fire_at() < Instant::now() {
                 timer.fire();
