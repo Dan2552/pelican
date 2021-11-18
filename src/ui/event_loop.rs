@@ -1,5 +1,6 @@
 use sdl2::Sdl;
 use sdl2::event::Event;
+use crate::ui::RunLoop;
 
 // enum EventLoopError {
 //     ExitError
@@ -18,9 +19,15 @@ pub(crate) fn update(sdl: &Sdl) {
 
     for event in event_pump.poll_iter() {
         match event {
+            Event::Quit { .. } => {
+                quit();
+            }
             _ => {}
         }
     }
+}
 
-    std::thread::sleep(std::time::Duration::new(0, 1_000_000_000u32 / 30));
+fn quit() {
+    let run_loop = RunLoop::borrow();
+    run_loop.exit();
 }

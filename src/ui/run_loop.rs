@@ -3,12 +3,19 @@ use std::time::Instant;
 use std::thread::sleep;
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::cell::Cell;
 use std::time::Duration;
 use crate::singleton;
 
-singleton::singleton!(RunLoop, timers: Vec::new());
+singleton::singleton!(
+    RunLoop,
+    timers: RefCell::new(Vec::new()),
+    state: Cell::new(State::Running)
+);
+
 pub(crate) struct RunLoop {
-    timers: Vec<Timer>
+    timers: RefCell<Vec<Timer>>,
+    state: Cell<State>
 }
 
 pub enum Mode {
@@ -16,23 +23,26 @@ pub enum Mode {
 }
 
 impl RunLoop {
-    pub fn add_timer(&mut self, timer: Timer, mode: Mode) {
-        self.timers.push(timer)
+    pub fn add_timer(&self, timer: Timer, mode: Mode) {
+        let mut timers = self.timers.borrow_mut();
+        timers.push(timer)
     }
 
-    pub(crate) fn run(&mut self) {
+    pub(crate) fn run(&self) {
         let mut last_loop_instant = Instant::now();
 
         loop {
+            if self.state.get().is_exit() {
+                break;
+            }
+
             let now = Instant::now();
             let delta = now.duration_since(last_loop_instant);
             last_loop_instant = now;
 
-
             self.run_timers(Mode::Default);
 
             let delta_milliseconds = delta.as_millis();
-
 
             if delta_milliseconds < 10 {
                 sleep(Duration::from_millis(10) - delta)
@@ -40,8 +50,14 @@ impl RunLoop {
         }
     }
 
-    fn run_timers(&mut self, mode: Mode) {
-        self.timers.retain(|timer| {
+    /// Notify the run loop to break the loop and end.
+    pub(crate) fn exit(&self) {
+        self.state.set(State::Exit);
+    }
+
+    fn run_timers(&self, mode: Mode) {
+        let mut timers = self.timers.borrow_mut();
+        timers.retain(|timer| {
             if timer.is_valid() {
                 true
             } else {
@@ -49,12 +65,26 @@ impl RunLoop {
             }
         });
 
-        println!("{} valid timers", self.timers.len());
-        for timer in self.timers.iter_mut() {
-            if timer.fire_at() > Instant::now() {
-                println!("firing");
+        println!("{} valid timers", timers.len());
+        for timer in timers.iter_mut() {
+            if timer.fire_at() < Instant::now() {
                 timer.fire();
             }
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+enum State {
+    Running,
+    Exit
+}
+
+impl State {
+    fn is_exit(&self) -> bool {
+        match *self {
+            State::Exit => true,
+            _ => false,
         }
     }
 }

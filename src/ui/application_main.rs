@@ -33,15 +33,15 @@ impl ApplicationMain {
         // specific parts. This means the RunLoop won't needlessly iterate the
         // whole view tree every loop in order to work out if something needs
         // re-rendering.
-        let mut run_loop = RunLoop::adopt();
-        
+        let run_loop = RunLoop::borrow();
+
         // The only default timer that is started by defualt is the event loop.
         // The event loop will handle all OS events; any user or device input
         // and propagate to the appropriate areas of the application.
         {
             let sdl: &sdl2::Sdl;
             unsafe { sdl = crate::graphics::SDL_CONTAINER.lazy(); }
-            
+
             let duration = Duration::from_millis(0);
             let timer = Timer::new_repeating(duration, move || event_loop::update(sdl));
             run_loop.add_timer(timer, Mode::Default);
@@ -53,6 +53,5 @@ impl ApplicationMain {
 
         println!("application_will_terminate");
         self.delegate.application_will_terminate();
-        run_loop.disown();
     }
 }

@@ -8,13 +8,13 @@ use pelican::ui::{ApplicationMain, ApplicationDelegate};
 struct AppDelegate {}
 impl ApplicationDelegate for AppDelegate {
     fn application_did_finish_launching(&self) {
-        
+
 
         let frame = Rectangle {
             position: Point { x: 10, y: 10 },
             size: Size { width: 300, height: 300 }
         };
-        // let window = Window::new("hello world", frame);
+        let window = Window::new("hello world", frame);
     }
 }
 

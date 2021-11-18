@@ -40,9 +40,8 @@ impl Window {
         view.set_hidden(true);
         view.set_background_color(Color::white());
 
-        let mut application = Application::adopt();
+        let mut application = Application::borrow_mut();
         application.add_window(view.clone());
-        application.disown();
 
         view
     }
@@ -80,10 +79,9 @@ impl Behavior for WindowBehavior {
 
         let window_view = self.get_view().upgrade().unwrap();
 
-        let mut run_loop = RunLoop::adopt();
+        let run_loop = RunLoop::borrow();
         let dirty_timer = Timer::new_once(move || render::window_display(window_view.clone()));
         run_loop.add_timer(dirty_timer, Mode::Default);
-        run_loop.disown();
     }
 }
 
@@ -104,7 +102,7 @@ impl std::fmt::Debug for WindowBehavior {
 }
 
 fn make_key_and_visible(view: &View) {
-    let mut application = Application::adopt();
+    let mut application = Application::borrow_mut();
     application.set_key_window(view);
     view.set_hidden(false);
 }
