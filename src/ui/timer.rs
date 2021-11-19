@@ -5,7 +5,7 @@ use std::time::Instant;
 pub struct Timer {
     interval: Duration,
     repeats: bool,
-    action: Box<dyn FnMut() -> ()>,
+    action: Box<dyn Fn() -> ()>,
 
     // If set to invalid, the timer will no longer run, and the main loop will
     // recognise it should be removed. In addition, an invalid timer cannot be
@@ -24,7 +24,7 @@ pub struct Timer {
 }
 
 impl Timer {
-    pub fn new(interval: Duration, repeats: bool, action: impl FnMut() -> () + 'static) -> Self {
+    pub fn new(interval: Duration, repeats: bool, action: impl Fn() -> () + 'static) -> Self {
         let now = Instant::now();
         Self {
             interval,
@@ -36,11 +36,11 @@ impl Timer {
         }
     }
 
-    pub fn new_once(action: impl FnMut() -> () + 'static) -> Self {
+    pub fn new_once(action: impl Fn() -> () + 'static) -> Self {
         Timer::new(Duration::new(0, 0), false, action)
     }
 
-    pub fn new_repeating(interval: Duration, action: impl FnMut() -> () + 'static) -> Self {
+    pub fn new_repeating(interval: Duration, action: impl Fn() -> () + 'static) -> Self {
         Timer::new(interval, true, action)
     }
 
@@ -96,10 +96,10 @@ mod tests {
 
         // when fired
         //   it refreshes the fire_at
-        let now = Instant::now(); 
+        let now = Instant::now();
         timer.fire();
         assert_ne!(fire_at, timer.fire_at());
-        
+
         let fire_at = timer.fire_at();
 
         assert!(fire_at > now, "after fire; fire_at should be higher than now");
@@ -127,7 +127,7 @@ mod tests {
         timer.invalidate();
         assert!(!timer.is_valid());
     }
-    
+
     static mut FIRED: bool = false;
 
     #[test]
@@ -135,7 +135,7 @@ mod tests {
         let interval = Duration::from_secs(360);
 
         let mut timer = Timer::new(interval, false, || {
-            unsafe { FIRED = true; } 
+            unsafe { FIRED = true; }
         });
 
         unsafe { assert!(!FIRED); }

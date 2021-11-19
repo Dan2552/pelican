@@ -4,6 +4,7 @@ mod view_inner;
 mod view;
 mod weak_view;
 mod delegate;
+
 pub use view::View;
 pub use weak_view::WeakView;
 pub use behavior::Behavior;

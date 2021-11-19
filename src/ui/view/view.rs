@@ -66,7 +66,7 @@ impl View {
         view
     }
 
-    pub fn add_subview(&mut self, child: View) {
+    pub fn add_subview(&self, child: View) {
         let behavior = self.behavior.borrow();
         behavior.add_subview(child);
     }

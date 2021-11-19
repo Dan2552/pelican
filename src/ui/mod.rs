@@ -16,12 +16,13 @@ use timer::Timer;
 mod view;
 pub use view::View;
 pub use view::WeakView;
-
 mod view_controller;
+pub use view_controller::ViewControllerBehavior;
 pub use view_controller::ViewController;
 
 mod window;
 pub use window::Window;
+pub use window::WindowBehavior;
 
 mod application;
 use application::Application;
