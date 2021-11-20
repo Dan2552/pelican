@@ -1,4 +1,4 @@
-use crate::ui::view::{View, ViewInner, WeakView, Behavior};
+use crate::ui::view::{View, WeakView, Behavior};
 use crate::ui::Color;
 
 pub struct DefaultBehavior {

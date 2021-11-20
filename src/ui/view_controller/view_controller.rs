@@ -1,15 +1,12 @@
-use crate::graphics::Point;
-use crate::graphics::Size;
-use crate::graphics::Rectangle;
 use crate::ui::View;
 use std::cell::Cell;
 
 pub trait ViewControllerBehavior {
-    fn view_will_disappear(&self, view: View) {}
-    fn view_did_disappear(&self, view: View) {}
-    fn view_will_appear(&self, view: View) {}
-    fn view_did_appear(&self, view: View) {}
-    fn view_did_load(&self, view: View) {}
+    fn view_will_disappear(&self, _view: View) {}
+    fn view_did_disappear(&self, _view: View) {}
+    fn view_will_appear(&self, _view: View) {}
+    fn view_did_appear(&self, _view: View) {}
+    fn view_did_load(&self, _view: View) {}
 }
 
 #[derive(Copy, Clone)]

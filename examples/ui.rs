@@ -5,19 +5,19 @@ use pelican::ui::{ViewController, ViewControllerBehavior};
 
 struct ExampleViewController {}
 impl ViewControllerBehavior for ExampleViewController {
-    fn view_will_disappear(&self, view: View) {
+    fn view_will_disappear(&self, _view: View) {
         println!("view_will_disappear");
     }
-    fn view_did_disappear(&self, view: View) {
+    fn view_did_disappear(&self, _view: View) {
         println!("view_did_disappear");
     }
-    fn view_will_appear(&self, view: View) {
+    fn view_will_appear(&self, _view: View) {
         println!("view_will_appear");
     }
-    fn view_did_appear(&self, view: View) {
+    fn view_did_appear(&self, _view: View) {
         println!("view_did_appear");
     }
-    fn view_did_load(&self, view: View) {
+    fn view_did_load(&self, _view: View) {
         println!("view_did_load");
     }
 }

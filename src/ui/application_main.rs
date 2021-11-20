@@ -1,5 +1,4 @@
-use crate::ui::{Application, RunLoop, Timer};
-use crate::ui::run_loop::Mode;
+use crate::ui::{RunLoop, Timer};
 use crate::ui::event_loop;
 use std::time::Duration;
 
@@ -44,7 +43,7 @@ impl ApplicationMain {
 
             let duration = Duration::from_millis(0);
             let timer = Timer::new_repeating(duration, move || event_loop::update(sdl));
-            run_loop.add_timer(timer, Mode::Default);
+            run_loop.add_timer(timer);
         }
 
         println!("application_did_become_active");

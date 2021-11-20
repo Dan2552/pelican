@@ -83,7 +83,7 @@ mod tests {
             size: Size { width: 50, height: 50 }
         };
 
-        let mut view_parent = View::new(frame.clone());
+        let view_parent = View::new(frame.clone());
         let view_child = View::new(frame.clone());
 
         view_parent.add_subview(view_child.clone());

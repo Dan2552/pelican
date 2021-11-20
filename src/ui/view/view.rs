@@ -1,7 +1,7 @@
 use crate::ui::Color;
 use crate::ui::view::{WeakView, Behavior, DefaultBehavior, ViewInner};
 use crate::graphics::{Layer, Rectangle, Point, LayerDelegate};
-use std::rc::{Rc, Weak};
+use std::rc::Rc;
 use std::cell::RefCell;
 
 pub struct View {
@@ -137,11 +137,11 @@ impl View {
 }
 
 impl LayerDelegate for View {
-    fn layer_will_draw(&mut self, layer: &Layer) {
+    fn layer_will_draw(&mut self, _layer: &Layer) {
 
     }
 
-    fn draw_layer(&mut self, layer: &Layer) {
+    fn draw_layer(&mut self, _layer: &Layer) {
         self.draw();
     }
 }

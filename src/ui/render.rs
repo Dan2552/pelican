@@ -1,6 +1,6 @@
 use crate::ui::view::View;
 use crate::ui::window::WindowBehavior;
-use crate::graphics::{Rectangle, Point, Size, Layer};
+use crate::graphics::Layer;
 
 pub(crate) fn window_display(window: View) {
     // Additional reference for view controller notification.
@@ -64,21 +64,10 @@ fn draw_view(view: &View, behavior: &WindowBehavior) {
         // redraw the subview (if it needs it!)
         draw_view(subview, behavior);
 
-        let x_offset = 0;
-        let y_offset = 0;
-
-        // TODO: content offset. Though maybe better handled through view
-        // bounds?
-        // if view.respond_to?(:content_offset)
-        //   x_offset = view.content_offset.x
-        //   y_offset = view.content_offset.y
-        // end
         let sub_inner_view = subview.inner_self.borrow();
         let subview_layer = sub_inner_view.layer.as_ref().unwrap();
 
         let frame = subview.get_frame();
-
-        let render_scale = layer.context.render_scale;
 
         layer.draw_child_layer(subview_layer, &frame);
     }

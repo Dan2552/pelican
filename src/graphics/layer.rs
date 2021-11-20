@@ -7,9 +7,6 @@ use crate::graphics::Rectangle;
 use sdl2::render::Texture;
 use sdl2::render::TextureAccess;
 use sdl2::render::BlendMode;
-use sdl2::rect::Rect;
-use sdl2::render::Canvas;
-use sdl2::video::Window;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -42,7 +39,7 @@ pub trait LayerDelegate {
     // Drawing layer has resized, but hopefully it's a case of shuffling things
     // around rather than redrawing all children from scratch.
     //
-    fn layout_sublayers(&mut self, layer: &Layer) {}
+    fn layout_sublayers(&mut self, _layer: &Layer) {}
 }
 
 impl Layer {

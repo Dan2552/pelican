@@ -1,9 +1,7 @@
 use crate::ui::Timer;
 use std::time::Instant;
 use std::thread::sleep;
-use std::rc::Rc;
-use std::cell::RefCell;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::time::Duration;
 use crate::singleton;
 
@@ -18,12 +16,8 @@ pub(crate) struct RunLoop {
     state: Cell<State>
 }
 
-pub enum Mode {
-    Default
-}
-
 impl RunLoop {
-    pub fn add_timer(&self, timer: Timer, mode: Mode) {
+    pub fn add_timer(&self, timer: Timer) {
         let mut timers = self.timers.borrow_mut();
         timers.push(timer)
     }
@@ -40,7 +34,7 @@ impl RunLoop {
             let delta = now.duration_since(last_loop_instant);
             last_loop_instant = now;
 
-            self.run_timers(Mode::Default);
+            self.run_timers();
 
             let delta_milliseconds = delta.as_millis();
 
@@ -55,7 +49,7 @@ impl RunLoop {
         self.state.set(State::Exit);
     }
 
-    fn run_timers(&self, mode: Mode) {
+    fn run_timers(&self) {
         let mut timers = self.timers.borrow_mut();
         timers.retain(|timer| {
             if timer.is_valid() {

@@ -43,11 +43,11 @@ pub fn main() -> Result<(), String> {
     // let context_reference2 = context_reference1.clone();
     let size = Size { width: 800, height: 600 };
     let delegate = FakeView { a: 1 };
-    let mut layer1 = Layer::new(window1.clone(), size, Box::new(delegate));
+    let layer1 = Layer::new(window1.clone(), size, Box::new(delegate));
 
     let size = Size { width: 50, height: 50 };
     let delegate = FakeView { a: 2 };
-    let mut layer2 = Layer::new(window1.clone(), size, Box::new(delegate));
+    let layer2 = Layer::new(window1.clone(), size, Box::new(delegate));
 
     let rectangle = Rectangle {
         position: Point { x: 10, y: 10 },
@@ -68,12 +68,8 @@ pub fn main() -> Result<(), String> {
 
 
 
-    // let position = Point { x: 100, y: 100};
-    // let size = Size { width: 300, height: 300 };
-    // let window2 = Context::new(&sdl, "hello world", position, size);
     let sdl: &sdl2::Sdl;
     unsafe { sdl = pelican::graphics::SDL_CONTAINER.lazy(); }
-
 
     let mut event_pump = sdl.event_pump()?;
 
@@ -89,10 +85,7 @@ pub fn main() -> Result<(), String> {
             }
         }
 
-    //     canvas.clear();
-        // canvas.present();
-        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 30));
-    //     // The rest of the game loop goes here...
+        std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 30));
     }
 
     Ok(())

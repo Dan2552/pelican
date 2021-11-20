@@ -1,4 +1,4 @@
-use crate::graphics::{Context, Layer, Rectangle, Point, Size};
+use crate::graphics::{Context, Rectangle};
 use crate::ui::{View, WeakView, ViewController};
 use crate::ui::view::{Behavior, DefaultBehavior};
 use crate::ui::Application;
@@ -6,11 +6,8 @@ use crate::ui::render;
 use crate::ui::Color;
 use crate::ui::Timer;
 use crate::ui::RunLoop;
-use crate::ui::run_loop::Mode;
 use std::rc::Rc;
-use std::any::Any;
 use std::option::Option;
-use std::cell::RefCell;
 
 pub struct WindowBehavior {
     view: WeakView,
@@ -117,7 +114,6 @@ impl Behavior for WindowBehavior {
 
         let window_view = self.view.upgrade().unwrap();
         {
-            let inner_view = window_view.inner_self.borrow();
             let behavior = window_view.behavior.borrow();
             let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().unwrap();
             let vc = &behavior.view_controller;
@@ -127,14 +123,7 @@ impl Behavior for WindowBehavior {
         let run_loop = RunLoop::borrow();
         // TODO: would this benefit from Window rather than View?
         let dirty_timer = Timer::new_once(move || render::window_display(window_view.clone()));
-        run_loop.add_timer(dirty_timer, Mode::Default);
-    }
-}
-
-impl WindowBehavior {
-    fn get_window(&self) -> Window {
-        let view = self.get_view().upgrade().unwrap();
-        Window::from_window_view(view)
+        run_loop.add_timer(dirty_timer);
     }
 }
 

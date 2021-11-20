@@ -1,5 +1,3 @@
-use crate::graphics::Context;
-use crate::graphics::Drawable;
 use crate::graphics::Bundle;
 
 pub struct Font {
