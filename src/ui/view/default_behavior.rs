@@ -1,4 +1,4 @@
-use crate::ui::view::{View, WeakView, Behavior};
+use crate::ui::view::{View, ViewInner, WeakView, Behavior};
 use crate::ui::Color;
 
 pub struct DefaultBehavior {
@@ -67,32 +67,29 @@ impl Behavior for DefaultBehavior {
     /// For example, the default `View` implementation simply draws the
     /// background color as a box of the size of the frame.
     fn draw(&self) {
+        println!("VIEW IS DRAWING");
         let view = self.view.upgrade().unwrap().clone();
 
-        let mut inner_self = view.inner_self.borrow_mut();
+        let inner_self = view.inner_self.borrow();
 
         let color = inner_self.background_color.to_graphics_color();
 
-        if let Some(layer) = &mut inner_self.layer {
+        if let Some(layer) = &inner_self.layer {
             layer.clear_with_color(color);
         }
     }
 
     /// Change the background color for this view.
     fn set_background_color(&self, color: Color) {
-        {
-            let view = self.view.upgrade().unwrap().clone();
+        let view = self.view.upgrade().unwrap().clone();
 
-            let mut inner_self = view.inner_self.borrow_mut();
+        let mut inner_self = view.inner_self.borrow_mut();
 
-            inner_self.background_color = color;
-        }
-        self.set_needs_display();
+        inner_self.background_color = color;
     }
 
     fn set_hidden(&self, value: bool) {
         let view = self.view.upgrade().unwrap().clone();
-
         let mut inner_self = view.inner_self.borrow_mut();
         inner_self.hidden = value;
     }

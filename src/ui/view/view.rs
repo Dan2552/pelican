@@ -21,7 +21,7 @@ pub struct View {
 }
 
 impl View {
-    pub fn new(frame: Rectangle) -> Self {
+    pub fn new(frame: Rectangle<i32, u32>) -> Self {
         let behavior = DefaultBehavior {
             view: WeakView::none()
         };
@@ -31,7 +31,7 @@ impl View {
         view
     }
 
-    pub fn new_with_behavior(behavior: Box<dyn Behavior>, frame: Rectangle) -> Self {
+    pub fn new_with_behavior(behavior: Box<dyn Behavior>, frame: Rectangle<i32, u32>) -> Self {
         let white = Color::white();
 
         let bounds = Rectangle {
@@ -84,11 +84,16 @@ impl View {
     pub fn set_background_color(&self, color: Color) {
         let behavior = self.behavior.borrow();
         behavior.set_background_color(color);
+        behavior.set_needs_display();
     }
 
     pub fn set_hidden(&self, value: bool) {
         let behavior = self.behavior.borrow();
+
         behavior.set_hidden(value);
+        if !value {
+            behavior.set_needs_display();
+        }
     }
 
     pub fn is_window(&self) -> bool {
@@ -96,7 +101,7 @@ impl View {
         behavior.is_window()
     }
 
-    pub fn get_frame(&self) -> Rectangle {
+    pub fn get_frame(&self) -> Rectangle<i32, u32> {
         let inner_self = self.inner_self.borrow();
         inner_self.frame.clone()
     }
@@ -137,14 +142,7 @@ impl LayerDelegate for View {
     }
 
     fn draw_layer(&mut self, layer: &Layer) {
-        // if let Some(self_layer) = &self.layer {
-        //     if layer != self_layer {
-        //         // TODO: change this to return once known `layer != self_layer` works as expected
-        //         panic!("layer mismatch");
-        //         return;
-        //     }
-        //     self.draw();
-        // }
+        self.draw();
     }
 }
 

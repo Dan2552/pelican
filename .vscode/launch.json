@@ -50,6 +50,27 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "Debug example 'ui'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=ui",
+                    "--package=pelican"
+                ],
+                "filter": {
+                    "name": "ui",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "LIBRARY_PATH": "/opt/homebrew/lib"
+            }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "Debug unit tests in example 'demo'",
             "cargo": {
                 "args": [

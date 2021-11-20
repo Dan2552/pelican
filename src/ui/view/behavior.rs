@@ -1,4 +1,4 @@
-use crate::ui::view::{View, WeakView};
+use crate::ui::view::{View, WeakView, ViewInner};
 use crate::ui::Color;
 
 pub trait Behavior {

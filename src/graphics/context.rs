@@ -41,7 +41,7 @@ pub static mut SDL_CONTAINER: SdlContainer = SdlContainer {
 /// screen.
 pub struct Context {
     /// The size of the drawable canvas
-    size: Size,
+    size: Size<u32>,
 
     /// The render scale. This would be different if using a higher density
     /// display.
@@ -54,12 +54,12 @@ pub struct Context {
     pub(crate) texture_creator: TextureCreator<WindowContext>,
 
     // TODO: which one of these is the same as `size: Size`?
-    render_size: Size,
-    pixel_size: Size
+    render_size: Size<u32>,
+    pixel_size: Size<u32>
 }
 
 impl Context {
-    pub fn new(title: &str, position: Point, size: Size) -> Context {
+    pub fn new(title: &str, position: Point<i32>, size: Size<u32>) -> Context {
         let sdl: &sdl2::Sdl;
         unsafe { sdl = SDL_CONTAINER.lazy(); }
 
@@ -67,7 +67,7 @@ impl Context {
 
         let window = video_subsystem
             .window(title, size.width, size.height)
-            .position(position.x.try_into().unwrap(), position.y.try_into().unwrap())
+            .position(position.x, position.y)
             .opengl()
             .allow_highdpi()
             .build()
@@ -83,7 +83,7 @@ impl Context {
         let (pixel_width, pixel_height) = canvas.output_size().unwrap();
 
         let render_size = Size { width: render_width, height: render_height };
-        let pixel_size = Size { width: pixel_width, height: pixel_height };
+        let pixel_size = Size { width: pixel_width, height: pixel_height  };
 
         let render_scale = pixel_width as f32 / size.width as f32;
 
@@ -101,15 +101,16 @@ impl Context {
 
     // TODO: pub(crate)
     pub fn draw(&self) {
+        println!("present");
         let mut canvas = self.canvas.borrow_mut();
         canvas.present();
     }
 
     // TODO: pub(crate)
-    pub fn draw_texture_in_context(&self, child: &Texture, destination: &Rectangle) {
+    pub fn draw_texture_in_context(&self, child: &Texture, destination: &Rectangle<i32, u32>) {
         let destination = Rect::new(
-            destination.position.x.try_into().unwrap(),
-            destination.position.y.try_into().unwrap(),
+            destination.position.x,
+            destination.position.y,
             destination.size.width,
             destination.size.height
         );
@@ -119,7 +120,7 @@ impl Context {
         canvas.copy(child, None, destination).unwrap();
     }
 
-    pub(crate) fn draw_texture_in_texture(&self, parent: &mut Texture, child: &Texture, destination: &Rectangle) {
+    pub(crate) fn draw_texture_in_texture(&self, parent: &mut Texture, child: &Texture, destination: &Rectangle<i32, u32>) {
         let destination = Rect::new(
             destination.position.x.try_into().unwrap(),
             destination.position.y.try_into().unwrap(),
@@ -144,12 +145,4 @@ impl Context {
             canvas.clear();
         }).unwrap();
     }
-
-    // pub(crate) fn inside_texture<F>(self, texture: Texture, f: F) where for<'r> F: FnOnce(&'r mut Canvas<sdl2::video::Window>),{
-    //     let mut canvas = self.canvas;
-    //     let mut texture = texture;
-    //     canvas.with_texture_canvas(&mut texture, |texture_canvas| {
-    //         f(texture_canvas);
-    //     }).unwrap();
-    // }
 }

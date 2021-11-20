@@ -16,7 +16,7 @@ pub struct WindowBehavior {
     view: WeakView,
     super_behavior: Box<dyn Behavior>,
     pub(crate) graphics_context: Rc<Context>,
-    view_controller: ViewController<'static>
+    pub(crate) view_controller: ViewController<'static>
 }
 
 pub struct Window {
@@ -31,7 +31,7 @@ impl std::ops::Deref for Window {
 }
 
 impl Window {
-    pub fn new(title: &str, frame: Rectangle, view_controller: ViewController<'static>) -> Window {
+    pub fn new(title: &str, frame: Rectangle<i32, u32>, view_controller: ViewController<'static>) -> Window {
         let default_behavior = DefaultBehavior {
             view: WeakView::none()
         };
@@ -52,8 +52,6 @@ impl Window {
         };
 
         let view = View::new_with_behavior(Box::new(window_behavior), frame);
-        view.set_hidden(true);
-        view.set_background_color(Color::white());
 
         let mut application = Application::borrow_mut();
         application.add_window(view.clone());
@@ -67,6 +65,9 @@ impl Window {
             view_controller.window_loaded(view);
         }
 
+        window.view.set_hidden(true);
+        window.view.set_background_color(Color::white());
+
         window
     }
 
@@ -75,6 +76,12 @@ impl Window {
         let _ = view.behavior.borrow().as_any().downcast_ref::<WindowBehavior>().unwrap();
 
         Window { view }
+    }
+
+    pub fn make_key_and_visible(&self) {
+        let mut application = Application::borrow_mut();
+        application.set_key_window(&self.view);
+        self.set_hidden(false);
     }
 }
 
@@ -161,10 +168,4 @@ impl std::fmt::Debug for Window {
          .field(&id)
          .finish()
     }
-}
-
-fn make_key_and_visible(view: &View) {
-    let mut application = Application::borrow_mut();
-    application.set_key_window(view);
-    view.set_hidden(false);
 }

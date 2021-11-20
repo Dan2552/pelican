@@ -1,9 +1,9 @@
-pub struct Point {
-  pub x: i32,
-  pub y: i32
+pub struct Point<T> {
+  pub x: T,
+  pub y: T
 }
 
-impl Clone for Point {
+impl<T> Clone for Point<T> where T: Copy {
   fn clone(&self) -> Self {
     Point {
       x: self.x,

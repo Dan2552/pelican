@@ -6,7 +6,7 @@ pub(crate) struct ViewInner {
     /// The size and position (within its superview) of this View.
     ///
     /// Used for placing the view in the parent.
-    pub frame: Rectangle,
+    pub frame: Rectangle<i32, u32>,
 
     /// The size and position of the View from the view's own coordinate
     /// perspective.
@@ -21,7 +21,7 @@ pub(crate) struct ViewInner {
     ///
     /// If you still don't get it, see:
     /// https://stackoverflow.com/a/28917673/869367
-    pub bounds: Rectangle,
+    pub bounds: Rectangle<i32, u32>,
 
     /// The background color of the view. In its simplest form, a View is just a
     /// rectangle with a single color - this is that color.

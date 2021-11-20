@@ -1,9 +1,9 @@
-pub struct Size {
-    pub width: u32,
-    pub height: u32
+pub struct Size<T> {
+    pub width: T,
+    pub height: T
 }
 
-impl Clone for Size {
+impl<T> Clone for Size<T> where T: Copy {
     fn clone(&self) -> Self {
       Size {
         width: self.width,

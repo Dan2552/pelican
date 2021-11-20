@@ -5,12 +5,20 @@ use pelican::ui::{ViewController, ViewControllerBehavior};
 
 struct ExampleViewController {}
 impl ViewControllerBehavior for ExampleViewController {
-    fn view_did_load(&self, view: View) {
-        println!("view_did_load");
+    fn view_will_disappear(&self, view: View) {
+        println!("view_will_disappear");
     }
-
+    fn view_did_disappear(&self, view: View) {
+        println!("view_did_disappear");
+    }
     fn view_will_appear(&self, view: View) {
         println!("view_will_appear");
+    }
+    fn view_did_appear(&self, view: View) {
+        println!("view_did_appear");
+    }
+    fn view_did_load(&self, view: View) {
+        println!("view_did_load");
     }
 }
 
@@ -19,7 +27,7 @@ impl ApplicationDelegate for AppDelegate {
     fn application_did_finish_launching(&self) {
         let frame = Rectangle {
             position: Point { x: 10, y: 10 },
-            size: Size { width: 300, height: 300 }
+            size: Size { width: 480, height: 320 }
         };
 
         // TODO: is it possible to make it so you just pass in
@@ -27,7 +35,7 @@ impl ApplicationDelegate for AppDelegate {
         // wrapped ViewController?
         let view_controller = ViewController::new(ExampleViewController {});
         let window = Window::new("hello world", frame, view_controller);
-
+        window.make_key_and_visible();
     }
 }
 

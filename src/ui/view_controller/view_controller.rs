@@ -53,8 +53,8 @@ impl ViewController<'_> {
         }
     }
 
-    /// Called by `Window.set_needs_display`. I.e. when the window needs to
-    /// render.
+    /// Called by `WindowBehavior.set_needs_display`. I.e. when the window needs
+    /// to render.
     ///
     /// If the window hasn't rendered before, then this is the time to notify
     /// the app that the view is going to appear.
@@ -75,6 +75,30 @@ impl ViewController<'_> {
             State::DidDisappear => {
                 panic!("TODO: what should happen here?")
             }
+        }
+    }
+
+    /// Called by `render::window_display` after the view has been drawn to
+    /// screen.
+    ///
+    /// This will be called on every re-render; specifically we care on the
+    /// first render whilst we're still on `WillAppear` state.
+    pub(crate) fn window_displayed(&self, view: View) {
+        match self.state.get() {
+            State::WillLoad => {
+                panic!("Window is displaying but is somehow not loaded");
+            },
+            State::DidLoad => {
+                panic!("Window missed WillAppear somehow");
+            },
+            State::WillAppear => {
+                self.state.set(State::DidAppear);
+                self.behavior.view_did_appear(view);
+            },
+            State::DidDisappear => {
+                panic!("Disappeared but still rendering")
+            }
+            _ => ()
         }
     }
 }

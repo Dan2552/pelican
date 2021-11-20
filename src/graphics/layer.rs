@@ -13,6 +13,7 @@ use sdl2::video::Window;
 
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::cell::Cell;
 
 /// To use an analogy, this is a piece of paper that will be drawn on. It'll
 /// then either be glued onto another layer, or onto the `Context` canvas.
@@ -27,9 +28,9 @@ pub struct Layer {
 
     // TODO: should the size be updated using the following somewhere? Maybe it cannot change though without layer changing it?
     // SDL_QueryTexture(texture, NULL, NULL, &width, &height);
-    size: Size,
+    size: Size<u32>,
 
-    needs_display: bool,
+    needs_display: Cell<bool>,
     delegate: Rc<RefCell<Box<dyn LayerDelegate>>>
 }
 
@@ -46,17 +47,21 @@ pub trait LayerDelegate {
 
 impl Layer {
     // TODO: probably pub(crate)
-    pub fn new(context: Rc<Context>, size: Size, delegate: Box<dyn LayerDelegate>) -> Layer {
+    pub fn new(context: Rc<Context>, size: Size<u32>, delegate: Box<dyn LayerDelegate>) -> Layer {
         let mut texture = context.texture_creator
-                .create_texture(None, TextureAccess::Target, size.width, size.height)
-                .unwrap();
+            .create_texture(
+                None,
+                TextureAccess::Target,
+                size.width,
+                size.height
+            ).unwrap();
 
         texture.set_blend_mode(BlendMode::Blend);
 
         Layer {
             context: context,
             size: size,
-            needs_display: true,
+            needs_display: Cell::new(true),
             texture: Rc::new(RefCell::new(texture)),
             delegate: Rc::new(RefCell::new(delegate))
         }
@@ -65,8 +70,9 @@ impl Layer {
     // TODO: pub(crate)
     //
     // Requests for the delegate to draw on this layer.
-    pub fn draw(&mut self) {
-        self.needs_display = false;
+    pub fn draw(&self) {
+        println!("LAYER DRAWING");
+        self.needs_display.set(false);
         let mut delegate = {
             self.delegate.borrow_mut()
         };
@@ -76,18 +82,20 @@ impl Layer {
     }
 
     pub(crate) fn get_needs_display(&self) -> bool {
-        self.needs_display
+        self.needs_display.get()
     }
 
-    pub(crate) fn set_needs_display(&mut self) {
-        self.needs_display = true
+    pub(crate) fn set_needs_display(&self) {
+        self.needs_display.set(true)
     }
 
     // TODO: pub(crate)
-    pub fn draw_child_layer(&self, child_layer: &Layer, destination: &Rectangle) {
+    pub fn draw_child_layer(&self, child_layer: &Layer, destination: &Rectangle<i32, u32>) {
         let mut parent_texture = self.texture.borrow_mut();
         let child_texture = child_layer.texture.borrow();
         let context = &self.context;
+
+        let destination = destination * self.context.render_scale;
 
         context.draw_texture_in_texture(&mut parent_texture, &child_texture, &destination);
     }
@@ -97,11 +105,13 @@ impl Layer {
         let context = &self.context;
         let texture = self.texture.borrow_mut();
 
-        // TODO: clone size
         let rectangle = Rectangle {
             position: Point { x: 0, y: 0 },
-            size: Size { width: self.size.width, height: self.size.height }
+            size: self.size.clone()
         };
+
+        let rectangle = &rectangle * self.context.render_scale;
+
         context.draw_texture_in_context(&texture, &rectangle);
     }
 
