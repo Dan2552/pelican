@@ -101,8 +101,6 @@ impl Layer {
         let child_texture = child_layer.texture.borrow();
         let context = &self.context;
 
-        let destination = destination * self.context.render_scale;
-
         context.draw_texture_in_texture(&mut parent_texture, &child_texture, &destination);
     }
 

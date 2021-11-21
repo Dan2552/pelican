@@ -6,29 +6,18 @@ use pelican::platform::Bundle;
 
 struct ExampleViewController {}
 impl ViewControllerBehavior for ExampleViewController {
-    fn view_will_disappear(&self, _view: View) {
-        println!("view_will_disappear");
-    }
-    fn view_did_disappear(&self, _view: View) {
-        println!("view_did_disappear");
-    }
-    fn view_will_appear(&self, _view: View) {
-        println!("view_will_appear");
-    }
-    fn view_did_appear(&self, _view: View) {
-        println!("view_did_appear");
-    }
     fn view_did_load(&self, view: View) {
         println!("view_did_load");
-        let frame = Rectangle::new(10, 10, 30, 30);
-        let child_view = View::new(frame);
-        child_view.set_background_color(Color::red());
-        view.add_subview(child_view);
 
         let bundle = Bundle::borrow();
         let image = Image::new("/Users/dan2552/Dropbox/experiments/avian/pelican/test_application/resources/pixels_ruler.png", &bundle);
         let image_view = ImageView::new(image, Point { x: 0, y: 0 });
         view.add_subview(image_view.view);
+
+        let frame = Rectangle::new(10, 10, 30, 30);
+        let child_view = View::new(frame);
+        child_view.set_background_color(Color::red());
+        view.add_subview(child_view);
     }
 }
 
