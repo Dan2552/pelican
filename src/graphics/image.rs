@@ -37,7 +37,11 @@ impl<'a> Image<'a> {
         Image { size, layers, surface }
     }
 
-    fn layer_for(mut self, context: Rc<Context>) -> Rc<Layer> {
+    pub fn size(&self) -> &Size<u32> {
+        &self.size
+    }
+
+    pub(crate) fn layer_for(&mut self, context: Rc<Context>) -> Rc<Layer> {
         let layers = &mut self.layers;        
 
         let texture = self.surface.as_texture(&context.texture_creator).unwrap();

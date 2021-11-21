@@ -4,12 +4,14 @@ mod view_inner;
 mod view;
 mod weak_view;
 mod delegate;
+mod image_view;
 
 pub use view::View;
 pub use weak_view::WeakView;
 pub use behavior::Behavior;
 pub use default_behavior::DefaultBehavior;
 pub(crate) use view_inner::ViewInner;
+pub use image_view::ImageView;
 
 #[cfg(test)]
 mod tests {

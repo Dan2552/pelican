@@ -1,7 +1,8 @@
-use pelican::graphics::{Rectangle};
-use pelican::ui::{View, Window, Color};
+use pelican::graphics::{Point, Rectangle, Image};
+use pelican::ui::{View, Window, Color, ImageView};
 use pelican::ui::{ApplicationMain, ApplicationDelegate};
 use pelican::ui::{ViewController, ViewControllerBehavior};
+use pelican::platform::Bundle;
 
 struct ExampleViewController {}
 impl ViewControllerBehavior for ExampleViewController {
@@ -23,6 +24,11 @@ impl ViewControllerBehavior for ExampleViewController {
         let child_view = View::new(frame);
         child_view.set_background_color(Color::red());
         view.add_subview(child_view);
+
+        let bundle = Bundle::borrow();
+        let image = Image::new("/Users/dan2552/Dropbox/experiments/avian/pelican/test_application/resources/pixels_ruler.png", &bundle);
+        let image_view = ImageView::new(image, Point { x: 0, y: 0 });
+        view.add_subview(image_view.view);
     }
 }
 

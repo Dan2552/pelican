@@ -16,6 +16,7 @@ use timer::Timer;
 mod view;
 pub use view::View;
 pub use view::WeakView;
+pub use view::ImageView;
 mod view_controller;
 pub use view_controller::ViewControllerBehavior;
 pub use view_controller::ViewController;
