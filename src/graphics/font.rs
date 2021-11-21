@@ -1,4 +1,4 @@
-use crate::graphics::Bundle;
+use crate::platform::Bundle;
 
 pub struct Font {
     path: String,

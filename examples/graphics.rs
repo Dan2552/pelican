@@ -16,11 +16,11 @@ struct FakeView {
 }
 
 impl pelican::graphics::LayerDelegate for FakeView  {
-    fn layer_will_draw(&mut self, _layer: &Layer) {
+    fn layer_will_draw(&self, _layer: &Layer) {
 
     }
 
-    fn draw_layer(&mut self, layer: &Layer) {
+    fn draw_layer(&self, layer: &Layer) {
         if self.a == 1 {
             println!("red");
             let color = Color::RGBA(255, 0, 0, 255);

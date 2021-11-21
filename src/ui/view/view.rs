@@ -137,11 +137,11 @@ impl View {
 }
 
 impl LayerDelegate for View {
-    fn layer_will_draw(&mut self, _layer: &Layer) {
+    fn layer_will_draw(&self, _layer: &Layer) {
 
     }
 
-    fn draw_layer(&mut self, _layer: &Layer) {
+    fn draw_layer(&self, _layer: &Layer) {
         self.draw();
     }
 }

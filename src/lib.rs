@@ -3,3 +3,4 @@
 pub mod graphics;
 pub mod ui;
 pub mod singleton;
+pub mod platform;

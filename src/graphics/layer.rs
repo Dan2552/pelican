@@ -28,18 +28,18 @@ pub struct Layer {
     size: Size<u32>,
 
     needs_display: Cell<bool>,
-    delegate: Rc<RefCell<Box<dyn LayerDelegate>>>
+    delegate: Box<dyn LayerDelegate>
 }
 
 // TODO: probably pub(crate)
 pub trait LayerDelegate {
-    fn layer_will_draw(&mut self, layer: &Layer);
-    fn draw_layer(&mut self, layer: &Layer);
+    fn layer_will_draw(&self, _layer: &Layer) {}
+    fn draw_layer(&self, _layer: &Layer) {}
 
-    // Drawing layer has resized, but hopefully it's a case of shuffling things
-    // around rather than redrawing all children from scratch.
-    //
-    fn layout_sublayers(&mut self, _layer: &Layer) {}
+    /// Drawing layer has resized, but hopefully it's a case of shuffling things
+    /// around rather than redrawing all children from scratch.
+    ///
+    fn layout_sublayers(&self, _layer: &Layer) {}
 }
 
 impl Layer {
@@ -60,7 +60,20 @@ impl Layer {
             size: size,
             needs_display: Cell::new(true),
             texture: Rc::new(RefCell::new(texture)),
-            delegate: Rc::new(RefCell::new(delegate))
+            delegate: delegate
+        }
+    }
+
+    /// Create a layer with a texture already drawn. That is, a texture is
+    /// passed in at construction, and there is no delegate to handle any draw
+    /// instructions. Making `draw()` no-op.
+    pub fn new_prerendered(context: Rc<Context>, size: Size<u32>, texture: Texture) -> Layer {
+        Layer {
+            context: context,
+            size: size,
+            needs_display: Cell::new(false),
+            texture: Rc::new(RefCell::new(texture)),
+            delegate: Box::new(EmptyLayerDelegate {})
         }
     }
 
@@ -70,12 +83,8 @@ impl Layer {
     pub fn draw(&self) {
         println!("LAYER DRAWING");
         self.needs_display.set(false);
-        let mut delegate = {
-            self.delegate.borrow_mut()
-        };
-
-        delegate.layer_will_draw(self);
-        delegate.draw_layer(self);
+        self.delegate.layer_will_draw(self);
+        self.delegate.draw_layer(self);
     }
 
     pub(crate) fn get_needs_display(&self) -> bool {
@@ -125,3 +134,6 @@ impl PartialEq for Layer {
         std::ptr::eq(self, rhs)
     }
 }
+
+struct EmptyLayerDelegate {}
+impl LayerDelegate for EmptyLayerDelegate {}
