@@ -45,12 +45,15 @@ pub trait LayerDelegate {
 impl Layer {
     // TODO: probably pub(crate)
     pub fn new(context: Rc<Context>, size: Size<u32>, delegate: Box<dyn LayerDelegate>) -> Layer {
+        let width = (size.width as f32 * context.render_scale) as u32;
+        let height = (size.height as f32 * context.render_scale) as u32;
+
         let mut texture = context.texture_creator
             .create_texture(
                 None,
                 TextureAccess::Target,
-                size.width,
-                size.height
+                width,
+                height
             ).unwrap();
 
         texture.set_blend_mode(BlendMode::Blend);
@@ -100,6 +103,8 @@ impl Layer {
         let mut parent_texture = self.texture.borrow_mut();
         let child_texture = child_layer.texture.borrow();
         let context = &self.context;
+
+        let destination = destination * self.context.render_scale;
 
         context.draw_texture_in_texture(&mut parent_texture, &child_texture, &destination);
     }

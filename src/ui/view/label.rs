@@ -1,5 +1,7 @@
 use crate::graphics::Rectangle;
 use crate::graphics::Font;
+use crate::graphics::Point;
+use crate::graphics::Size;
 use crate::ui::Color;
 use crate::ui::{View, WeakView};
 use crate::ui::view::{Behavior, DefaultBehavior};
@@ -18,10 +20,12 @@ pub struct Label {
 }
 
 impl Label {
-    pub fn new(frame: Rectangle<i32, u32>, font: Font<'static, 'static>, text: String) -> Label {
+    pub fn new(frame: Rectangle<i32, u32>, text: String) -> Label {
         let super_behavior = DefaultBehavior {
             view: WeakView::none()
         };
+
+        let font = Font::new("Arial", 17);
 
         let behavior = LabelBehavior {
             view: WeakView::none(),
@@ -75,8 +79,12 @@ impl Behavior for LabelBehavior {
         if let Some(layer) = &inner_self.layer {
             let mut font = behavior.font.borrow_mut();
             let child_layer = font.layer_for(layer.context.clone(), &text);
-            let position = inner_self.frame.position.clone();
+            let position = Point { x: 0, y: 0 };
             let size = child_layer.get_size().clone();
+            let size = Size {
+                width: size.width / 2,
+                height: size.height / 2
+            };
             let destination = Rectangle { position, size };
             layer.draw_child_layer(&child_layer, &destination);
         }

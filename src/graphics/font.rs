@@ -49,7 +49,12 @@ static mut TTF_CONTAINER: SdlTtfContainer = SdlTtfContainer {
 };
 
 impl<'ttf_module, 'rwops> Font<'ttf_module, 'rwops> {
-    pub fn new(font_name: &str, size: u16, bundle: &Bundle) -> Font<'ttf_module, 'rwops> {
+    pub fn new(font_name: &str, size: u16) -> Font<'ttf_module, 'rwops> {
+        let bundle = Bundle::borrow();
+        Font::new_with_bundle(font_name, size, &bundle)
+    }
+
+    pub fn new_with_bundle(font_name: &str, size: u16, bundle: &Bundle) -> Font<'ttf_module, 'rwops> {
         let path = find_font(font_name, bundle);
         let font_sizes = HashMap::new();
         Font { path, size, font_sizes }
@@ -62,7 +67,7 @@ impl<'ttf_module, 'rwops> Font<'ttf_module, 'rwops> {
 
         let surface = font
             .render(text)
-            .blended(sdl2::pixels::Color::RGBA(255, 0, 0, 255))
+            .blended(sdl2::pixels::Color::RGBA(0, 0, 0, 255))
             .unwrap();
 
         let texture = surface.as_texture(&context.texture_creator).unwrap();

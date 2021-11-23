@@ -8,6 +8,10 @@ pub struct Color {
 }
 
 impl Color {
+    pub fn new(red: u8, green: u8, blue: u8, alpha: u8) -> Color {
+        Color { red, green, blue, alpha }
+    }
+
     pub fn white() -> Color {
         Color {
             red: 255,

@@ -21,7 +21,12 @@ pub struct Image<'a> {
 }
 
 impl<'a> Image<'a> {
-    pub fn new(name: &str, bundle: &Bundle) -> Image<'a> {
+    pub fn new(name: &str) -> Image<'a> {
+        let bundle = Bundle::borrow();
+        Image::new_with_bundle(name, &bundle)
+    }
+
+    pub fn new_with_bundle(name: &str, bundle: &Bundle) -> Image<'a> {
         let image_path = bundle.path_for_resource(name);
 
         let surface = Surface::from_file(image_path).unwrap();
