@@ -1,4 +1,4 @@
-use crate::graphics::{Layer};
+use crate::graphics::Layer;
 use crate::graphics::Size;
 use crate::graphics::Context;
 use crate::platform::Bundle;
@@ -38,16 +38,16 @@ impl<'a> Image<'a> {
         &self.size
     }
 
-    pub(crate) fn layer_for(&mut self, context: Rc<Context>) -> Rc<Layer> {
-        let layers = &mut self.layers;
-
-        let texture = self.surface.as_texture(&context.texture_creator).unwrap();
-
-        let layer = Layer::new_prerendered(context.clone(), self.size.clone(), texture);
-        layer.draw();
-        layers.insert(context.id, Rc::new(layer));
-
+    pub fn layer_for(&mut self, context: Rc<Context>) -> Rc<Layer> {
         let id = context.id;
+
+        if self.layers.get(&id).is_none() {
+            let texture = self.surface.as_texture(&context.texture_creator).unwrap();
+            let layer = Layer::new_prerendered(context.clone(), self.size.clone(), texture);
+            let layers = &mut self.layers;
+            layers.insert(context.id, Rc::new(layer));
+        }
+
         self.layers.get(&id).unwrap().clone()
     }
 }

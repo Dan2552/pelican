@@ -125,6 +125,10 @@ impl Layer {
 
         context.clear_texture(&mut texture, color)
     }
+
+    pub fn get_size(&self) -> &Size<u32> {
+        &self.size
+    }
 }
 
 impl PartialEq for Layer {

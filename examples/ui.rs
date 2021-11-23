@@ -1,5 +1,5 @@
-use pelican::graphics::{Point, Rectangle, Image};
-use pelican::ui::{View, Window, Color, ImageView};
+use pelican::graphics::{Point, Rectangle, Image, Font};
+use pelican::ui::{View, Window, Color, ImageView, Label};
 use pelican::ui::{ApplicationMain, ApplicationDelegate};
 use pelican::ui::{ViewController, ViewControllerBehavior};
 use pelican::platform::Bundle;
@@ -18,6 +18,11 @@ impl ViewControllerBehavior for ExampleViewController {
         let child_view = View::new(frame);
         child_view.set_background_color(Color::red());
         view.add_subview(child_view);
+
+        let frame = Rectangle::new(10, 10, 300, 30);
+        let font = Font::new("Monaco", 12, &bundle);
+        let label = Label::new(frame, font, String::from("hello world"));
+        view.add_subview(label.view);
     }
 }
 
