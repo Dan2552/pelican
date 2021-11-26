@@ -48,7 +48,7 @@ module CoreStructures
 
       store.delete_at(deletion_index)
     end
-
+    def authenticate
     def each(&blk)
       store.each(&blk)
     end
