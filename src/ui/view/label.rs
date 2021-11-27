@@ -36,6 +36,9 @@ impl Label {
         };
 
         let view = View::new_with_behavior(Box::new(behavior), frame);
+
+        view.set_background_color(Color::clear());
+        
         Label {
             view
         }
@@ -77,6 +80,8 @@ impl Behavior for LabelBehavior {
     }
 
     fn draw(&self) {
+        self.super_behavior().unwrap().draw();
+
         let view = self.view.upgrade().unwrap().clone();
         let inner_self = view.inner_self.borrow();
         let behavior = view.behavior.borrow();
