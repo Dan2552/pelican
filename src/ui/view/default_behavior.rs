@@ -17,6 +17,10 @@ impl Behavior for DefaultBehavior {
         self
     }
 
+    fn mut_super_behavior(&mut self) -> Option<&mut dyn Behavior> {
+        None
+    }
+
     /// Adds a child `View` to this `View`.
     ///
     /// Also sets the parent (`superview`) of the child view to this `View`.
@@ -77,20 +81,5 @@ impl Behavior for DefaultBehavior {
         if let Some(layer) = &inner_self.layer {
             layer.clear_with_color(color);
         }
-    }
-
-    /// Change the background color for this view.
-    fn set_background_color(&self, color: Color) {
-        let view = self.view.upgrade().unwrap().clone();
-
-        let mut inner_self = view.inner_self.borrow_mut();
-
-        inner_self.background_color = color;
-    }
-
-    fn set_hidden(&self, value: bool) {
-        let view = self.view.upgrade().unwrap().clone();
-        let mut inner_self = view.inner_self.borrow_mut();
-        inner_self.hidden = value;
     }
 }

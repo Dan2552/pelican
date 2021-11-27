@@ -50,19 +50,28 @@ impl RunLoop {
     }
 
     fn run_timers(&self) {
-        let mut timers = self.timers.borrow_mut();
-        timers.retain(|timer| {
-            if timer.is_valid() {
-                true
-            } else {
-                false
-            }
-        });
+        let mut local_timers: Vec<Timer> = Vec::new();
 
-        for timer in timers.iter_mut() {
+        {
+            let mut timers = self.timers.borrow_mut();
+
+            for timer in timers.drain(..) {
+                if timer.is_valid() {
+                    local_timers.push(timer);
+                }
+            }
+
+            timers.clear();
+        }
+
+        for timer in local_timers.iter() {
             if timer.fire_at() < Instant::now() {
                 timer.fire();
             }
+        }
+
+        for timer in local_timers.drain(..) {
+            self.add_timer(timer);
         }
     }
 }

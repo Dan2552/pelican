@@ -1,5 +1,6 @@
 use std::time::Duration;
 use std::time::Instant;
+use std::cell::Cell;
 
 // A repeating or once-off Timer object, to be run by the main loop.
 pub struct Timer {
@@ -10,17 +11,17 @@ pub struct Timer {
     // If set to invalid, the timer will no longer run, and the main loop will
     // recognise it should be removed. In addition, an invalid timer cannot be
     // reused; it cannot be made valid again.
-    is_valid: bool,
+    is_valid: Cell<bool>,
 
     // The last time the timer has fired. If it hasn't fired, it'll be the
     // time of initialization.
-    last_fired_at: Instant,
+    last_fired_at: Cell<Instant>,
 
     // Next target time to fire. If there is a delay to fire, or the fire takes
     // too long, it
     //
     // When invalidated, the last fire date.
-    fire_at: Instant
+    fire_at: Cell<Instant>
 }
 
 impl Timer {
@@ -30,9 +31,9 @@ impl Timer {
             interval,
             repeats,
             action: Box::new(action),
-            is_valid: true,
-            last_fired_at: now,
-            fire_at: now + interval
+            is_valid: Cell::new(true),
+            last_fired_at: Cell::new(now),
+            fire_at: Cell::new(now + interval)
         }
     }
 
@@ -45,32 +46,32 @@ impl Timer {
     }
 
     // Run the action
-    pub(crate) fn fire(&mut self) {
+    pub(crate) fn fire(&self) {
         let current_fire_at = Instant::now();
         (self.action)();
 
-        self.fire_at = current_fire_at + self.interval;
-        self.last_fired_at = current_fire_at;
+        self.fire_at.set(current_fire_at + self.interval);
+        self.last_fired_at.set(current_fire_at);
 
         if !self.repeats {
-            self.is_valid = false
+            self.is_valid.set(false)
         }
     }
 
     pub fn is_valid(&self) -> bool {
-        self.is_valid
+        self.is_valid.get()
     }
 
     pub fn fire_at(&self) -> Instant {
-        self.fire_at
+        self.fire_at.get().clone()
     }
 
     // Sets the timer as invalidated. Meaning the run loop will recognise this:
     // * To not fire
     // * To be removed from the run loop
-    pub fn invalidate(&mut self) {
-        self.is_valid = false;
-        self.fire_at = self.last_fired_at;
+    pub fn invalidate(&self) {
+        self.is_valid.set(false);
+        self.fire_at.set(self.last_fired_at.get());
     }
 }
 

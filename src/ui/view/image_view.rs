@@ -19,9 +19,9 @@ impl ImageView {
             view: WeakView::none()
         };
 
-        let behavior = ImageViewBehavior { 
-            view: WeakView::none(), 
-            super_behavior: Box::new(super_behavior), 
+        let behavior = ImageViewBehavior {
+            view: WeakView::none(),
+            super_behavior: Box::new(super_behavior),
             image: RefCell::new(image)
         };
 
@@ -32,6 +32,14 @@ impl ImageView {
 }
 
 impl Behavior for ImageViewBehavior {
+    fn super_behavior(&self) -> Option<&Box<dyn Behavior>> {
+        Some(&self.super_behavior)
+    }
+
+    fn mut_super_behavior(&mut self) -> Option<&mut dyn Behavior> {
+        Some(self.super_behavior.as_mut())
+    }
+
     fn set_view(&mut self, view: WeakView) {
         self.view = view;
     }
@@ -43,7 +51,7 @@ impl Behavior for ImageViewBehavior {
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }
-    
+
     fn draw(&self) {
         // TODO: if image is @2x, scale differently
         let view = self.view.upgrade().unwrap().clone();

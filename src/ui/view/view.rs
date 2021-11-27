@@ -1,6 +1,8 @@
 use crate::ui::Color;
+use crate::ui::Event;
+use crate::ui::Touch;
 use crate::ui::view::{WeakView, Behavior, DefaultBehavior, ViewInner};
-use crate::graphics::{Layer, Rectangle, Point, LayerDelegate};
+use crate::graphics::{Layer, Rectangle, Point, LayerDelegate, Size};
 use std::rc::Rc;
 use std::cell::RefCell;
 
@@ -66,14 +68,23 @@ impl View {
         view
     }
 
+    /// Adds a child `View` to this `View`.
+    ///
+    /// Also sets the parent (`superview`) of the child view to this `View`.
     pub fn add_subview(&self, child: View) {
-        let behavior = self.behavior.borrow();
-        behavior.add_subview(child);
-    }
+        let weak_self = self.downgrade();
+        let mut inner_self = self.inner_self.borrow_mut();
 
-    pub(crate) fn set_needs_display(&self) {
-        let behavior = self.behavior.borrow();
-        behavior.set_needs_display();
+        {
+            let mut child_inner = child.inner_self.borrow_mut();
+
+            // Set the child superview
+            child_inner.superview = weak_self;
+        }
+
+        inner_self.subviews.push(child.clone());
+
+        child.set_needs_display();
     }
 
     fn draw(&self) {
@@ -81,19 +92,129 @@ impl View {
         behavior.draw();
     }
 
+    /// Change the background color for this view.
     pub fn set_background_color(&self, color: Color) {
+        {
+            let mut inner_self = self.inner_self.borrow_mut();
+            
+            if inner_self.background_color == color {
+                return;
+            }
+            
+            inner_self.background_color = color;
+        }
+
+        self.set_needs_display();
+    }
+
+    /// Request for this view to be redrawn soon.
+    ///
+    /// See `#draw`, which includes the instructions on what would actually be
+    /// drawn to screen.
+    pub fn set_needs_display(&self) {
         let behavior = self.behavior.borrow();
-        behavior.set_background_color(color);
         behavior.set_needs_display();
     }
 
     pub fn set_hidden(&self, value: bool) {
-        let behavior = self.behavior.borrow();
+        {
+            let mut inner_self = self.inner_self.borrow_mut();
 
-        behavior.set_hidden(value);
-        if !value {
-            behavior.set_needs_display();
+            if inner_self.hidden == value {
+                return;
+            }
+
+            inner_self.hidden = value;
         }
+
+        self.set_needs_display();
+    }
+
+    pub fn touches_began(&self, touches: &Vec<Touch>, event: Event) {
+        println!("touches_began for {}", std::any::type_name::<Self>());
+    let touch = touches.first().unwrap();
+    let position = touch.get_position();
+    println!("{} clicky {}, {}", self.id, position.x, position.y);
+    self.set_background_color(Color::red());
+    }
+
+    /// Returns the location of this view in the highest superview coordinate
+    /// space (usually the window).
+    pub fn get_location_in_window(&self) -> Point<i32> {
+        let inner_self = self.inner_self.borrow();
+        let superview = inner_self.superview.upgrade();
+
+        if superview.is_none() {
+            return inner_self.frame.position.clone();
+        }
+
+        let superview = superview.unwrap();
+
+        let superview_location = superview.get_location_in_window();
+
+        let mut location = inner_self.frame.position.clone();
+        location.x += superview_location.x;
+        location.y += superview_location.y;
+
+        location
+    }
+
+    /// Convert the given point from the coordinate system of this view to the
+    /// coordinate system of the given view.
+    pub fn convert_point_to(&self, point: &Point<i32>, to_view: &View) -> Point<i32> {
+        let from = self.get_location_in_window();
+        let to = to_view.get_location_in_window();
+
+        let x_shift = from.x - to.x;
+        let y_shift = from.y - to.y;
+
+        let x = point.x + x_shift;
+        let y = point.y + y_shift;
+
+        Point { x, y }
+    }
+
+    /// Returns the deepest subview that contains the given point.
+    ///
+    /// Used for click/touch handling in regards to determining which view it
+    /// should fire an event to.
+    pub fn hit_test(&self, point: &Point<i32>) -> Option<View> {
+        let inner_self = self.inner_self.borrow();
+
+        if inner_self.hidden {
+            return None;
+        }
+
+        if inner_self.bounds.contains(point) {
+            let subviews = inner_self.subviews.clone();
+
+            for subview in subviews.iter().rev() {
+                let subview_location = subview.get_location_in_window();
+
+                let subview_point = Point {
+                    x: point.x - subview_location.x,
+                    y: point.y - subview_location.y
+                };
+
+                let hit_test_result = subview.hit_test(&subview_point);
+
+                if hit_test_result.is_some() {
+                    return hit_test_result;
+                }
+            }
+
+            return Some(self.clone());
+        }
+
+        None
+    }
+
+    /// Returns a boolean indicating whether the given point is contained in
+    /// this view's bounds.
+    pub fn is_point_inside(&self, point: &Point<i32>) -> bool {
+        let inner_self = self.inner_self.borrow();
+        let bounds = &inner_self.bounds;
+        bounds.contains(point)
     }
 
     pub fn is_window(&self) -> bool {
@@ -130,7 +251,7 @@ impl View {
         }
     }
 
-    pub fn subviews(&self) -> Vec<View> {
+    pub fn get_subviews(&self) -> Vec<View> {
         let inner_self = self.inner_self.borrow();
         inner_self.subviews.clone()
     }
@@ -169,5 +290,114 @@ impl std::fmt::Debug for View {
         f.debug_tuple("")
          .field(&id)
          .finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_location_in_window() {
+        let main = View::new(Rectangle {
+            position: Point { x: 0, y: 0 },
+            size: Size { width: 100, height: 100 }
+        });
+
+        let a = View::new(Rectangle {
+            position: Point { x: 0, y: 1 },
+            size: Size { width: 10, height: 10 }
+        });
+
+        let b = View::new(Rectangle {
+            position: Point { x: 1, y: 0 },
+            size: Size { width: 10, height: 10 }
+        });
+
+        let c = View::new(Rectangle {
+            position: Point { x: 1, y: 0 },
+            size: Size { width: 10, height: 10 }
+        });
+
+        main.add_subview(a.clone());
+        a.add_subview(b.clone());
+        b.add_subview(c.clone());
+
+        assert_eq!(a.get_location_in_window(), Point { x: 0 as i32, y: 1 as i32 });
+        assert_eq!(b.get_location_in_window(), Point { x: 1 as i32, y: 1 as i32 });
+        assert_eq!(c.get_location_in_window(), Point { x: 2 as i32, y: 1 as i32 });
+    }
+
+    #[test]
+    fn test_convert_point_to() {
+        let main = View::new(Rectangle {
+            position: Point { x: 0, y: 0 },
+            size: Size { width: 100, height: 100 }
+        });
+
+        let a = View::new(Rectangle {
+            position: Point { x: 0, y: 1 },
+            size: Size { width: 10, height: 10 }
+        });
+
+        let b = View::new(Rectangle {
+            position: Point { x: 1, y: 0 },
+            size: Size { width: 10, height: 10 }
+        });
+
+        let c = View::new(Rectangle {
+            position: Point { x: 1, y: 0 },
+            size: Size { width: 10, height: 10 }
+        });
+
+        main.add_subview(a.clone());
+        a.add_subview(b.clone());
+        b.add_subview(c.clone());
+
+        assert_eq!(a.convert_point_to(&Point { x: 0, y: 0 }, &main), Point { x: 0, y: 1 });
+        assert_eq!(b.convert_point_to(&Point { x: 0, y: 0 }, &main), Point { x: 1, y: 1 });
+        assert_eq!(c.convert_point_to(&Point { x: 0, y: 0 }, &main), Point { x: 2, y: 1 });
+
+        assert_eq!(main.convert_point_to(&Point { x: 2, y: 2 }, &c), Point { x: 0, y: 1 });
+    }
+
+    #[test]
+    fn test_point_inside() {
+        let frame = Rectangle::new(0, 0, 1000, 1000);
+        let parent_view = View::new(frame);
+
+        // Red view in the top left
+        let frame = Rectangle::new(10, 10, 100, 100);
+        let red = View::new(frame);
+        red.set_background_color(Color::red());
+        parent_view.add_subview(red.clone());
+
+        let point = Point { x: 5, y: 5 };
+        let point = parent_view.convert_point_to(&point, &red);
+        assert!(!red.is_point_inside(&point));
+
+        let point = Point { x: 50, y: 50 };
+        let point = parent_view.convert_point_to(&point, &red);
+        assert!(red.is_point_inside(&point));
+    }
+
+    #[test]
+    fn test_hit_test() {
+        let frame = Rectangle::new(0, 0, 1000, 1000);
+        let parent_view = View::new(frame);
+
+        // Red view in the top left
+        let frame = Rectangle::new(10, 10, 100, 100);
+        let red = View::new(frame);
+        red.set_background_color(Color::red());
+        parent_view.add_subview(red.clone());
+
+        let point = Point { x: 5, y: 5 };
+        let result = parent_view.hit_test(&point).unwrap();
+        assert_eq!(result, parent_view);
+
+        let point = Point { x: 50, y: 50 };
+        let result = parent_view.hit_test(&point).unwrap();
+        assert_eq!(result, red);
     }
 }

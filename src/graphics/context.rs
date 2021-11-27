@@ -40,7 +40,7 @@ pub static mut SDL_CONTAINER: SdlContainer = SdlContainer {
 /// Each `Layer` for a given render target will use the `Context` to draw to
 /// screen.
 pub struct Context {
-    pub id: uuid::Uuid,
+    pub id: u32,
 
     /// The size of the drawable canvas
     size: Size<u32>,
@@ -75,6 +75,7 @@ impl Context {
             .build()
             .unwrap();
 
+        let id = window.id();
         let (render_width, render_height) = window.size();
 
         let mut canvas = window.into_canvas().build().unwrap();
@@ -92,7 +93,7 @@ impl Context {
         let texture_creator = canvas.texture_creator();
 
         Context {
-            id: uuid::Uuid::new_v4(),
+            id: id,
             size: size,
             render_scale: render_scale,
             canvas: Rc::new(RefCell::new(canvas)),

@@ -13,6 +13,9 @@ use run_loop::RunLoop;
 mod timer;
 use timer::Timer;
 
+mod touch;
+use touch::Touch;
+
 mod view;
 pub use view::View;
 pub use view::WeakView;
@@ -21,6 +24,9 @@ pub use view::Label;
 mod view_controller;
 pub use view_controller::ViewControllerBehavior;
 pub use view_controller::ViewController;
+
+mod event;
+pub use event::Event;
 
 mod window;
 pub use window::Window;

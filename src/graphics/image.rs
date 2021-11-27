@@ -15,7 +15,7 @@ pub struct Image<'a> {
     /// context, so `Image` will lazily create `Layer` objects once per context.
     /// This are lazily populated by `layer_for()`.
     ///
-    layers: HashMap<uuid::Uuid, Rc<Layer>>,
+    layers: HashMap<u32, Rc<Layer>>,
 
     surface: Surface<'a>
 }

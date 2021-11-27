@@ -50,10 +50,12 @@ impl Window {
 
         let view = View::new_with_behavior(Box::new(window_behavior), frame);
 
-        let mut application = Application::borrow_mut();
-        application.add_window(view.clone());
-
         let window = Window { view: view.clone() };
+
+        {
+            let mut application = Application::borrow_mut();
+            application.add_window(window.clone());
+        }
 
         {
             let behavior = window.view.behavior.borrow();
@@ -77,8 +79,14 @@ impl Window {
 
     pub fn make_key_and_visible(&self) {
         let mut application = Application::borrow_mut();
-        application.set_key_window(&self.view);
+        application.set_key_window(&self);
         self.set_hidden(false);
+    }
+
+    pub(crate) fn context_id(&self) -> u32 {
+        let behavior = self.view.behavior.borrow();
+        let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().unwrap();
+        behavior.graphics_context.id
     }
 }
 
@@ -158,3 +166,11 @@ impl std::fmt::Debug for Window {
          .finish()
     }
 }
+
+impl Clone for Window {
+    fn clone(&self) -> Self {
+      Window {
+        view: self.view.clone()
+      }
+    }
+  }

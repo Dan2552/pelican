@@ -1,13 +1,12 @@
 use crate::ui::view::{View, WeakView};
-use crate::ui::Color;
 
 pub trait Behavior {
     fn super_behavior(&self) -> Option<&Box<dyn Behavior>> {
-        None
+        panic!("super_behavior not implemented for {}", std::any::type_name::<Self>())
     }
 
     fn mut_super_behavior(&mut self) -> Option<&mut dyn Behavior> {
-        None
+        panic!("mut_super_behavior not implemented for {}", std::any::type_name::<Self>())
     }
 
     fn set_super_behavior_view(&mut self, view: View) {
@@ -47,29 +46,6 @@ pub trait Behavior {
             super_behavior.draw()
         } else {
             panic!("draw behavior not implemented. Have you implemented `super_behavior()`?")
-        }
-    }
-
-    fn get_background_color(&self) -> &Color {
-        if let Some(super_behavior) = self.super_behavior() {
-            super_behavior.get_background_color()
-        } else {
-            panic!("get_background_color behavior not implemented. Have you implemented `super_behavior()`?")
-        }
-    }
-
-    fn set_background_color(&self, color: Color) {
-        if let Some(super_behavior) = self.super_behavior() {
-            super_behavior.set_background_color(color);
-        } else {
-            panic!("set_background_color behavior not implemented. Have you implemented `super_behavior()`?")
-        }
-    }
-    fn set_hidden(&self, value: bool) {
-        if let Some(super_behavior) = self.super_behavior() {
-            super_behavior.set_hidden(value);
-        } else {
-            panic!("set_hidden behavior not implemented. Have you implemented `super_behavior()`?")
         }
     }
 }

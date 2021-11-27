@@ -56,6 +56,14 @@ impl Label {
 }
 
 impl Behavior for LabelBehavior {
+    fn super_behavior(&self) -> Option<&Box<dyn Behavior>> {
+        Some(&self.super_behavior)
+    }
+
+    fn mut_super_behavior(&mut self) -> Option<&mut dyn Behavior> {
+        Some(self.super_behavior.as_mut())
+    }
+
     fn set_view(&mut self, view: WeakView) {
         self.view = view;
     }
