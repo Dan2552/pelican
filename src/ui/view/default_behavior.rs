@@ -21,25 +21,6 @@ impl Behavior for DefaultBehavior {
         None
     }
 
-    /// Adds a child `View` to this `View`.
-    ///
-    /// Also sets the parent (`superview`) of the child view to this `View`.
-    fn add_subview(&self, child: View) {
-        let view = self.get_view().upgrade().unwrap().clone();
-
-        let weak_self = view.downgrade();
-        let mut inner_self = view.inner_self.borrow_mut();
-
-        {
-            let mut child_inner = child.inner_self.borrow_mut();
-
-            // Set the child superview
-            child_inner.superview = weak_self;
-        }
-
-        inner_self.subviews.push(child);
-    }
-
     /// Request for this view to be redrawn soon.
     ///
     /// See `#draw`, which includes the instructions on what would actually be

@@ -25,14 +25,6 @@ pub trait Behavior {
     fn set_view(&mut self, view: WeakView);
     fn get_view(&self) -> &WeakView;
 
-    fn add_subview(&self, child: View) {
-        if let Some(super_behavior) = self.super_behavior() {
-            super_behavior.add_subview(child);
-        } else {
-            panic!("add_subview behavior not implemented. Have you implemented `super_behavior()`?");
-        }
-    }
-
     fn set_needs_display(&self) {
         if let Some(super_behavior) = self.super_behavior() {
             super_behavior.set_needs_display();
