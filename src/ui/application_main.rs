@@ -21,10 +21,7 @@ impl ApplicationMain {
     }
 
     pub fn launch(self) {
-        println!("application_will_finish_launching");
         self.delegate.application_will_finish_launching();
-
-        println!("application_did_finish_launching");
         self.delegate.application_did_finish_launching();
 
         // Startup the RunLoop with the event loop as the only process to run.
@@ -46,11 +43,9 @@ impl ApplicationMain {
             run_loop.add_timer(timer);
         }
 
-        println!("application_did_become_active");
         self.delegate.application_did_become_active();
         run_loop.run();
 
-        println!("application_will_terminate");
         self.delegate.application_will_terminate();
     }
 }

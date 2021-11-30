@@ -84,7 +84,6 @@ impl Layer {
     //
     // Requests for the delegate to draw on this layer.
     pub fn draw(&self) {
-        println!("LAYER DRAWING");
         self.needs_display.set(false);
         self.delegate.layer_will_draw(self);
         self.delegate.draw_layer(self);

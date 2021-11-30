@@ -19,7 +19,6 @@ impl<T, U> Rectangle<T, U> where T: Number, U: Number {
 
 impl Rectangle<i32, u32> {
     pub fn contains(&self, point: &Point<i32>) -> bool {
-        println!("comparing {:?} in {:?}", point, self);
         point.x >= self.position.x && point.y >= self.position.y &&
             point.x <= self.position.x + self.size.width as i32 &&
             point.y <= self.position.y + self.size.height as i32

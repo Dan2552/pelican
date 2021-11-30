@@ -22,11 +22,9 @@ impl pelican::graphics::LayerDelegate for FakeView  {
 
     fn draw_layer(&self, layer: &Layer) {
         if self.a == 1 {
-            println!("red");
             let color = Color::RGBA(255, 0, 0, 255);
             layer.clear_with_color(color);
         } else {
-            println!("blue");
             let color = Color::RGBA(0, 0, 255, 255);
             layer.clear_with_color(color);
         }
@@ -54,19 +52,13 @@ pub fn main() -> Result<(), String> {
         size: Size { width: 50, height: 50 }
     };
 
-
-    println!("1. drawing layer");
     layer1.draw();
     layer2.draw();
     layer1.draw_child_layer(&layer2, &rectangle);
 
-    println!("2. drawing layer to context");
     layer1.draw_into_context();
 
-    println!("3. presenting");
     window1.draw();
-
-
 
     let sdl: &sdl2::Sdl;
     unsafe { sdl = pelican::graphics::SDL_CONTAINER.lazy(); }

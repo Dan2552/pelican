@@ -36,7 +36,6 @@ fn draw_view(view: &View, behavior: &WindowBehavior) {
 
             // TODO: lazily recreate layer if mismatch contexts
             if inner_view.layer.as_ref().is_none() {
-                println!("there is no layer, so creating one");
                 let context = behavior.graphics_context.clone();
                 let size = inner_view.frame.size.clone();
                 let layer = Layer::new(context, size, Box::new(view.clone()));
@@ -53,7 +52,6 @@ fn draw_view(view: &View, behavior: &WindowBehavior) {
         let inner_view = view.inner_self.borrow();
         let layer = inner_view.layer.as_ref().unwrap();
 
-        println!("layer draw");
         layer.draw();
     }
 

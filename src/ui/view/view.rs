@@ -134,24 +134,18 @@ impl View {
     }
 
     pub fn touches_began(&self, touches: &Vec<Touch>, event: Event) {
-        println!("touches_began for {} {}", std::any::type_name::<Self>(), self.debug_name);
-        let touch = touches.first().unwrap();
-        let position = touch.get_position();
-        println!("{} began {}, {}", self.id, position.x, position.y);
+        let behavior = self.behavior.borrow();
+        behavior.touches_began(touches, event);
     }
 
     pub fn touches_ended(&self, touches: &Vec<Touch>, event: Event) {
-        println!("touches_ended for {} {}", std::any::type_name::<Self>(), self.debug_name);
-        let touch = touches.first().unwrap();
-        let position = touch.get_position();
-        println!("{} ended {}, {}", self.id, position.x, position.y);
+        let behavior = self.behavior.borrow();
+        behavior.touches_ended(touches, event);
     }
 
     pub fn touches_moved(&self, touches: &Vec<Touch>, event: Event) {
-        println!("touches_moved for {} {}", std::any::type_name::<Self>(), self.debug_name);
-        let touch = touches.first().unwrap();
-        let position = touch.get_position();
-        println!("{} moved {}, {}", self.id, position.x, position.y);
+        let behavior = self.behavior.borrow();
+        behavior.touches_moved(touches, event);
     }
 
     /// Returns the location of this view in the highest superview coordinate
@@ -195,8 +189,6 @@ impl View {
     /// Used for click/touch handling in regards to determining which view it
     /// should fire an event to.
     pub fn hit_test(&self, point: &Point<i32>) -> Option<View> {
-        println!("testing {}", self.debug_name);
-
         let inner_self = self.inner_self.borrow();
 
         if inner_self.hidden {
@@ -204,7 +196,6 @@ impl View {
         }
 
         if inner_self.bounds.contains(point) {
-            println!("it's inside");
             let subviews = inner_self.subviews.clone();
 
             for subview in subviews.iter().rev() {
@@ -218,8 +209,6 @@ impl View {
 
             return Some(self.clone());
         }
-
-        println!("it's not in {}", self.debug_name);
 
         None
     }
