@@ -1,9 +1,5 @@
-use crate::graphics::Rectangle;
-use crate::graphics::Font;
-use crate::graphics::Point;
-use crate::graphics::Size;
+use crate::graphics::{Rectangle, Font, Point, Size};
 use crate::ui::Color;
-use crate::ui::{View, WeakView};
 use crate::ui::view::{Behavior, DefaultBehavior};
 use std::cell::RefCell;
 use crate::macros::*;
