@@ -22,7 +22,7 @@ macro_rules! singleton {
 }
 
 macro_rules! custom_view {
-    ($view:ident subclasses $super:ident struct $behavior:ident { $($key:ident: $value:path),* } $(view impl { $custom_view_impl:item })? behavior impl { $custom_behavior_impl:item }) => {
+    ($view:ident subclasses $super:ident struct $behavior:ident { $($key:ident: $value:path),* } $(view impl { $($custom_view_impl:item)* })? $(behavior impl { $($custom_behavior_impl:item)* })?) => {
         pub struct $view {
             pub view: crate::ui::View,
         }
@@ -32,7 +32,7 @@ macro_rules! custom_view {
             $($key: $value),*
         }
         impl $view {
-            pub fn new(frame: crate::graphics::Rectangle<i32, u32>, $($key: $value)*) -> Self {
+            pub fn new_all(frame: crate::graphics::Rectangle<i32, u32>, $($key: $value),*) -> Self {
                 let super_behavior = $super {
                     view: crate::ui::WeakView::none()
                 };
@@ -41,14 +41,13 @@ macro_rules! custom_view {
                     view: crate::ui::WeakView::none(),
                     super_behavior: Box::new(super_behavior),
                     $($key),*
-                    // image: RefCell::new(image)
                 };
 
                 let view = crate::ui::View::new_with_behavior(Box::new(behavior), frame, "test");
                 Self { view }
             }
 
-            $($custom_view_impl)?
+            $($($custom_view_impl)*)?
         }
         impl Behavior for $behavior {
             fn super_behavior(&self) -> Option<&Box<dyn Behavior>> {
@@ -71,7 +70,7 @@ macro_rules! custom_view {
                 self
             }
 
-            $custom_behavior_impl
+            $($($custom_behavior_impl)*)?
         }
     };
 }

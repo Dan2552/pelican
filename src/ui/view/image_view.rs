@@ -11,10 +11,10 @@ custom_view!(
     } 
 
     view impl {
-        pub fn new_using_image_size(image: Image<'static>, position: Point<i32>) -> ImageView {
+        pub fn new(image: Image<'static>, position: Point<i32>) -> ImageView {
             let size = image.size().clone();
             let frame = Rectangle { position, size };
-            Self::new(frame, RefCell::new(image))
+            Self::new_all(frame, RefCell::new(image))
         }
     }
     
