@@ -2,7 +2,7 @@ use crate::ui::Color;
 use crate::ui::Event;
 use crate::ui::Touch;
 use crate::ui::view::{WeakView, Behavior, DefaultBehavior, ViewInner};
-use crate::graphics::{Layer, Rectangle, Point, LayerDelegate, Size};
+use crate::graphics::{Layer, Rectangle, Point, LayerDelegate};
 use std::rc::Rc;
 use std::cell::RefCell;
 
@@ -19,7 +19,9 @@ pub struct View {
     /// implemented objects all as `View`.
     ///
     /// The default constructor for `View` uses the `DefaultBehavior` struct.
-    pub(crate) behavior: Rc<RefCell<Box<dyn Behavior>>>
+    pub(crate) behavior: Rc<RefCell<Box<dyn Behavior>>>,
+
+    pub debug_name: String
 }
 
 impl View {
@@ -28,12 +30,12 @@ impl View {
             view: WeakView::none()
         };
 
-        let view = View::new_with_behavior(Box::new(behavior), frame);
+        let view = View::new_with_behavior(Box::new(behavior), frame, "plainview");
 
         view
     }
 
-    pub fn new_with_behavior(behavior: Box<dyn Behavior>, frame: Rectangle<i32, u32>) -> Self {
+    pub fn new_with_behavior(behavior: Box<dyn Behavior>, frame: Rectangle<i32, u32>, debug_name: &str) -> Self {
         let white = Color::white();
 
         let bounds = Rectangle {
@@ -55,7 +57,8 @@ impl View {
         let view = View {
             id: uuid::Uuid::new_v4(),
             inner_self: Rc::new(RefCell::new(inner_self)),
-            behavior: Rc::new(RefCell::new(behavior))
+            behavior: Rc::new(RefCell::new(behavior)),
+            debug_name: String::from(debug_name)
         };
 
         {
@@ -131,11 +134,24 @@ impl View {
     }
 
     pub fn touches_began(&self, touches: &Vec<Touch>, event: Event) {
-        println!("touches_began for {}", std::any::type_name::<Self>());
-    let touch = touches.first().unwrap();
-    let position = touch.get_position();
-    println!("{} clicky {}, {}", self.id, position.x, position.y);
-    self.set_background_color(Color::red());
+        println!("touches_began for {} {}", std::any::type_name::<Self>(), self.debug_name);
+        let touch = touches.first().unwrap();
+        let position = touch.get_position();
+        println!("{} began {}, {}", self.id, position.x, position.y);
+    }
+
+    pub fn touches_ended(&self, touches: &Vec<Touch>, event: Event) {
+        println!("touches_ended for {} {}", std::any::type_name::<Self>(), self.debug_name);
+        let touch = touches.first().unwrap();
+        let position = touch.get_position();
+        println!("{} ended {}, {}", self.id, position.x, position.y);
+    }
+
+    pub fn touches_moved(&self, touches: &Vec<Touch>, event: Event) {
+        println!("touches_moved for {} {}", std::any::type_name::<Self>(), self.debug_name);
+        let touch = touches.first().unwrap();
+        let position = touch.get_position();
+        println!("{} moved {}, {}", self.id, position.x, position.y);
     }
 
     /// Returns the location of this view in the highest superview coordinate
@@ -179,6 +195,8 @@ impl View {
     /// Used for click/touch handling in regards to determining which view it
     /// should fire an event to.
     pub fn hit_test(&self, point: &Point<i32>) -> Option<View> {
+        println!("testing {}", self.debug_name);
+
         let inner_self = self.inner_self.borrow();
 
         if inner_self.hidden {
@@ -186,16 +204,11 @@ impl View {
         }
 
         if inner_self.bounds.contains(point) {
+            println!("it's inside");
             let subviews = inner_self.subviews.clone();
 
             for subview in subviews.iter().rev() {
-                let subview_location = subview.get_location_in_window();
-
-                let subview_point = Point {
-                    x: point.x - subview_location.x,
-                    y: point.y - subview_location.y
-                };
-
+                let subview_point = self.convert_point_to(point, subview);
                 let hit_test_result = subview.hit_test(&subview_point);
 
                 if hit_test_result.is_some() {
@@ -205,6 +218,8 @@ impl View {
 
             return Some(self.clone());
         }
+
+        println!("it's not in {}", self.debug_name);
 
         None
     }
@@ -237,7 +252,8 @@ impl View {
         WeakView {
             id: self.id,
             inner_self: weak_inner,
-            behavior: weak_behavior
+            behavior: weak_behavior,
+            debug_name: self.debug_name.clone()
         }
     }
 
@@ -272,7 +288,8 @@ impl Clone for View {
       View {
           id: self.id.clone(),
           inner_self: self.inner_self.clone(),
-          behavior: self.behavior.clone()
+          behavior: self.behavior.clone(),
+          debug_name: self.debug_name.clone()
       }
     }
 }
@@ -296,6 +313,7 @@ impl std::fmt::Debug for View {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::graphics::Size;
 
     #[test]
     fn test_get_location_in_window() {
@@ -332,7 +350,7 @@ mod tests {
     fn test_convert_point_to() {
         let main = View::new(Rectangle {
             position: Point { x: 0, y: 0 },
-            size: Size { width: 100, height: 100 }
+            size: Size { width: 100, height: 100 },
         });
 
         let a = View::new(Rectangle {

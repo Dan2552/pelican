@@ -5,7 +5,8 @@ use std::cell::RefCell;
 pub struct WeakView {
     pub id: uuid::Uuid,
     pub(crate) inner_self: Weak<RefCell<ViewInner>>,
-    pub(crate) behavior: Weak<RefCell<Box<dyn Behavior>>>
+    pub(crate) behavior: Weak<RefCell<Box<dyn Behavior>>>,
+    pub debug_name: String
 }
 
 impl WeakView {
@@ -15,7 +16,8 @@ impl WeakView {
                 Some(View {
                     id: self.id,
                     inner_self: inner_self,
-                    behavior: behavior
+                    behavior: behavior,
+                    debug_name: self.debug_name.clone()
                 })
             } else {
                 panic!("Inner self present but behavior is missing");
@@ -31,7 +33,8 @@ impl WeakView {
         WeakView {
             id: uuid::Uuid::new_v4(),
             inner_self: Weak::new(),
-            behavior: Weak::new()
+            behavior: Weak::new(),
+            debug_name: String::from("none")
         }
     }
 

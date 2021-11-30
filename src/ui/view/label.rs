@@ -35,7 +35,7 @@ impl Label {
             text: RefCell::new(text)
         };
 
-        let view = View::new_with_behavior(Box::new(behavior), frame);
+        let view = View::new_with_behavior(Box::new(behavior), frame, "label");
 
         view.set_background_color(Color::clear());
         

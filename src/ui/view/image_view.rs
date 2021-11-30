@@ -26,7 +26,7 @@ impl ImageView {
         };
 
         let frame = Rectangle { position, size };
-        let view = View::new_with_behavior(Box::new(behavior), frame);
+        let view = View::new_with_behavior(Box::new(behavior), frame, "image");
         ImageView { view }
     }
 }

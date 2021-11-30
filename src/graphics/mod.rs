@@ -1,3 +1,6 @@
+mod number;
+pub use number::Number;
+
 mod context;
 pub use context::Context;
 pub use context::SDL_CONTAINER;

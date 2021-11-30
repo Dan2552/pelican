@@ -48,7 +48,7 @@ impl Window {
             view_controller: view_controller
         };
 
-        let view = View::new_with_behavior(Box::new(window_behavior), frame);
+        let view = View::new_with_behavior(Box::new(window_behavior), frame, "window");
 
         let window = Window { view: view.clone() };
 
