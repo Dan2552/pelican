@@ -39,7 +39,7 @@ pub trait Behavior {
         }
     }
 
-    fn touches_began(&self, touches: &Vec<Touch>, event: Event) {}
-    fn touches_ended(&self, touches: &Vec<Touch>, event: Event) {}
-    fn touches_moved(&self, touches: &Vec<Touch>, event: Event) {}
+    fn touches_began(&self, _touches: &Vec<Touch>, _event: Event) {}
+    fn touches_ended(&self, _touches: &Vec<Touch>, _event: Event) {}
+    fn touches_moved(&self, _touches: &Vec<Touch>, _event: Event) {}
 }
