@@ -1,9 +1,9 @@
 use crate::graphics::Point;
 use crate::ui::input_state::InputState;
 use crate::ui::{Window, WeakView, Event, RunLoop};
-use crate::singleton;
+use crate::macros::*;
 
-singleton::singleton!(
+singleton!(
     Application, 
     key_window_index: None, 
     windows: Vec::new()

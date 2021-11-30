@@ -2,5 +2,5 @@
 
 pub mod graphics;
 pub mod ui;
-pub mod singleton;
+pub mod macros;
 pub mod platform;

@@ -3,9 +3,9 @@ use std::time::Instant;
 use std::thread::sleep;
 use std::cell::{Cell, RefCell};
 use std::time::Duration;
-use crate::singleton;
+use crate::macros::*;
 
-singleton::singleton!(
+singleton!(
     RunLoop,
     timers: RefCell::new(Vec::new()),
     state: Cell::new(State::Running)

@@ -43,8 +43,8 @@ impl Mul<f32> for &Rectangle<i32, i32> {
         let height = self.size.height as f32 * rhs;
 
         Rectangle {
-        position: Point { x: x.round() as i32, y: y.round() as i32 },
-        size: Size { width: width.round() as i32, height: height.round() as i32 }
+            position: Point { x: x.round() as i32, y: y.round() as i32 },
+            size: Size { width: width.round() as i32, height: height.round() as i32 }
         }
     }
 }

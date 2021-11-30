@@ -7,7 +7,7 @@ struct ExampleViewController {}
 impl ViewControllerBehavior for ExampleViewController {
     fn view_did_load(&self, view: View) {
         let image = Image::new("/Users/dan2552/Dropbox/experiments/avian/pelican/test_application/resources/pixels_ruler.png");
-        let image_view = ImageView::new(image, Point { x: 0, y: 0 });
+        let image_view = ImageView::new_using_image_size(image, Point { x: 0, y: 0 });
         view.add_subview(image_view.view);
 
         let frame = Rectangle::new(0, 0, 200, 200);
@@ -29,6 +29,11 @@ impl ViewControllerBehavior for ExampleViewController {
         view.add_subview(red_view);
         view.add_subview(green_view);
         view.add_subview(blue_view);
+
+
+        let test = Control::new(Rectangle::new(0, 0, 100, 100), String::from("it works"));
+        test.view.set_background_color(Color::red());
+        view.add_subview(test.view);
     }
 }
 

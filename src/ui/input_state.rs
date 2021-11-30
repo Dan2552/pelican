@@ -1,8 +1,8 @@
 use crate::graphics::Point;
 use crate::ui::Touch;
-use crate::singleton;
+use crate::macros::*;
 
-singleton::singleton!(InputState, touches: Vec::new());
+singleton!(InputState, touches: Vec::new());
 
 pub(crate) struct InputState {
     /// Any existing touches that are currently active. Used to keep track so

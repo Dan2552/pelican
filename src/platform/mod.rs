@@ -1,7 +1,7 @@
-use crate::singleton;
+use crate::macros;
 use std::env;
 
-singleton::singleton!(Bundle,);
+macros::singleton!(Bundle,);
 pub struct Bundle {}
 
 impl Bundle {
