@@ -1,5 +1,5 @@
 use pelican::graphics::{Point, Rectangle, Image};
-use pelican::ui::{View, Window, Color, ImageView, Label};
+use pelican::ui::{View, Window, Color, ImageView, Label, Button};
 use pelican::ui::{ApplicationMain, ApplicationDelegate};
 use pelican::ui::{ViewController, ViewControllerBehavior};
 
@@ -26,14 +26,13 @@ impl ViewControllerBehavior for ExampleViewController {
         let blue_view = View::new(frame);
         blue_view.set_background_color(Color::new(0, 0, 255, 100));
 
+        let frame = Rectangle::new(200, 200, 200, 200);
+        let button = Button::new(frame, "this is a button");
+
         view.add_subview(red_view);
         view.add_subview(green_view);
         view.add_subview(blue_view);
-
-
-        let test = Control::new(Rectangle::new(0, 0, 100, 100), String::from("it works"));
-        test.view.set_background_color(Color::red());
-        view.add_subview(test.view);
+        view.add_subview(button.view);
     }
 }
 

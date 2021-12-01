@@ -51,7 +51,8 @@ impl View {
             layer: None,
             superview: WeakView::none(),
             subviews: Vec::new(),
-            hidden: false
+            hidden: false,
+            user_interaction_enabled: true
         };
 
         let view = View {
@@ -117,6 +118,15 @@ impl View {
     pub fn set_needs_display(&self) {
         let behavior = self.behavior.borrow();
         behavior.set_needs_display();
+    }
+
+    /// Sets whether this view can be interacted with by the user. If `false`,
+    /// then this view will not receive any touch events.
+    pub fn set_user_interaction_enabled(&self, enabled: bool) {
+        {
+            let mut inner_self = self.inner_self.borrow_mut();
+            inner_self.user_interaction_enabled = enabled;
+        }
     }
 
     pub fn set_hidden(&self, value: bool) {
@@ -188,6 +198,9 @@ impl View {
     ///
     /// Used for click/touch handling in regards to determining which view it
     /// should fire an event to.
+    /// 
+    /// Will not return views that have `user_interaction_enabled` set to 
+    /// `false`.
     pub fn hit_test(&self, point: &Point<i32>) -> Option<View> {
         let inner_self = self.inner_self.borrow();
 
@@ -195,7 +208,9 @@ impl View {
             return None;
         }
 
-        if inner_self.bounds.contains(point) {
+        let user_interaction_enabled = inner_self.user_interaction_enabled;
+
+        if inner_self.bounds.contains(point) && user_interaction_enabled {
             let subviews = inner_self.subviews.clone();
 
             for subview in subviews.iter().rev() {
@@ -259,6 +274,11 @@ impl View {
     pub fn get_subviews(&self) -> Vec<View> {
         let inner_self = self.inner_self.borrow();
         inner_self.subviews.clone()
+    }
+
+    pub fn get_bounds(&self) -> Rectangle<i32, u32> {
+        let inner_self = self.inner_self.borrow();
+        inner_self.bounds.clone()
     }
 }
 

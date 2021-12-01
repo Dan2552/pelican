@@ -61,4 +61,8 @@ pub(crate) struct ViewInner {
     /// screen, it'll behave the same as if it were not in the view hierarchy at
     /// all.
     pub hidden: bool,
+
+    /// Whether the view accepts user input or not. E.g. touches_began will not
+    /// be called if this is `false`.
+    pub user_interaction_enabled: bool
 }
