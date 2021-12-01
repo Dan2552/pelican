@@ -28,7 +28,7 @@ macro_rules! custom_view {
         }
         pub struct $behavior {
             view: crate::ui::WeakView,
-            super_behavior: Box<dyn Behavior>,
+            super_behavior: Box<dyn crate::ui::view::Behavior>,
             $($key: $value),*
         }
         impl $view {
@@ -49,12 +49,12 @@ macro_rules! custom_view {
 
             $($($custom_view_impl)*)?
         }
-        impl Behavior for $behavior {
-            fn super_behavior(&self) -> Option<&Box<dyn Behavior>> {
+        impl crate::ui::view::Behavior for $behavior {
+            fn super_behavior(&self) -> Option<&Box<dyn crate::ui::view::Behavior>> {
                 Some(&self.super_behavior)
             }
         
-            fn mut_super_behavior(&mut self) -> Option<&mut dyn Behavior> {
+            fn mut_super_behavior(&mut self) -> Option<&mut dyn crate::ui::view::Behavior> {
                 Some(self.super_behavior.as_mut())
             }
         
@@ -96,7 +96,7 @@ mod tests {
     singleton!(ExampleSingleton, value1: 1, value2: 2);
 
     #[test]
-    fn it_works() {
+    fn test_singleton() {
         {
             let example = ExampleSingleton::borrow();
             assert_eq!(example.value1, 1);
