@@ -103,22 +103,26 @@ mod tests {
         assert_eq!(touch.get_position(), &Point { x: 5, y: 5 });
     }
 
+    #[test]
     fn test_eq() {
         let touch1 = Touch::new(0, Point { x: 5, y: 5 }, TouchPhase::Began);
         let touch2 = Touch::new(0, Point { x: 5, y: 5 }, TouchPhase::Began);
         assert_eq!(touch1, touch2);
     }
-
+    
+    #[test]
     fn test_debug() {
         let touch = Touch::new(0, Point { x: 5, y: 5 }, TouchPhase::Began);
         assert_eq!(format!("{:?}", touch), "Touch(0)");
     }
 
+    #[test]
     fn test_get_id() {
         let touch = Touch::new(2, Point { x: 5, y: 5 }, TouchPhase::Began);
         assert_eq!(touch.get_id(), 2);
     }
 
+    #[test]
     fn test_get_view() {
         let view = View::new(Rectangle::new(0, 0, 100, 100));
         let mut touch = Touch::new(0, Point { x: 5, y: 5 }, TouchPhase::Began);
@@ -126,9 +130,11 @@ mod tests {
         assert_eq!(touch.get_view(), Some(&view));
     }
 
+    #[test]
     fn test_update_timestamp() {
         let mut touch = Touch::new(0, Point { x: 5, y: 5 }, TouchPhase::Began);
         let original_time = touch.timestamp;
+        std::thread::sleep(std::time::Duration::from_millis(10));
         touch.update_timestamp();
         assert!(touch.timestamp != original_time);
     }
