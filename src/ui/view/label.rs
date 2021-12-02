@@ -91,10 +91,23 @@ custom_view!(
             behavior.set_needs_display();
         }
 
+        /// Resizes the view's frame to fit the size of the text.
+        pub fn fit_to_text(&self) {
+            let behavior = &self.view.behavior.borrow();
+            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
+            let text = behavior.text.borrow().clone();
+            let font = behavior.font.borrow();
+            
+            let size = font.size_of(&text);
+
+            let origin = self.view.frame().origin;
+            let frame = Rectangle { origin, size };
+                
+            self.view.set_frame(frame);
+        }
+
+
         // TODO:
-        // font=(value)
-        // text_color=(value)
-        // text_alignment=(value)
         // number_of_lines=(value)
     }
 
@@ -133,12 +146,12 @@ custom_view!(
                     VerticalAlignment::Bottom => inner_self.frame.size.height - size.height
                 };
 
-                let position = Point {
+                let origin = Point {
                     x: x as i32,
                     y: y as i32
                 };
 
-                let destination = Rectangle { position, size };
+                let destination = Rectangle { origin, size };
                 layer.draw_child_layer(&child_layer, &destination);
             }
         }

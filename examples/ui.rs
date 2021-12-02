@@ -15,6 +15,8 @@ impl ViewControllerBehavior for ExampleViewController {
         let label = Label::new(frame, String::from("hello rusty world"));
         label.set_text_alignment(HorizontalAlignment::Center);
         label.set_vertical_alignment(VerticalAlignment::Center);
+        label.view.set_background_color(Color::red());
+        label.fit_to_text();
 
         view.add_subview(label.view);
 

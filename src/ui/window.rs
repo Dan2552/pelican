@@ -173,4 +173,4 @@ impl Clone for Window {
         view: self.view.clone()
       }
     }
-  }
+}
