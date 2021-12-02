@@ -3,6 +3,7 @@ use crate::ui::view::DefaultBehavior;
 use crate::ui::{Touch, Event, Label, View, Color};
 use crate::graphics::Rectangle;
 use std::cell::{Cell, RefCell};
+use crate::ui::{HorizontalAlignment, VerticalAlignment};
 
 static DEFAULT_COLOR_NORMAL: Color = Color { red: 2, green: 117, blue: 227, alpha: 255 };
 static DEFAULT_COLOR_PRESSED: Color = Color { red: 64, green: 155, blue: 255, alpha: 255 };
@@ -35,6 +36,8 @@ custom_view!(
             let label = Label::new(label_rectangle, String::from(text));
             label.set_text_color(DEFAULT_COLOR_NORMAL.clone());
             label.view.set_user_interaction_enabled(false);
+            label.set_text_alignment(HorizontalAlignment::Center);
+            label.set_vertical_alignment(VerticalAlignment::Center);
             button.view.add_subview(label.view);
             button.view.set_background_color(Color::clear());
             button
