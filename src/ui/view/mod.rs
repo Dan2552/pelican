@@ -33,7 +33,7 @@ mod tests {
 
         {
             let frame = Rectangle {
-                position: Point { x: 10, y: 10 },
+                origin: Point { x: 10, y: 10 },
                 size: Size { width: 50, height: 50 }
             };
             let strong = View::new(frame.clone());
@@ -58,7 +58,7 @@ mod tests {
     /// but not other instances.
     fn strong_vs_weak_ids() {
         let frame = Rectangle {
-            position: Point { x: 10, y: 10 },
+            origin: Point { x: 10, y: 10 },
             size: Size { width: 50, height: 50 }
         };
 
@@ -72,7 +72,7 @@ mod tests {
         assert_eq!(strong.id, strong_clone.id);
 
         let frame = Rectangle {
-            position: Point { x: 10, y: 10 },
+            origin: Point { x: 10, y: 10 },
             size: Size { width: 50, height: 50 }
         };
 
@@ -85,7 +85,7 @@ mod tests {
     /// Tests add_subview and superview
     fn parent_child_relationship() {
         let frame = Rectangle {
-            position: Point { x: 10, y: 10 },
+            origin: Point { x: 10, y: 10 },
             size: Size { width: 50, height: 50 }
         };
 

@@ -32,10 +32,10 @@ impl pelican::graphics::LayerDelegate for FakeView  {
 }
 
 pub fn main() -> Result<(), String> {
-    let position = Point { x: 10, y: 10};
+    let origin = Point { x: 10, y: 10};
     let size = Size { width: 800, height: 600 };
 
-    let window1 = Rc::new(Context::new("hello world", position, size));
+    let window1 = Rc::new(Context::new("hello world", origin, size));
 
     // let context_reference1 = Rc::new(RefCell::new(window1));
     // let context_reference2 = context_reference1.clone();
@@ -48,7 +48,7 @@ pub fn main() -> Result<(), String> {
     let layer2 = Layer::new(window1.clone(), size, Box::new(delegate));
 
     let rectangle = Rectangle {
-        position: Point { x: 10, y: 10 },
+        origin: Point { x: 10, y: 10 },
         size: Size { width: 50, height: 50 }
     };
 

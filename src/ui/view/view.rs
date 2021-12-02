@@ -40,7 +40,7 @@ impl View {
         let white = Color::white();
 
         let bounds = Rectangle {
-            position: Point { x: 0, y: 0 },
+            origin: Point { x: 0, y: 0 },
             size: frame.size.clone()
         };
 
@@ -166,14 +166,14 @@ impl View {
         let superview = inner_self.superview.upgrade();
 
         if superview.is_none() {
-            return inner_self.frame.position.clone();
+            return inner_self.frame.origin.clone();
         }
 
         let superview = superview.unwrap();
 
         let superview_location = superview.get_location_in_window();
 
-        let mut location = inner_self.frame.position.clone();
+        let mut location = inner_self.frame.origin.clone();
         location.x += superview_location.x;
         location.y += superview_location.y;
 
@@ -334,22 +334,22 @@ mod tests {
     #[test]
     fn test_get_location_in_window() {
         let main = View::new(Rectangle {
-            position: Point { x: 0, y: 0 },
+            origin: Point { x: 0, y: 0 },
             size: Size { width: 100, height: 100 }
         });
 
         let a = View::new(Rectangle {
-            position: Point { x: 0, y: 1 },
+            origin: Point { x: 0, y: 1 },
             size: Size { width: 10, height: 10 }
         });
 
         let b = View::new(Rectangle {
-            position: Point { x: 1, y: 0 },
+            origin: Point { x: 1, y: 0 },
             size: Size { width: 10, height: 10 }
         });
 
         let c = View::new(Rectangle {
-            position: Point { x: 1, y: 0 },
+            origin: Point { x: 1, y: 0 },
             size: Size { width: 10, height: 10 }
         });
 
@@ -365,22 +365,22 @@ mod tests {
     #[test]
     fn test_convert_point_to() {
         let main = View::new(Rectangle {
-            position: Point { x: 0, y: 0 },
+            origin: Point { x: 0, y: 0 },
             size: Size { width: 100, height: 100 },
         });
 
         let a = View::new(Rectangle {
-            position: Point { x: 0, y: 1 },
+            origin: Point { x: 0, y: 1 },
             size: Size { width: 10, height: 10 }
         });
 
         let b = View::new(Rectangle {
-            position: Point { x: 1, y: 0 },
+            origin: Point { x: 1, y: 0 },
             size: Size { width: 10, height: 10 }
         });
 
         let c = View::new(Rectangle {
-            position: Point { x: 1, y: 0 },
+            origin: Point { x: 1, y: 0 },
             size: Size { width: 10, height: 10 }
         });
 

@@ -4,14 +4,14 @@ use crate::graphics::Number;
 use std::ops::Mul;
 
 pub struct Rectangle<T, U> where T: Number, U: Number {
-    pub position: Point<T>,
+    pub origin: Point<T>,
     pub size: Size<U>
 }
 
 impl<T, U> Rectangle<T, U> where T: Number, U: Number {
     pub fn new(x: T, y: T, width: U, height: U) -> Self {
         Rectangle {
-            position: Point { x, y },
+            origin: Point { x, y },
             size: Size { width, height }
         }
     }
@@ -19,16 +19,16 @@ impl<T, U> Rectangle<T, U> where T: Number, U: Number {
 
 impl Rectangle<i32, u32> {
     pub fn contains(&self, point: &Point<i32>) -> bool {
-        point.x >= self.position.x && point.y >= self.position.y &&
-            point.x <= self.position.x + self.size.width as i32 &&
-            point.y <= self.position.y + self.size.height as i32
+        point.x >= self.origin.x && point.y >= self.origin.y &&
+            point.x <= self.origin.x + self.size.width as i32 &&
+            point.y <= self.origin.y + self.size.height as i32
     }
 }
 
 impl<T, U> Clone for Rectangle<T, U> where T: Number, U: Number {
     fn clone(&self) -> Self {
         Rectangle {
-            position: self.position.clone(),
+            origin: self.origin.clone(),
             size: self.size.clone()
         }
     }
@@ -37,13 +37,13 @@ impl<T, U> Clone for Rectangle<T, U> where T: Number, U: Number {
 impl Mul<f32> for &Rectangle<i32, i32> {
     type Output = Rectangle<i32, i32>;
     fn mul(self, rhs: f32) -> Self::Output {
-        let x = self.position.x as f32 * rhs;
-        let y = self.position.y as f32 * rhs;
+        let x = self.origin.x as f32 * rhs;
+        let y = self.origin.y as f32 * rhs;
         let width = self.size.width as f32 * rhs;
         let height = self.size.height as f32 * rhs;
 
         Rectangle {
-            position: Point { x: x.round() as i32, y: y.round() as i32 },
+            origin: Point { x: x.round() as i32, y: y.round() as i32 },
             size: Size { width: width.round() as i32, height: height.round() as i32 }
         }
     }
@@ -52,13 +52,13 @@ impl Mul<f32> for &Rectangle<i32, i32> {
 impl Mul<f32> for &Rectangle<i32, u32> {
   type Output = Rectangle<i32, u32>;
   fn mul(self, rhs: f32) -> Self::Output {
-        let x = self.position.x as f32 * rhs;
-        let y = self.position.y as f32 * rhs;
+        let x = self.origin.x as f32 * rhs;
+        let y = self.origin.y as f32 * rhs;
         let width = self.size.width as f32 * rhs;
         let height = self.size.height as f32 * rhs;
 
         Rectangle {
-            position: Point { x: x.round() as i32, y: y.round() as i32 },
+            origin: Point { x: x.round() as i32, y: y.round() as i32 },
             size: Size { width: width.round() as u32, height: height.round() as u32 }
         }
   }
@@ -67,13 +67,13 @@ impl Mul<f32> for &Rectangle<i32, u32> {
 impl Mul<f32> for &Rectangle<f32, f32> {
     type Output = Rectangle<f32, f32>;
     fn mul(self, rhs: f32) -> Self::Output {
-        let x = self.position.x * rhs;
-        let y = self.position.y * rhs;
+        let x = self.origin.x * rhs;
+        let y = self.origin.y * rhs;
         let width = self.size.width * rhs;
         let height = self.size.height * rhs;
 
         Rectangle {
-            position: Point { x: x, y: y },
+            origin: Point { x: x, y: y },
             size: Size { width: width, height: height }
         }
     }
@@ -81,15 +81,15 @@ impl Mul<f32> for &Rectangle<f32, f32> {
 
 impl<T, U> PartialEq for Rectangle<T, U> where T: Number, U: Number {
     fn eq(&self, other: &Self) -> bool {
-        self.position == other.position && self.size == other.size
+        self.origin == other.origin && self.size == other.size
     }
 }
 
 impl<T, U> std::fmt::Debug for Rectangle<T, U> where T: Number, U: Number {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("Rectangle")
-         .field(&self.position.x)
-         .field(&self.position.y)
+         .field(&self.origin.x)
+         .field(&self.origin.y)
          .field(&self.size.width)
          .field(&self.size.height)
          .finish()

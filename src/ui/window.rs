@@ -37,7 +37,7 @@ impl Window {
 
         let graphics_context = Context::new(
             title,
-            context_frame.position,
+            context_frame.origin,
             context_frame.size
         );
 

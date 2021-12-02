@@ -19,7 +19,7 @@ pub fn main() -> Result<(), String> {
 
 fn behavior() {
     let frame = Rectangle {
-        position: Point { x: 10, y: 10 },
+        origin: Point { x: 10, y: 10 },
         size: Size { width: 50, height: 50 }
     };
 
@@ -31,7 +31,7 @@ fn behavior() {
 /// Tests add_subview and superview
 fn parent_child_relationship() {
     let frame = Rectangle {
-        position: Point { x: 10, y: 10 },
+        origin: Point { x: 10, y: 10 },
         size: Size { width: 50, height: 50 }
     };
 

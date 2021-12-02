@@ -111,8 +111,8 @@ impl Context {
     // TODO: pub(crate)
     pub fn draw_texture_in_context(&self, child: &Texture, destination: &Rectangle<i32, u32>) {
         let destination = Rect::new(
-            destination.position.x,
-            destination.position.y,
+            destination.origin.x,
+            destination.origin.y,
             destination.size.width,
             destination.size.height
         );
@@ -123,8 +123,8 @@ impl Context {
 
     pub(crate) fn draw_texture_in_texture(&self, parent: &mut Texture, child: &Texture, destination: &Rectangle<i32, u32>) {
         let destination = Rect::new(
-            destination.position.x.try_into().unwrap(),
-            destination.position.y.try_into().unwrap(),
+            destination.origin.x.try_into().unwrap(),
+            destination.origin.y.try_into().unwrap(),
             destination.size.width,
             destination.size.height
         );

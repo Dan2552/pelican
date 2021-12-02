@@ -114,7 +114,7 @@ impl Layer {
         let texture = self.texture.borrow_mut();
 
         let rectangle = Rectangle {
-            position: Point { x: 0, y: 0 },
+            origin: Point { x: 0, y: 0 },
             size: self.size.clone()
         };
 
