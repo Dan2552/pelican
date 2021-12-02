@@ -3,6 +3,7 @@ use std::path::Path;
 use crate::graphics::Context;
 use crate::graphics::Layer;
 use crate::graphics::Size;
+use crate::graphics::Color;
 use std::rc::Rc;
 use std::collections::HashMap;
 
@@ -61,13 +62,13 @@ impl<'ttf_module, 'rwops> Font<'ttf_module, 'rwops> {
     }
 
     // Get a drawable layer from the font for the given context.
-    pub fn layer_for(&mut self, context: Rc<Context>, text: &str) -> Layer {
+    pub fn layer_for(&mut self, context: Rc<Context>, text: &str, color: Color) -> Layer {
         let font = self.size_for(&context);
         let (width, height) = font.size_of(text).unwrap();
 
         let surface = font
             .render(text)
-            .blended(sdl2::pixels::Color::RGBA(0, 0, 0, 255))
+            .blended(color)
             .unwrap();
 
         let texture = surface.as_texture(&context.texture_creator).unwrap();

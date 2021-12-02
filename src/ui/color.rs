@@ -1,10 +1,10 @@
 use crate::graphics;
 
 pub struct Color {
-    red: u8,
-    green: u8,
-    blue: u8,
-    alpha: u8
+    pub red: u8,
+    pub green: u8,
+    pub blue: u8,
+    pub alpha: u8
 }
 
 impl Color {
@@ -93,6 +93,17 @@ impl PartialEq for Color {
             self.green == rhs.green &&
             self.blue == rhs.blue &&
             self.alpha == rhs.alpha
+    }
+}
+
+impl Clone for Color {
+    fn clone(&self) -> Color {
+        Color {
+            red: self.red,
+            green: self.green,
+            blue: self.blue,
+            alpha: self.alpha
+        }
     }
 }
 

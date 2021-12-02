@@ -9,25 +9,39 @@ custom_view!(
     
     struct LabelBehavior {
         font: RefCell<Font<'static, 'static>>,
-        text_color: Color,
+        text_color: RefCell<Color>,
         text: RefCell<String>
     }
 
     view impl {
         pub fn new(frame: Rectangle<i32, u32>, text: String) -> Label {
             let font = RefCell::new(Font::new("Arial", 17));
-            let text_color = Color::black();
+            let text_color = RefCell::new(Color::black());
             let text = RefCell::new(text);
             let label = Self::new_all(frame, font, text_color, text);
             label.view.set_background_color(Color::clear());
             label
         }
 
-        fn set_text(&self, text: String) {
+        pub fn set_text(&self, text: String) {
             let behavior = &self.view.behavior.borrow();
             let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
             behavior.text.replace(text);
             behavior.set_needs_display();
+        }
+
+        pub fn set_text_color(&self, text_color: Color) {
+            let behavior = &self.view.behavior.borrow();
+            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
+            behavior.text_color.replace(text_color);
+            behavior.set_needs_display();
+        }
+
+        pub fn get_text_color(&self) -> Color {
+            let behavior = &self.view.behavior.borrow();
+            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
+            let text_color = behavior.text_color.borrow();
+            text_color.clone()
         }
 
         // TODO:
@@ -50,7 +64,9 @@ custom_view!(
 
             if let Some(layer) = &inner_self.layer {
                 let mut font = behavior.font.borrow_mut();
-                let child_layer = font.layer_for(layer.context.clone(), &text);
+                let color = behavior.text_color.borrow();
+                let color = color.to_graphics_color();
+                let child_layer = font.layer_for(layer.context.clone(), &text, color);
                 let position = Point { x: 0, y: 0 };
                 let size = child_layer.get_size().clone();
                 let size = Size {

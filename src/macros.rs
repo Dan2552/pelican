@@ -47,8 +47,22 @@ macro_rules! custom_view {
                 Self { view }
             }
 
+            pub fn from_view(view: crate::ui::View) -> Self {
+                // Downcast the behavior to essentially verify the view is a window.
+                let _ = view.behavior.borrow().as_any().downcast_ref::<$behavior>().unwrap();
+
+                Self { view }
+            }
+
             $($($custom_view_impl)*)?
         }
+
+        impl $behavior {
+            fn view_type(&self) -> $view {
+                $view::from_view(self.view.upgrade().unwrap())
+            }
+        }
+
         impl crate::ui::view::Behavior for $behavior {
             fn super_behavior(&self) -> Option<&Box<dyn crate::ui::view::Behavior>> {
                 Some(&self.super_behavior)
