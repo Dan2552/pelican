@@ -5,6 +5,7 @@ use crate::ui::view::{WeakView, Behavior, DefaultBehavior, ViewInner};
 use crate::graphics::{Layer, Rectangle, Point, LayerDelegate};
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::cell::Ref;
 
 pub struct View {
     /// Some way to compare `View`s (`==`) and `WeakView`s
@@ -211,9 +212,7 @@ impl View {
         let user_interaction_enabled = inner_self.user_interaction_enabled;
 
         if inner_self.bounds.contains(point) && user_interaction_enabled {
-            let subviews = inner_self.subviews.clone();
-
-            for subview in subviews.iter().rev() {
+            for subview in self.subviews().iter().rev() {
                 let subview_point = self.convert_point_to(point, subview);
                 let hit_test_result = subview.hit_test(&subview_point);
 
@@ -226,6 +225,15 @@ impl View {
         }
 
         None
+    }
+
+    pub fn set_frame(&self, frame: Rectangle<i32, u32>) {
+        {
+            let mut inner_self = self.inner_self.borrow_mut();
+            inner_self.frame = frame;
+        }
+
+        self.set_needs_display();
     }
 
     /// Returns a boolean indicating whether the given point is contained in
@@ -241,7 +249,7 @@ impl View {
         behavior.is_window()
     }
 
-    pub fn get_frame(&self) -> Rectangle<i32, u32> {
+    pub fn frame(&self) -> Rectangle<i32, u32> {
         let inner_self = self.inner_self.borrow();
         inner_self.frame.clone()
     }
@@ -271,9 +279,8 @@ impl View {
         }
     }
 
-    pub fn get_subviews(&self) -> Vec<View> {
-        let inner_self = self.inner_self.borrow();
-        inner_self.subviews.clone()
+    pub fn subviews(&self) -> Ref<'_, Vec<View>> {
+        Ref::map(self.inner_self.borrow(), |inner_self| &inner_self.subviews)
     }
 
     pub fn get_bounds(&self) -> Rectangle<i32, u32> {
@@ -426,5 +433,27 @@ mod tests {
         let point = Point { x: 50, y: 50 };
         let result = parent_view.hit_test(&point).unwrap();
         assert_eq!(result, red);
+    }
+
+    #[test]
+    fn test_set_frame() {
+        let frame = Rectangle::new(0, 0, 1000, 1000);
+        let view = View::new(frame);
+
+        let new_frame = Rectangle::new(10, 10, 100, 100);
+        view.set_frame(new_frame.clone());
+
+        assert_eq!(view.frame(), new_frame);
+    }
+
+    #[test]
+    fn test_subviews() {
+        let frame = Rectangle::new(0, 0, 1000, 1000);
+        let view = View::new(frame);
+
+        let subview = View::new(Rectangle::new(0, 0, 100, 100));
+        view.add_subview(subview.clone());
+
+        assert_eq!(view.subviews().get(0).unwrap(), &subview);
     }
 }

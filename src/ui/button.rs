@@ -44,7 +44,7 @@ custom_view!(
         }
 
         fn label(&self) -> Label {
-            let view = self.view.get_subviews().get(0).unwrap().clone();
+            let view = self.view.subviews().get(0).unwrap().clone();
             Label::from_view(view)
         }
 

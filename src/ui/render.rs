@@ -58,14 +58,14 @@ fn draw_view(view: &View, behavior: &WindowBehavior) {
     let inner_view = view.inner_self.borrow();
     let layer = inner_view.layer.as_ref().unwrap();
 
-    for subview in &inner_view.subviews {
+    for subview in view.subviews().iter() {
         // redraw the subview (if it needs it!)
         draw_view(subview, behavior);
 
         let sub_inner_view = subview.inner_self.borrow();
         let subview_layer = sub_inner_view.layer.as_ref().unwrap();
 
-        let frame = subview.get_frame();
+        let frame = subview.frame();
 
         layer.draw_child_layer(subview_layer, &frame);
     }
