@@ -1,5 +1,5 @@
 use crate::graphics::{Image, Rectangle, Point};
-use crate::ui::view::{Behavior, DefaultBehavior};
+use crate::ui::view::DefaultBehavior;
 use std::cell::RefCell;
 use crate::macros::*;
 

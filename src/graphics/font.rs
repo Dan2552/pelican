@@ -6,7 +6,7 @@ use crate::graphics::Size;
 use crate::graphics::Color;
 use std::rc::Rc;
 use std::collections::HashMap;
-use std::cell::{RefCell, Ref};
+use std::cell::RefCell;
 
 pub struct Font<'ttf_module, 'rwops> {
     path: String,

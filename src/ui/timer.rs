@@ -85,7 +85,7 @@ mod tests {
         //   it returns the next time to fire (now + given interval)
         let now = Instant::now();
         let interval = Duration::from_secs(360);
-        let mut timer = Timer::new(interval, false, || {});
+        let timer = Timer::new(interval, false, || {});
 
         let fire_at = timer.fire_at();
 
@@ -122,7 +122,7 @@ mod tests {
     #[test]
     fn test_is_valid() {
         let interval = Duration::from_secs(360);
-        let mut timer = Timer::new(interval, false, || {});
+        let timer = Timer::new(interval, false, || {});
 
         assert!(timer.is_valid());
         timer.invalidate();
@@ -135,7 +135,7 @@ mod tests {
     fn test_fire() {
         let interval = Duration::from_secs(360);
 
-        let mut timer = Timer::new(interval, false, || {
+        let timer = Timer::new(interval, false, || {
             unsafe { FIRED = true; }
         });
 

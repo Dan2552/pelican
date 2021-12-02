@@ -1,6 +1,6 @@
 use crate::macros::*;
 use crate::ui::view::DefaultBehavior;
-use crate::ui::{Touch, Event, Label, View, Color};
+use crate::ui::{Touch, Event, Label, Color};
 use crate::graphics::Rectangle;
 use std::cell::{Cell, RefCell};
 use crate::ui::{HorizontalAlignment, VerticalAlignment};
