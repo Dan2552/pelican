@@ -23,7 +23,7 @@ custom_view!(
         last_normal_text_color: RefCell<Color>
     }
 
-    view impl {
+    impl Self {
         pub fn new(frame: Rectangle<i32, u32>, text: &str) -> Button {
             let state = Cell::new(State::Normal);
             let button = Button::new_all(
@@ -60,7 +60,7 @@ custom_view!(
         }
     }
 
-    behavior impl {
+    impl Behavior {
         fn touches_began(&self, touches: &Vec<Touch>, _event: Event) {
             self.set_state(State::Pressed);
         }

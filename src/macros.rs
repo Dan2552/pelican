@@ -22,7 +22,7 @@ macro_rules! singleton {
 }
 
 macro_rules! custom_view {
-    ($view:ident subclasses $super:ident struct $behavior:ident { $($key:ident: $value:path),* } $(view impl { $($custom_view_impl:item)* })? $(behavior impl { $($custom_behavior_impl:item)* })?) => {
+    ($view:ident subclasses $super:ident struct $behavior:ident { $($key:ident: $value:path),* } $(impl Self { $($custom_view_impl:item)* })? $(impl Behavior { $($custom_behavior_impl:item)* })?) => {
         pub struct $view {
             pub view: crate::ui::View,
         }

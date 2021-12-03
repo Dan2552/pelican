@@ -29,7 +29,7 @@ custom_view!(
         text_vertical_alignment: Cell<VerticalAlignment>
     }
 
-    view impl {
+    impl Self {
         pub fn new(frame: Rectangle<i32, u32>, text: String) -> Label {
             let font = RefCell::new(Font::new("Arial", 17));
             let text_color = RefCell::new(Color::black());
@@ -111,7 +111,7 @@ custom_view!(
         // number_of_lines=(value)
     }
 
-    behavior impl {
+    impl Behavior {
         fn draw(&self) {
             self.super_behavior().unwrap().draw();
 

@@ -10,7 +10,7 @@ custom_view!(
         image: RefCell<Image<'static>>
     } 
 
-    view impl {
+    impl Self {
         pub fn new(image: Image<'static>, origin: Point<i32>) -> ImageView {
             let size = image.size().clone();
             let frame = Rectangle { origin, size };
@@ -18,7 +18,7 @@ custom_view!(
         }
     }
     
-    behavior impl {
+    impl Behavior {
         fn draw(&self) {
             // TODO: if image is @2x, scale differently
             let view = self.view.upgrade().unwrap().clone();
