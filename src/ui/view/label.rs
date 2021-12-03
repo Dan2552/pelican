@@ -136,19 +136,19 @@ custom_view!(
 
                 let x = match behavior.text_alignment.get() {
                     HorizontalAlignment::Left => 0,
-                    HorizontalAlignment::Center => (inner_self.frame.size.width - size.width) / 2,
-                    HorizontalAlignment::Right => inner_self.frame.size.width - size.width
+                    HorizontalAlignment::Center => (inner_self.frame.size.width as i32 - size.width as i32) / 2,
+                    HorizontalAlignment::Right => inner_self.frame.size.width as i32 - size.width as i32
                 };
                 
                 let y = match behavior.text_vertical_alignment.get() {
                     VerticalAlignment::Top => 0,
-                    VerticalAlignment::Center => inner_self.frame.size.height / 2 - size.height / 2,
-                    VerticalAlignment::Bottom => inner_self.frame.size.height - size.height
+                    VerticalAlignment::Center => inner_self.frame.size.height as i32 / 2 - size.height as i32 / 2,
+                    VerticalAlignment::Bottom => inner_self.frame.size.height as i32 - size.height as i32
                 };
 
                 let origin = Point {
-                    x: x as i32,
-                    y: y as i32
+                    x: x,
+                    y: y
                 };
 
                 let destination = Rectangle { origin, size };
