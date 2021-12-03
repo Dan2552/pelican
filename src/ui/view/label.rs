@@ -2,6 +2,7 @@ use crate::graphics::{Rectangle, Font, Point, Size};
 use crate::ui::Color;
 use crate::ui::view::{Behavior, DefaultBehavior};
 use std::cell::{Cell, RefCell};
+use crate::graphics::Layer;
 use crate::macros::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -123,37 +124,45 @@ custom_view!(
             let text = behavior.text.borrow();
 
             if let Some(layer) = &inner_self.layer {
-                let mut font = behavior.font.borrow_mut();
-                let color = behavior.text_color.borrow();
-                let color = color.to_graphics_color();
-                let child_layer = font.layer_for(layer.context.clone(), &text, color);
-                
-                let size = child_layer.get_size().clone();
-                let size = Size {
-                    width: size.width / 2,
-                    height: size.height / 2
-                };
-
-                let x = match behavior.text_alignment.get() {
-                    HorizontalAlignment::Left => 0,
-                    HorizontalAlignment::Center => (inner_self.frame.size.width as i32 - size.width as i32) / 2,
-                    HorizontalAlignment::Right => inner_self.frame.size.width as i32 - size.width as i32
-                };
-                
-                let y = match behavior.text_vertical_alignment.get() {
-                    VerticalAlignment::Top => 0,
-                    VerticalAlignment::Center => inner_self.frame.size.height as i32 / 2 - size.height as i32 / 2,
-                    VerticalAlignment::Bottom => inner_self.frame.size.height as i32 - size.height as i32
-                };
-
-                let origin = Point {
-                    x: x,
-                    y: y
-                };
-
-                let destination = Rectangle { origin, size };
-                layer.draw_child_layer(&child_layer, &destination);
+                for (index, line) in text.lines().enumerate() {    
+                    self.draw_line(layer, line, index);
+                }
             }
         }
     }
 );
+
+impl LabelBehavior {
+    fn draw_line(&self, parent_layer: &Layer, text: &str, index: usize) {
+        let mut font = self.font.borrow_mut();
+        let color = self.text_color.borrow();
+        let color = color.to_graphics_color();
+        let child_layer = font.layer_for(parent_layer.context.clone(), text, color);
+        
+        let size = child_layer.get_size().clone();
+        let size = Size {
+            width: size.width / 2,
+            height: size.height / 2
+        };
+
+        let x = match self.text_alignment.get() {
+            HorizontalAlignment::Left => 0,
+            HorizontalAlignment::Center => (parent_layer.get_size().width as i32 - size.width as i32) / 2,
+            HorizontalAlignment::Right => parent_layer.get_size().width as i32 - size.width as i32
+        };
+        
+        let y = match self.text_vertical_alignment.get() {
+            VerticalAlignment::Top => 0,
+            VerticalAlignment::Center => parent_layer.get_size().height as i32 / 2 - size.height as i32 / 2,
+            VerticalAlignment::Bottom => parent_layer.get_size().height as i32 - size.height as i32
+        };
+
+        let origin = Point {
+            x: x,
+            y: y
+        };
+
+        let destination = Rectangle { origin, size };
+        parent_layer.draw_child_layer(&child_layer, &destination);
+    }
+}
