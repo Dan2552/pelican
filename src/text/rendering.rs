@@ -68,7 +68,8 @@ impl LineOfText {
         let mut characters: Vec<Character> = Vec::new();
 
         for (char_index, character) in attributed_string.chars().enumerate() {
-            let font = attributed_string.font_for(char_index);
+            let font_attribute = attributed_string.get_attribute_for(char_index, crate::text::attributed_string::Key::Font);
+            let font = font_attribute.font();
             let size = font.size_for(&String::from(character));
 
             let x = if let Some(previous_character) = characters.last() {

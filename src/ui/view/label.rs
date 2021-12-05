@@ -1,4 +1,4 @@
-use crate::graphics::{Rectangle, Font, Point, Size};
+use crate::graphics::{Rectangle, Font};
 use crate::ui::Color;
 use crate::ui::view::{Behavior, DefaultBehavior};
 use std::cell::{Cell, RefCell};

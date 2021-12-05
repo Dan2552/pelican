@@ -1,11 +1,9 @@
-use crate::macros;
 use std::env;
 
-macros::singleton!(Bundle,);
 pub struct Bundle {}
 
 impl Bundle {
-    pub fn path_for_resource<'a>(&self, file: &str) -> String {
+    pub fn path_for_resource<'a>(file: &str) -> String {
         if file.starts_with("/") {
             String::from(file)
         } else {

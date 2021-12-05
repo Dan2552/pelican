@@ -1,17 +1,57 @@
 use crate::graphics::Color;
 use crate::graphics::Font;
-use std::cell::Ref;
+use std::collections::HashMap;
+use std::cell::{Ref, RefCell};
 
-enum Attribute {
+
+#[derive(PartialEq, Debug)]
+pub enum Attribute {
     Color {
         color: Color
+    },
+    Font {
+        font: Font
     }
 }
 
+impl Attribute {
+    pub fn color(&self) -> &Color {
+        match self {
+            Attribute::Color { color } => color,
+            _ => panic!("Attribute is not a color")
+        }
+    }
+
+    pub fn font(&self) -> &Font {
+        match self {
+            Attribute::Font { font } => font,
+            _ => panic!("Attribute is not a font")
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+pub enum Key {
+    Color,
+    Font
+}
+
+type AttributeContainer = HashMap<Key, Attribute>;
+
 pub struct AttributedString {
+    /// The actual text that this `AttributedString` represents.
     text: String,
-    attributes: Vec<Attribute>,
-    default_font: Font
+
+    /// The attributes for each character in the string. The index of the
+    /// character in the string matches the index of the attribute in the
+    /// vec.
+    attributes: RefCell<Vec<AttributeContainer>>,
+
+    /// The default attributes for the string.
+    ///
+    /// E.g. If any given character do not have the `Color` attribute, then
+    /// the default color will be used.
+    default_attributes: RefCell<AttributeContainer>
 }
 
 pub struct AttributedSubstring<'a> {
@@ -22,11 +62,20 @@ pub struct AttributedSubstring<'a> {
 
 impl AttributedString {
     fn new(text: String) -> AttributedString {
-        let default_font = Font::default();
+        let mut default_attributes = AttributeContainer::new();
+        default_attributes.insert(Key::Color, Attribute::Color { color: Color::BLACK });
+        default_attributes.insert(Key::Font, Attribute::Font { font: Font::default() });
+
+        let mut attributes = Vec::new();
+
+        for _ in text.chars() {
+            attributes.push(AttributeContainer::new());
+        }
+
         AttributedString {
             text: text,
-            attributes: Vec::new(),
-            default_font
+            attributes: RefCell::new(attributes),
+            default_attributes: RefCell::new(default_attributes)
         }
     }
 
@@ -37,14 +86,13 @@ impl AttributedString {
     pub fn lines(&self) -> Vec<AttributedSubstring> {
         let mut lines = Vec::new();
         let mut start = 0;
-        let mut end = 0;
+
         for (i, c) in self.text.chars().enumerate() {
             if c == '\n' {
-                end = i;
                 lines.push(AttributedSubstring {
                     attributed_string: self,
                     start: start,
-                    end: end
+                    end: i
                 });
                 start = i + 1;
             }
@@ -57,18 +105,38 @@ impl AttributedString {
         lines
     }
 
-    pub fn default_font(&self) -> &Font {
-        &self.default_font
-    }
-
-    pub fn font_for(&self, index: usize) -> &Font {
-        // TODO: unimplemented. Check all test cases reffering to this function.
-        &self.default_font
-    }
-
     pub fn chars(&self) -> std::str::Chars {
-        // Get all characters within the range of the AttributedSubstring
         self.text.chars()
+    }
+
+    pub fn set_default_attribute(&self, key: Key, attribute: Attribute) {
+        let mut default_attributes = self.default_attributes.borrow_mut();
+        default_attributes.insert(key, attribute);
+    }
+
+    pub fn set_attribute_for(&self, index: usize, key: Key, attribute: Attribute) {
+        let mut attributes = self.attributes.borrow_mut();
+
+        if index >= self.text.len() {
+            panic!("Index out of bounds");
+        }
+
+        attributes[index].insert(key, attribute);
+    }
+
+    pub fn get_attribute_for(&self, index: usize, key: Key) -> Ref<'_, Attribute> {
+        let attributes = self.attributes.borrow();
+
+        if index >= attributes.len() {
+            panic!("Index out of bounds");
+        }
+
+        if attributes[index].get(&key).is_some() {
+            Ref::map(attributes, |attrs| attrs[index].get(&key).unwrap())
+        } else {
+            let default_attributes = self.default_attributes.borrow();
+            Ref::map(default_attributes, |attrs| attrs.get(&key).unwrap())
+        }
     }
 }
 
@@ -78,12 +146,15 @@ impl AttributedSubstring<'_> {
     }
 
     pub fn chars(&self) -> std::str::Chars {
-        // Get all characters within the range of the AttributedSubstring
         self.text().chars()
     }
 
-    pub fn font_for(&self, index: usize) -> &Font {
-        self.attributed_string.font_for(index)
+    pub fn set_attribute_for(&self, index: usize, key: Key, attribute: Attribute) {
+        self.attributed_string.set_attribute_for(self.start + index, key, attribute);
+    }
+
+    pub fn get_attribute_for(&self, index: usize, key: Key) -> Ref<'_, Attribute> {
+        self.attributed_string.get_attribute_for(self.start + index, key)
     }
 }
 
@@ -106,20 +177,6 @@ mod tests {
         assert_eq!(lines.len(), 2);
         assert_eq!(lines[0].text(), "Hello, world!");
         assert_eq!(lines[1].text(), "Goodbye, world!");
-    }
-
-    #[test]
-    fn test_default_font() {
-        let text = "Hello, world!";
-        let attributed_string = AttributedString::new(text.to_string());
-        assert_eq!(attributed_string.default_font(), &Font::default());
-    }
-
-    #[test]
-    fn test_font_for() {
-        let text = "Hello, world!";
-        let attributed_string = AttributedString::new(text.to_string());
-        assert_eq!(attributed_string.font_for(0), &Font::default());
     }
 
     #[test]
@@ -165,10 +222,50 @@ mod tests {
     }
 
     #[test]
-    fn test_substring_font_for() {
+    fn test_set_default_attribute() {
         let text = "Hello, world!";
         let attributed_string = AttributedString::new(text.to_string());
-        let lines = attributed_string.lines();
-        assert_eq!(lines[0].font_for(0), &Font::default());
+        attributed_string.set_default_attribute(Key::Color, Attribute::Color { color: Color::RED });
+        assert_eq!(attributed_string.get_attribute_for(0, Key::Color).color(), &Color::RED);
+        assert_eq!(attributed_string.get_attribute_for(1, Key::Color).color(), &Color::RED);
+    }
+
+    #[test]
+    fn test_set_attribute_for() {
+        let text = "Hello, world!";
+        let attributed_string = AttributedString::new(text.to_string());
+        attributed_string.set_attribute_for(0, Key::Color, Attribute::Color { color: Color::RED });
+        assert_eq!(attributed_string.get_attribute_for(0, Key::Color).color(), &Color::RED);
+        assert_eq!(attributed_string.get_attribute_for(1, Key::Color).color(), &Color::BLACK);
+    }
+
+    #[test]
+    fn test_get_attribute_for() {
+        let text = "Hello, world!";
+        let attributed_string = AttributedString::new(text.to_string());
+        assert_eq!(attributed_string.get_attribute_for(0, Key::Color).color(), &Color::BLACK);
+        attributed_string.set_attribute_for(0, Key::Color, Attribute::Color { color: Color::RED });
+        assert_eq!(attributed_string.get_attribute_for(0, Key::Color).color(), &Color::RED);
+    }
+
+    #[test]
+    fn test_substring_set_attribute_for() {
+        let text = "Hello, world!\nGoodbye, world!";
+        let attributed_string = AttributedString::new(text.to_string());
+        attributed_string.set_attribute_for(0, Key::Color, Attribute::Color { color: Color::RED });
+        assert_eq!(attributed_string.get_attribute_for(0, Key::Color).color(), &Color::RED);
+
+        // Test setting with the substring mutates both the substring and the original string
+        let line0 = &attributed_string.lines()[0];
+        line0.set_attribute_for(0, Key::Color, Attribute::Color { color: Color::BLUE });
+        assert_eq!(attributed_string.get_attribute_for(0, Key::Color).color(), &Color::BLUE);
+        assert_eq!(line0.get_attribute_for(0, Key::Color).color(), &Color::BLUE);
+
+        // Test mutating one line doesn't affect the other line
+        let line1 = &attributed_string.lines()[1];
+        line1.set_attribute_for(0, Key::Color, Attribute::Color { color: Color::GREEN });
+        assert_eq!(attributed_string.get_attribute_for(0, Key::Color).color(), &Color::BLUE);
+        assert_eq!(line0.get_attribute_for(0, Key::Color).color(), &Color::BLUE);
+        assert_eq!(line1.get_attribute_for(0, Key::Color).color(), &Color::GREEN);
     }
 }

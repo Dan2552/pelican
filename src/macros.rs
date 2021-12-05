@@ -36,7 +36,7 @@ macro_rules! custom_view {
                 let super_behavior = $super {
                     view: crate::ui::WeakView::none()
                 };
-        
+
                 let behavior = $behavior {
                     view: crate::ui::WeakView::none(),
                     super_behavior: Box::new(super_behavior),
@@ -67,19 +67,19 @@ macro_rules! custom_view {
             fn super_behavior(&self) -> Option<&Box<dyn crate::ui::view::Behavior>> {
                 Some(&self.super_behavior)
             }
-        
+
             fn mut_super_behavior(&mut self) -> Option<&mut dyn crate::ui::view::Behavior> {
                 Some(self.super_behavior.as_mut())
             }
-        
+
             fn set_view(&mut self, view: crate::ui::WeakView) {
                 self.view = view;
             }
-        
+
             fn get_view(&self) -> &crate::ui::WeakView {
                 &self.view
             }
-        
+
             fn as_any(&self) -> &dyn std::any::Any {
                 self
             }
@@ -89,15 +89,8 @@ macro_rules! custom_view {
     };
 }
 
-macro_rules! super_behavior {
-    ($self:ident) => {
-        $self.super_behavior().unwrap();
-    };
-}
-
 pub(crate) use singleton;
 pub(crate) use custom_view;
-pub(crate) use super_behavior;
 
 #[cfg(test)]
 mod tests {

@@ -52,18 +52,13 @@ static mut TTF_CONTAINER: SdlTtfContainer = SdlTtfContainer {
 
 impl Font {
     pub fn new(font_name: &str, size: u16) -> Font {
-        let bundle = Bundle::borrow();
-        Font::new_with_bundle(font_name, size, &bundle)
+        let path = find_font(font_name);
+        let font_sizes = RefCell::new(HashMap::new());
+        Font { path, size, font_sizes }
     }
 
     pub fn default() -> Font {
         Font::new("Helvetica", 16)
-    }
-
-    pub fn new_with_bundle(font_name: &str, size: u16, bundle: &Bundle) -> Font {
-        let path = find_font(font_name, bundle);
-        let font_sizes = RefCell::new(HashMap::new());
-        Font { path, size, font_sizes }
     }
 
     // Get a drawable layer from the font for the given context.
@@ -109,7 +104,7 @@ impl Font {
     }
 }
 
-fn find_font(font_name: &str, bundle: &Bundle) -> String {
+fn find_font(font_name: &str) -> String {
     // Find the font in system paths.
     for path in PATHS {
         for filetype in TYPES {
@@ -123,7 +118,7 @@ fn find_font(font_name: &str, bundle: &Bundle) -> String {
 
     // If it wasn't found in system paths, try the bundle path.
     for filetype in TYPES {
-        let potential = bundle.path_for_resource(&format!("{}{}", font_name, filetype));
+        let potential = Bundle::path_for_resource(&format!("{}{}", font_name, filetype));
         if Path::new(&potential).exists() {
             return potential;
         }
@@ -152,14 +147,6 @@ mod tests {
     #[test]
     fn test_font_new() {
         let font = Font::new("Helvetica", 16);
-        assert_eq!(font.path, "/System/Library/Fonts/Helvetica.ttc");
-        assert_eq!(font.size, 16);
-    }
-
-    #[test]
-    fn test_font_new_with_bundle() {
-        let bundle = Bundle::borrow();
-        let font = Font::new_with_bundle("Helvetica", 16, &bundle);
         assert_eq!(font.path, "/System/Library/Fonts/Helvetica.ttc");
         assert_eq!(font.size, 16);
     }
