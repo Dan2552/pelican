@@ -23,6 +23,10 @@ impl Rectangle<i32, u32> {
             point.x <= self.origin.x + self.size.width as i32 &&
             point.y <= self.origin.y + self.size.height as i32
     }
+
+    pub fn bottom(&self) -> i32 {
+        self.origin.y + self.size.height as i32
+    }
 }
 
 impl<T, U> Clone for Rectangle<T, U> where T: Number, U: Number {
@@ -146,5 +150,24 @@ mod tests {
         let rect2 = Rectangle::new(0, 0, 1, 100);
 
         assert_ne!(rect1, rect2);
+    }
+
+    fn test_bottom() {
+        let rect = Rectangle::new(0, 0, 100, 100);
+
+        assert_eq!(rect.bottom(), 100);
+    }
+
+    fn test_debug() {
+        let rect = Rectangle::new(0, 0, 100, 100);
+
+        assert_eq!(format!("{:?}", rect), "Rectangle(0, 0, 100, 100)");
+    }
+
+    fn test_clone() {
+        let rect = Rectangle::new(0, 0, 100, 100);
+        let cloned = rect.clone();
+
+        assert_eq!(rect, cloned);
     }
 }

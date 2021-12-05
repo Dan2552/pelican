@@ -5,6 +5,15 @@ pub struct Size<T> {
     pub height: T
 }
 
+impl<T> Size<T> where T: Number {
+    pub fn new(width: T, height: T) -> Size<T> {
+        Size {
+            width: width,
+            height: height
+        }
+    }
+}
+
 impl<T> Clone for Size<T> where T: Copy {
     fn clone(&self) -> Self {
         Size {

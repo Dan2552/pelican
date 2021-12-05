@@ -12,11 +12,11 @@ impl ViewControllerBehavior for ExampleViewController {
         view.add_subview(image_view.view);
 
         let frame = Rectangle::new(0, 0, 200, 200);
-        let label = Label::new(frame, String::from("hello rusty world"));
+        let label = Label::new(frame, String::from("hello rusty world\nhello hello"));
         label.set_text_alignment(HorizontalAlignment::Center);
         label.set_vertical_alignment(VerticalAlignment::Center);
         label.view.set_background_color(Color::red());
-        label.fit_to_text();
+        // label.fit_to_text();
 
         view.add_subview(label.view);
 

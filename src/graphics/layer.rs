@@ -80,6 +80,12 @@ impl Layer {
         }
     }
 
+    /// Creates a layer that cannot draw anything on its own. It's useful for
+    /// creating a layer that can be used as a container for other layers.
+    pub fn new_no_render(context: Rc<Context>, size: Size<u32>) -> Layer {
+        Layer::new(context, size, Box::new(EmptyLayerDelegate {}))
+    }
+
     // TODO: pub(crate)
     //
     // Requests for the delegate to draw on this layer.
@@ -130,8 +136,12 @@ impl Layer {
         context.clear_texture(&mut texture, color)
     }
 
-    pub fn get_size(&self) -> &Size<u32> {
+    pub fn size(&self) -> &Size<u32> {
         &self.size
+    }
+
+    pub fn context(&self) -> &Rc<Context> {
+        &self.context
     }
 }
 
