@@ -3,6 +3,8 @@ use crate::ui::Color;
 use crate::ui::view::{Behavior, DefaultBehavior};
 use std::cell::{Cell, RefCell};
 use crate::graphics::Layer;
+use crate::text::attributed_string::AttributedString;
+use crate::text::rendering;
 use crate::macros::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -121,118 +123,12 @@ custom_view!(
 
             let text = self.text.borrow();
 
+            let attributed_string = AttributedString::new(text.clone());
+
             if let Some(layer) = &inner_self.layer {
-                self.draw_text(layer, &text);
+                // let frame = view.frame();
+                // let whole_text = rendering::WholeText::from(&attributed_string, view.frame());
             }
         }
     }
 );
-
-impl LabelBehavior {
-    fn draw_text(&self, layer: &Layer, text: &str) {
-        // let context = layer.context();
-        // let default_font = self.font.borrow();
-        // let default_text_color = self.text_color.borrow();
-
-        // let mut whole_width = 0;
-        // let mut whole_height = 0;
-
-        // let mut line_layers: Vec<(Point<i32>, Layer)> = Vec::new();
-
-        // let mut line_y = 0;
-
-        // // For each line - first build up all the layers and measure them, but
-        // // they cannot be drawn yet until the size of the whole label is known.
-        // for line in text.lines() {
-        //     let mut line_width = 0;
-        //     let mut max_line_height = 0;
-        //     let mut character_layers: Vec<(Point<i32>, Layer)> = Vec::new();
-
-        //     // For each character - first build up all the layers and measure
-        //     // them, but they cannot be drawn yet until the size of the whole
-        //     // line is known.
-        //     for character in line.chars() {
-        //         let font = &default_font;
-        //         let text_color = &default_text_color;
-        //         let character = &String::from(character);
-
-        //         let character_layer = font.layer_for(&context, character, text_color.to_graphics_color());
-        //         let point = Point::new(line_width as i32, line_y as i32);
-        //         line_width = line_width + character_layer.size().width;
-        //         max_line_height = max_line_height.max(character_layer.size().height);
-        //         character_layers.push((point, character_layer));
-        //     }
-
-        //     let line_layer = Layer::new_no_render(
-        //         context.clone(),
-        //         Size::new(line_width, max_line_height)
-        //     );
-
-        //     for character_layer in character_layers {
-        //         let (point, layer) = character_layer;
-        //         let destination = Rectangle {
-        //             origin: point,
-        //             size: layer.size().clone()
-        //         };
-        //         line_layer.draw_child_layer(&layer, &destination);
-        //     }
-
-        //     let point = Point::new(0, line_y);
-        //     line_layers.push((point, line_layer));
-
-        //     whole_width = whole_width + line_width;
-        //     whole_height = whole_height + max_line_height;
-        //     line_y = line_y + max_line_height;
-        // }
-
-        // let whole_layer = Layer::new_no_render(
-        //     context.clone(),
-        //     Size::new(whole_width, whole_height)
-        // );
-
-
-
-        // TODO: text align final result
-    }
-
-    // fn draw_text(&self, layer: &Layer, text: &str) {
-    //     let x = match self.text_alignment.get() {
-    //         HorizontalAlignment::Left => 0,
-    //         HorizontalAlignment::Center => (layer.get_size().width as i32 - size.width as i32) / 2,
-    //         HorizontalAlignment::Right => layer.get_size().width as i32 - size.width as i32
-    //     };
-
-    //     let y = match self.text_vertical_alignment.get() {
-    //         VerticalAlignment::Top => 0,
-    //         VerticalAlignment::Center => layer.get_size().height as i32 / 2 - size.height as i32 / 2,
-    //         VerticalAlignment::Bottom => layer.get_size().height as i32 - size.height as i32
-    //     };
-
-    //     let origin = Point {
-    //         x: x,
-    //         y: y
-    //     };
-
-    //     for (index, line) in text.lines().enumerate() {
-    //         self.draw_line(layer, line, index);
-    //     }
-    // }
-
-    // fn draw_line(&self, parent_layer: &Layer, text: &str, index: usize) {
-    //     let mut font = self.font.borrow_mut();
-    //     let color = self.text_color.borrow();
-    //     let color = color.to_graphics_color();
-    //     let child_layer = font.layer_for(parent_layer.context.clone(), text, color);
-
-    //     let size = child_layer.get_size().clone();
-    //     let size = Size {
-    //         width: size.width / 2,
-    //         height: size.height / 2
-    //     };
-
-
-
-    //     let destination = Rectangle { origin, size };
-    //     parent_layer.draw_child_layer(&child_layer, &destination);
-    // }
-}

@@ -61,7 +61,7 @@ pub struct AttributedSubstring<'a> {
 }
 
 impl AttributedString {
-    fn new(text: String) -> AttributedString {
+    pub fn new(text: String) -> AttributedString {
         let mut default_attributes = AttributeContainer::new();
         default_attributes.insert(Key::Color, Attribute::Color { color: Color::BLACK });
         default_attributes.insert(Key::Font, Attribute::Font { font: Font::default() });
