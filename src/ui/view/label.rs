@@ -6,20 +6,7 @@ use crate::graphics::Layer;
 use crate::text::attributed_string::AttributedString;
 use crate::text::rendering;
 use crate::macros::*;
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum HorizontalAlignment {
-    Left,
-    Center,
-    Right
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum VerticalAlignment {
-    Top,
-    Center,
-    Bottom
-}
+use crate::text::{VerticalAlignment, HorizontalAlignment};
 
 custom_view!(
     Label subclasses DefaultBehavior
@@ -126,8 +113,10 @@ custom_view!(
             let attributed_string = AttributedString::new(text.clone());
 
             if let Some(layer) = &inner_self.layer {
-                // let frame = view.frame();
-                // let whole_text = rendering::WholeText::from(&attributed_string, view.frame());
+                let frame = view.frame();
+                let mut whole_text = rendering::WholeText::from(&attributed_string, view.frame());
+
+                // TODO: make an iterator for each char
             }
         }
     }

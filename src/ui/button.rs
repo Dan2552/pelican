@@ -3,7 +3,7 @@ use crate::ui::view::DefaultBehavior;
 use crate::ui::{Touch, Event, Label, Color};
 use crate::graphics::Rectangle;
 use std::cell::{Cell, RefCell};
-use crate::ui::{HorizontalAlignment, VerticalAlignment};
+use crate::text::{HorizontalAlignment, VerticalAlignment};
 
 static DEFAULT_COLOR_NORMAL: Color = Color { red: 2, green: 117, blue: 227, alpha: 255 };
 static DEFAULT_COLOR_PRESSED: Color = Color { red: 64, green: 155, blue: 255, alpha: 255 };
@@ -16,7 +16,7 @@ pub enum State {
 
 custom_view!(
     Button subclasses DefaultBehavior
-    
+
     struct ButtonBehavior {
         state: Cell<State>,
         pressed_text_color: RefCell<Color>,
@@ -27,8 +27,8 @@ custom_view!(
         pub fn new(frame: Rectangle<i32, u32>, text: &str) -> Button {
             let state = Cell::new(State::Normal);
             let button = Button::new_all(
-                frame.clone(), 
-                state, 
+                frame.clone(),
+                state,
                 RefCell::new(DEFAULT_COLOR_PRESSED.clone()),
                 RefCell::new(DEFAULT_COLOR_NORMAL.clone()),
             );
@@ -37,7 +37,7 @@ custom_view!(
             label.set_text_color(DEFAULT_COLOR_NORMAL.clone());
             label.view.set_user_interaction_enabled(false);
             label.set_text_alignment(HorizontalAlignment::Center);
-            label.set_vertical_alignment(VerticalAlignment::Center);
+            label.set_vertical_alignment(VerticalAlignment::Middle);
             button.view.add_subview(label.view);
             button.view.set_background_color(Color::clear());
             button
@@ -67,10 +67,10 @@ custom_view!(
 
         fn touches_ended(&self, touches: &Vec<Touch>, _event: Event) {
             if let Some(touch) = touches.first() {
-                
+
                 let view = self.view.upgrade().unwrap();
                 let window = touch.get_window().unwrap();
-                
+
                 let position = window.view.convert_point_to(&touch.get_position(), &view);
 
                 if view.get_bounds().contains(&position) {
@@ -85,7 +85,7 @@ custom_view!(
             if let Some(touch) = touches.first() {
                 let view = self.view.upgrade().unwrap();
                 let window = touch.get_window().unwrap();
-                
+
                 let position = window.view.convert_point_to(&touch.get_position(), &view);
 
                 if view.get_bounds().contains(&position) {

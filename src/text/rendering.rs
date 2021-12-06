@@ -3,6 +3,7 @@ use crate::graphics::Point;
 use crate::graphics::Size;
 use crate::text::attributed_string::{AttributedString, AttributedSubstring};
 use crate::text::attributed_string;
+use crate::text::{VerticalAlignment, HorizontalAlignment};
 
 /// Used for rendering.
 ///
@@ -28,7 +29,7 @@ pub struct Character {
 /// If an individual word is too long to fit on a line, it will be broken up
 /// into multiple `Word`s for simplicity of rendering.
 pub struct Word {
-    text: Vec<Character>,
+    characters: Vec<Character>,
 
     /// We only care about the x position of the character, because the y
     /// position is determined by the line height (so is up to `LineOfText`).
@@ -58,9 +59,16 @@ pub struct LineOfText {
 /// Used for rendering.
 ///
 /// A paragraph (or many paragraphs) of text, containing `LineOfText`s.
+///
+/// The `WholeText` struct contains lines of text to be rendered, but also
+/// the positions for them. This is designed so that the `WholeText` has total
+/// control for text-alignment.
 pub struct WholeText {
     /// The text to be rendered.
-    text: Vec<LineOfText>,
+    lines: Vec<LineOfText>,
+
+    /// Positions of each line of text.
+    positions: Vec<Point<i32>>,
 
     /// The position and size of the text.
     ///
@@ -87,7 +95,7 @@ impl Word {
     /// Constructs an empty `Word`, to be populated with `add_character`.
     fn new(x: i32) -> Word {
         Word {
-            text: Vec::new(),
+            characters: Vec::new(),
             x: x,
             size: Size::new(0, 0)
         }
@@ -95,7 +103,7 @@ impl Word {
 
     /// Returns whether the word is empty (i.e. there are no characters).
     fn is_empty(&self) -> bool {
-        self.text.is_empty()
+        self.characters.is_empty()
     }
 
     /// Add a character to the word. This will update the word's size.
@@ -104,8 +112,8 @@ impl Word {
     fn add_character(&mut self, character: Character) -> &Character{
         self.size.width += character.size.width;
         self.size.height = character.size.height.max(self.size.height);
-        self.text.push(character);
-        self.text.last().unwrap()
+        self.characters.push(character);
+        self.characters.last().unwrap()
     }
 
     /// Set the x position of the word. I.e. for use when the word is wrapped
@@ -123,7 +131,7 @@ impl Word {
 
 impl std::fmt::Debug for Word {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Word({})", self.text.iter().map(|c| c.character).collect::<String>())
+        write!(f, "Word({})", self.characters.iter().map(|c| c.character).collect::<String>())
     }
 }
 
@@ -163,6 +171,33 @@ impl LineOfText {
             let size = font.size_for(&String::from(character));
             let character = Character { character, size };
 
+            let potential_word_width = current_word.size.width + character.size.width;
+            if potential_word_width > maximum_width {
+                // The word is too long to fit on the current line so must be
+                // broken up.
+                if !current_word.is_empty() {
+                    current_line_width += current_word.size.width;
+                    current_line_height = current_word.size.height.max(current_line_height);
+                    current_line_words.push(current_word);
+                }
+
+                if !current_line_words.is_empty() {
+                    // Add the current line to the output.
+                    lines.push(LineOfText {
+                        words: current_line_words,
+                        size: Size::new(current_line_width, current_line_height)
+                    });
+                }
+
+                // Reset the current line.
+                current_line_words = Vec::new();
+                current_line_width = 0;
+                current_line_height = 0;
+
+                // Reset the current word.
+                current_word = Word::new(0);
+            }
+
             // Add the character to the current word.
             let character = current_word.add_character(character);
 
@@ -185,18 +220,13 @@ impl LineOfText {
                 // If the word won't fit on the current line, we need to
                 // wrap it.
                 if current_line_width + current_word.size.width > maximum_width {
-                    if current_line_words.is_empty() {
-                        // If the current line is empty, we can't wrap it.
-                        //
-                        // This can happen if the first word is too long to fit
-                        // on the first line.
-                        panic!("First word is too long to fit on the first line.");
-                    }
                     // Add the current line to the output.
-                    lines.push(LineOfText {
-                        words: current_line_words,
-                        size: Size::new(current_line_width, current_line_height)
-                    });
+                    if !current_line_words.is_empty() {
+                        lines.push(LineOfText {
+                            words: current_line_words,
+                            size: Size::new(current_line_width, current_line_height)
+                        });
+                    }
 
                     // Reset the current line.
                     current_line_words = Vec::new();
@@ -226,6 +256,10 @@ impl LineOfText {
 
         lines
     }
+
+    pub fn size(&self) -> &Size<u32> {
+        &self.size
+    }
 }
 
 impl std::fmt::Debug for LineOfText {
@@ -235,46 +269,102 @@ impl std::fmt::Debug for LineOfText {
 }
 
 impl WholeText {
-    // / Creates a `rendering::WholeText` from an `AttributedString`.
-    // /
-    // / The frame is used for:
-    // / * Positioning the text where desired to be rendered
-    // / * Affecting how long lines can be, and whether they word-wrap.
-    // /
-    // / The height of the frame is ignored; these structs do not deal with any
-    // / truncation rules. Therefore the resulting `WholeText` may be taller than
-    // / the frame supplied.
-    // pub fn from(attributed_string: &AttributedString, frame: Rectangle<i32, u32>) -> WholeText {
-        // let mut lines: Vec<LineOfText> = Vec::new();
+    /// Creates a `rendering::WholeText` from an `AttributedString`.
+    pub fn from(attributed_string: &AttributedString, frame: Rectangle<i32, u32>) -> WholeText {
+        let mut lines: Vec<LineOfText> = Vec::new();
+        let mut positions = Vec::new();
 
-        // for line in attributed_string.lines() {
-        //     let y = if let Some(previous_line) = lines.last() {
-        //         previous_line.frame.bottom()
-        //     } else {
-        //         0
-        //     };
+        // Build the lines of text. The size of the lines is calculated during
+        // this process.
+        for line in attributed_string.lines() {
+            for line_of_text in LineOfText::from(&line, frame.size.width) {
+                lines.push(line_of_text);
+                positions.push(Point { x: 0, y: 0 });
+            }
+        }
 
-        //     // TODO: this will be updated as part of alignment handling.
-        //     let x = frame.origin.x;
+        // Knowing the size of the lines, we can calculate positions based on
+        // the text alignment rules.
+        let mut whole_text = WholeText { lines, positions, frame };
 
-        //     let origin_of_line = Point::new(x, y);
+        whole_text.align_horizontally(HorizontalAlignment::Left);
+        whole_text.align_vertically(VerticalAlignment::Top);
 
-        //     for line_of_text in LineOfText::from(&line, origin_of_line, frame.size.width) {
-        //         lines.push(line_of_text);
-        //     }
-        // }
+        whole_text
+    }
 
-        // // Build a new frame for the text because the height of the text may
-        // // not match the passed in frame.
-        // let height = lines.iter().map(|line| line.frame.size.height).sum();
-        // let width = frame.size.width;
-        // let size = Size::new(width, height);
-        // let frame = Rectangle { origin: frame.origin, size };
+    fn lines_total_height(&self) -> u32 {
+        self.lines.iter().fold(0, |acc, line| acc + line.size.height)
+    }
 
-        // WholeText {
-        //     text: lines,
-        //     frame
-        // }
+    fn align_horizontally(&mut self, horizontal_alignment: HorizontalAlignment) {
+        let origin_x = self.frame.origin.x;
+
+        // Aligning horizontalling is simple as we don't need to account for
+        // other lines of text, as they cannot overlap horizontally.
+        for (index, line) in self.lines.iter().enumerate() {
+            match horizontal_alignment {
+                HorizontalAlignment::Left => {
+                    self.positions[index].x = origin_x;
+                }
+                HorizontalAlignment::Center => {
+                    let center_x = self.frame.size.width as f32 * 0.5;
+                    let center_line_x = line.size.width as f32 * 0.5;
+                    let top_left_x = center_x - center_line_x;
+
+                    self.positions[index].x = origin_x + top_left_x.round() as i32;
+                }
+                HorizontalAlignment::Right => {
+                    self.positions[index].x = origin_x + (self.frame.size.width - line.size.width) as i32;
+                }
+            }
+        }
+    }
+
+    fn align_vertically(&mut self, vertical_alignment: VerticalAlignment) {
+        let origin_y = self.frame.origin.y;
+
+        // Aligning vertically is a bit more complicated as we need to account
+        // for other lines of text.
+        match vertical_alignment {
+            VerticalAlignment::Top => {
+                let mut line_y = origin_y;
+                for (index, line) in self.lines.iter().enumerate() {
+                    self.positions[index].y = line_y;
+                    line_y += line.size.height as i32;
+                }
+            }
+            VerticalAlignment::Middle => {
+                let middle_y = self.frame.size.height as f32 * 0.5;
+                let middle_line_y = self.lines_total_height() as f32 * 0.5;
+                let top_left_y = middle_y - middle_line_y;
+
+                let mut line_y = origin_y + top_left_y.round() as i32;
+                for (index, line) in self.lines.iter().enumerate() {
+                    self.positions[index].y = line_y;
+                    line_y += line.size.height as i32;
+                }
+            }
+            VerticalAlignment::Bottom => {
+                let bottom_y = self.frame.size.height as i32 - self.lines_total_height() as i32;
+                let mut line_y = origin_y + bottom_y;
+                for (index, line) in self.lines.iter().enumerate() {
+                    self.positions[index].y = line_y;
+                    line_y += line.size.height as i32;
+                }
+            }
+        }
+    }
+
+    // /// Iterate chars with their positions.
+    // fn chars_with_positions(&self) -> impl Iterator<Item = (char, Point<i32>)> {
+    //     self.lines.iter().enumerate().flat_map(move |(line_index, line)| {
+    //         line.words.iter().enumerate().flat_map(move |(word_index, word)| {
+    //             word.characters.iter().enumerate().map(move |(char_index, char)| {
+    //                 (char, self.positions[line_index] + word.positions[word_index] + Point { x: char_index as i32, y: 0 })
+    //             })
+    //         })
+    //     })
     // }
 }
 
@@ -303,9 +393,9 @@ mod tests {
             size: Size::new(10, 20)
         });
 
-        assert_eq!(word.text.len(), 1);
-        assert_eq!(word.text[0].character, 'a');
-        assert_eq!(word.text[0].size, Size::new(10, 20));
+        assert_eq!(word.characters.len(), 1);
+        assert_eq!(word.characters[0].character, 'a');
+        assert_eq!(word.characters[0].size, Size::new(10, 20));
         assert_eq!(word.size, Size::new(10, 20));
         assert_eq!(word.x, 10);
 
@@ -350,24 +440,25 @@ mod tests {
         let word1 = &line_of_text.words[0];
         let word2 = &line_of_text.words[1];
 
-        assert_eq!(word1.text[0].character, 'H');
-        assert_eq!(word1.text[1].character, 'e');
-        assert_eq!(word1.text[2].character, 'l');
-        assert_eq!(word1.text[3].character, 'l');
-        assert_eq!(word1.text[4].character, 'o');
-        assert_eq!(word1.text[5].character, ',');
-        assert_eq!(word1.text[6].character, ' ');
-        assert_eq!(word2.text[0].character, 'w');
-        assert_eq!(word2.text[1].character, 'o');
-        assert_eq!(word2.text[2].character, 'r');
-        assert_eq!(word2.text[3].character, 'l');
-        assert_eq!(word2.text[4].character, 'd');
-        assert_eq!(word2.text[5].character, '!');
+        assert_eq!(word1.characters[0].character, 'H');
+        assert_eq!(word1.characters[1].character, 'e');
+        assert_eq!(word1.characters[2].character, 'l');
+        assert_eq!(word1.characters[3].character, 'l');
+        assert_eq!(word1.characters[4].character, 'o');
+        assert_eq!(word1.characters[5].character, ',');
+        assert_eq!(word1.characters[6].character, ' ');
+        assert_eq!(word2.characters[0].character, 'w');
+        assert_eq!(word2.characters[1].character, 'o');
+        assert_eq!(word2.characters[2].character, 'r');
+        assert_eq!(word2.characters[3].character, 'l');
+        assert_eq!(word2.characters[4].character, 'd');
+        assert_eq!(word2.characters[5].character, '!');
 
         assert_eq!(word1.size, Size::new(46, 16));
         assert_eq!(word2.size, Size::new(44, 16));
 
         assert_eq!(line_of_text.size, Size::new(90, 16));
+        assert_eq!(line_of_text.size(), &Size::new(90, 16));
     }
 
     #[test]
@@ -395,18 +486,179 @@ mod tests {
         let lines = attributed_string.lines();
         let line = lines.first().unwrap();
 
-        let lines_of_text = LineOfText::from(&line, 5);
-        println!("{:?}", lines_of_text);
+        let lines_of_text = LineOfText::from(&line, 35);
 
-        assert_eq!(lines_of_text.len(), 2);
+        assert_eq!(lines_of_text.len(), 4);
 
-        // let line1 = &lines_of_text[0];
-        // let line2 = &lines_of_text[1];
+        let line1 = &lines_of_text[0];
+        let line2 = &lines_of_text[1];
+        let line3 = &lines_of_text[2];
+        let line4 = &lines_of_text[3];
 
-        // assert_eq!(format!("{:?}", line1), "LineOfText([Word(Hello)])");
-        // assert_eq!(format!("{:?}", line2), "LineOfText([Word(world!)])");
+        assert_eq!(format!("{:?}", line1), "LineOfText([Word(Hell)])");
+        assert_eq!(format!("{:?}", line2), "LineOfText([Word(o, )])");
+        assert_eq!(format!("{:?}", line3), "LineOfText([Word(worl)])");
+        assert_eq!(format!("{:?}", line4), "LineOfText([Word(d!)])");
 
-        // assert_eq!(line1.size, Size::new(46, 16));
-        // assert_eq!(line2.size, Size::new(44, 16));
+        assert_eq!(line1.size, Size::new(29, 16));
+        assert_eq!(line2.size, Size::new(17, 16));
+        assert_eq!(line3.size, Size::new(31, 16));
+        assert_eq!(line4.size, Size::new(13, 16));
+    }
+
+    #[test]
+    fn test_line_of_text_that_cant_fit_a_character() {
+        let attributed_string = AttributedString::new(String::from("Hello, world!"));
+        let lines = attributed_string.lines();
+        let line = lines.first().unwrap();
+
+        let lines_of_text = LineOfText::from(&line, 10);
+
+        assert_eq!(lines_of_text.len(), 10);
+
+        let line1 = &lines_of_text[0];
+        let line2 = &lines_of_text[1];
+        let line3 = &lines_of_text[2];
+        let line4 = &lines_of_text[3];
+        let line5 = &lines_of_text[4];
+        let line6 = &lines_of_text[5];
+        let line7 = &lines_of_text[6];
+        let line8 = &lines_of_text[7];
+        let line9 = &lines_of_text[8];
+        let line10 = &lines_of_text[9];
+
+        assert_eq!(format!("{:?}", line1), "LineOfText([Word(H)])");
+        assert_eq!(format!("{:?}", line2), "LineOfText([Word(e)])");
+        assert_eq!(format!("{:?}", line3), "LineOfText([Word(ll)])");
+        assert_eq!(format!("{:?}", line4), "LineOfText([Word(o)])");
+        assert_eq!(format!("{:?}", line5), "LineOfText([Word(, )])");
+        assert_eq!(format!("{:?}", line6), "LineOfText([Word(w)])");
+        assert_eq!(format!("{:?}", line7), "LineOfText([Word(o)])");
+        assert_eq!(format!("{:?}", line8), "LineOfText([Word(rl)])");
+        assert_eq!(format!("{:?}", line9), "LineOfText([Word(d)])");
+        assert_eq!(format!("{:?}", line10), "LineOfText([Word(!)])");
+
+        // As intended by this test, some of these characters are larger than
+        // the maximum width given.
+        assert_eq!(line1.size, Size::new(12, 16));
+        assert_eq!(line2.size, Size::new(9, 16));
+        assert_eq!(line3.size, Size::new(8, 16));
+        assert_eq!(line4.size, Size::new(9, 16));
+        assert_eq!(line5.size, Size::new(8, 16));
+        assert_eq!(line6.size, Size::new(12, 16));
+        assert_eq!(line7.size, Size::new(9, 16));
+        assert_eq!(line8.size, Size::new(10, 16));
+        assert_eq!(line9.size, Size::new(9, 16));
+        assert_eq!(line10.size, Size::new(4, 16));
+    }
+
+    #[test]
+    fn test_whole_text_single_line() {
+        let attributed_string = AttributedString::new(String::from("Hello, world!"));
+
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let text = WholeText::from(&attributed_string, frame);
+
+        assert_eq!(text.lines.len(), 1);
+    }
+
+    #[test]
+    fn test_whole_text_lines_total_height() {
+        let attributed_string = AttributedString::new(String::from("Hello, world!\nGoodbye, world!"));
+
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let text = WholeText::from(&attributed_string, frame);
+
+        assert_eq!(text.lines_total_height(), 48);
+    }
+
+    #[test]
+    fn test_whole_text_horizonal_alignment_left() {
+        let attributed_string = AttributedString::new(String::from("Hello, world!\nGoodbye, world!"));
+
+        let frame = Rectangle::new(50, 50, 100, 100);
+        let mut text = WholeText::from(&attributed_string, frame);
+        text.align_horizontally(HorizontalAlignment::Left);
+
+        let line1_position = &text.positions[0];
+        let line2_position = &text.positions[1];
+
+        assert_eq!(line1_position.x, 50);
+        assert_eq!(line2_position.x, 50);
+    }
+
+    #[test]
+    fn test_whole_text_horizonal_alignment_center() {
+        let attributed_string = AttributedString::new(String::from("Hello, world!\nGoodbye, world!"));
+
+        let frame = Rectangle::new(50, 50, 100, 100);
+        let mut text = WholeText::from(&attributed_string, frame);
+        text.align_horizontally(HorizontalAlignment::Center);
+
+        let line1_position = &text.positions[0];
+        let line2_position = &text.positions[1];
+
+        assert_eq!(line1_position.x, 55);
+        assert_eq!(line2_position.x, 64);
+    }
+
+    #[test]
+    fn test_whole_text_horizonal_alignment_right() {
+        let attributed_string = AttributedString::new(String::from("Hello, world!\nGoodbye, world!"));
+
+        let frame = Rectangle::new(50, 50, 100, 100);
+        let mut text = WholeText::from(&attributed_string, frame);
+        text.align_horizontally(HorizontalAlignment::Right);
+
+        let line1_position = &text.positions[0];
+        let line2_position = &text.positions[1];
+
+        assert_eq!(line1_position.x, 60);
+        assert_eq!(line2_position.x, 77);
+    }
+
+    #[test]
+    fn test_whole_text_vertical_alignment_top() {
+        let attributed_string = AttributedString::new(String::from("Hello, world!\nGoodbye, world!"));
+
+        let frame = Rectangle::new(50, 50, 100, 100);
+        let mut text = WholeText::from(&attributed_string, frame);
+        text.align_vertically(VerticalAlignment::Top);
+
+        let line1_position = &text.positions[0];
+        let line2_position = &text.positions[1];
+
+        assert_eq!(line1_position.y, 50);
+        assert_eq!(line2_position.y, 50 + 16);
+    }
+
+    #[test]
+    fn test_whole_text_vertical_alignment_middle() {
+        let attributed_string = AttributedString::new(String::from("Hello, world!\nGoodbye, world!"));
+
+        let frame = Rectangle::new(50, 50, 100, 100);
+        let mut text = WholeText::from(&attributed_string, frame);
+        text.align_vertically(VerticalAlignment::Middle);
+
+        let line1_position = &text.positions[0];
+        let line2_position = &text.positions[1];
+
+        assert_eq!(line1_position.y, 76);
+        assert_eq!(line2_position.y, 92);
+    }
+
+    #[test]
+    fn test_whole_text_vertical_alignment_bottom() {
+        let attributed_string = AttributedString::new(String::from("Hello, world!\nGoodbye, world!"));
+
+        let frame = Rectangle::new(50, 50, 100, 100);
+        let mut text = WholeText::from(&attributed_string, frame);
+        text.align_vertically(VerticalAlignment::Bottom);
+
+        let line1_position = &text.positions[0];
+        let line2_position = &text.positions[1];
+
+        assert_eq!(line1_position.y, 102);
+        assert_eq!(line2_position.y, 118);
     }
 }

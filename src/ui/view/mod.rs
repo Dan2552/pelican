@@ -14,8 +14,6 @@ pub use default_behavior::DefaultBehavior;
 pub(crate) use view_inner::ViewInner;
 pub use image_view::ImageView;
 pub use label::Label;
-pub use label::HorizontalAlignment;
-pub use label::VerticalAlignment;
 
 #[cfg(test)]
 mod tests {

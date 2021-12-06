@@ -2,7 +2,7 @@ use pelican::graphics::{Point, Rectangle, Image};
 use pelican::ui::{View, Window, Color, ImageView, Label, Button};
 use pelican::ui::{ApplicationMain, ApplicationDelegate};
 use pelican::ui::{ViewController, ViewControllerBehavior};
-use pelican::ui::{HorizontalAlignment, VerticalAlignment};
+use pelican::text::{HorizontalAlignment, VerticalAlignment};
 
 struct ExampleViewController {}
 impl ViewControllerBehavior for ExampleViewController {
@@ -14,7 +14,7 @@ impl ViewControllerBehavior for ExampleViewController {
         let frame = Rectangle::new(0, 0, 200, 200);
         let label = Label::new(frame, String::from("hello rusty world\nhello hello"));
         label.set_text_alignment(HorizontalAlignment::Center);
-        label.set_vertical_alignment(VerticalAlignment::Center);
+        label.set_vertical_alignment(VerticalAlignment::Middle);
         label.view.set_background_color(Color::red());
         // label.fit_to_text();
 

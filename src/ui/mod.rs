@@ -21,8 +21,6 @@ pub use view::View;
 pub use view::WeakView;
 pub use view::ImageView;
 pub use view::Label;
-pub use view::HorizontalAlignment;
-pub use view::VerticalAlignment;
 mod view_controller;
 pub use view_controller::ViewControllerBehavior;
 pub use view_controller::ViewController;
