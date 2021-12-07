@@ -113,8 +113,8 @@ custom_view!(
             let attributed_string = AttributedString::new(text.clone());
 
             if let Some(parent_layer) = &inner_self.layer {
-                let frame = view.frame();
-                let mut whole_text = rendering::WholeText::from(&attributed_string, view.frame());
+                let context = parent_layer.context();
+                let mut whole_text = rendering::WholeText::from(&attributed_string, view.frame(), context.render_scale);
                 // whole_text.align_horizontally(HorizontalAlignment::Right);
                 // whole_text.align_vertically(VerticalAlignment::Bottom);
 

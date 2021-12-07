@@ -265,7 +265,8 @@ impl std::fmt::Debug for LineOfText {
 
 impl WholeText<'_> {
     /// Creates a `rendering::WholeText` from an `AttributedString`.
-    pub fn from(attributed_string: &AttributedString, frame: Rectangle<i32, u32>) -> WholeText {
+    pub fn from(attributed_string: &AttributedString, frame: Rectangle<i32, u32>, render_scale: f32) -> WholeText {
+        let frame = &frame * render_scale;
         let mut lines: Vec<LineOfText> = Vec::new();
         let mut positions = Vec::new();
 
@@ -565,7 +566,7 @@ mod tests {
         let attributed_string = AttributedString::new(String::from("Hello, world!"));
 
         let frame = Rectangle::new(0, 0, 100, 100);
-        let text = WholeText::from(&attributed_string, frame);
+        let text = WholeText::from(&attributed_string, frame, 1.0);
 
         assert_eq!(text.lines.len(), 1);
     }
@@ -575,7 +576,7 @@ mod tests {
         let attributed_string = AttributedString::new(String::from("Hello, world!\nGoodbye, world!"));
 
         let frame = Rectangle::new(0, 0, 100, 100);
-        let text = WholeText::from(&attributed_string, frame);
+        let text = WholeText::from(&attributed_string, frame, 1.0);
 
         assert_eq!(text.lines_total_height(), 48);
     }
@@ -585,7 +586,7 @@ mod tests {
         let attributed_string = AttributedString::new(String::from("Hello, world!\nGoodbye, world!"));
 
         let frame = Rectangle::new(50, 50, 100, 100);
-        let mut text = WholeText::from(&attributed_string, frame);
+        let mut text = WholeText::from(&attributed_string, frame, 1.0);
         text.align_horizontally(HorizontalAlignment::Left);
 
         let line1_position = &text.positions[0];
@@ -600,7 +601,7 @@ mod tests {
         let attributed_string = AttributedString::new(String::from("Hello, world!\nGoodbye, world!"));
 
         let frame = Rectangle::new(50, 50, 100, 100);
-        let mut text = WholeText::from(&attributed_string, frame);
+        let mut text = WholeText::from(&attributed_string, frame, 1.0);
         text.align_horizontally(HorizontalAlignment::Center);
 
         let line1_position = &text.positions[0];
@@ -615,7 +616,7 @@ mod tests {
         let attributed_string = AttributedString::new(String::from("Hello, world!\nGoodbye, world!"));
 
         let frame = Rectangle::new(50, 50, 100, 100);
-        let mut text = WholeText::from(&attributed_string, frame);
+        let mut text = WholeText::from(&attributed_string, frame, 1.0);
         text.align_horizontally(HorizontalAlignment::Right);
 
         let line1_position = &text.positions[0];
@@ -630,7 +631,7 @@ mod tests {
         let attributed_string = AttributedString::new(String::from("Hello, world!\nGoodbye, world!"));
 
         let frame = Rectangle::new(50, 50, 100, 100);
-        let mut text = WholeText::from(&attributed_string, frame);
+        let mut text = WholeText::from(&attributed_string, frame, 1.0);
         text.align_vertically(VerticalAlignment::Top);
 
         let line1_position = &text.positions[0];
@@ -645,7 +646,7 @@ mod tests {
         let attributed_string = AttributedString::new(String::from("Hello, world!\nGoodbye, world!"));
 
         let frame = Rectangle::new(50, 50, 100, 100);
-        let mut text = WholeText::from(&attributed_string, frame);
+        let mut text = WholeText::from(&attributed_string, frame, 1.0);
         text.align_vertically(VerticalAlignment::Middle);
 
         let line1_position = &text.positions[0];
@@ -660,7 +661,7 @@ mod tests {
         let attributed_string = AttributedString::new(String::from("Hello, world!\nGoodbye, world!"));
 
         let frame = Rectangle::new(50, 50, 100, 100);
-        let mut text = WholeText::from(&attributed_string, frame);
+        let mut text = WholeText::from(&attributed_string, frame, 1.0);
         text.align_vertically(VerticalAlignment::Bottom);
 
         let line1_position = &text.positions[0];
