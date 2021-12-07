@@ -1,4 +1,4 @@
-use crate::graphics::{Rectangle, Font};
+use crate::graphics::{Rectangle, Font, Size};
 use crate::ui::Color;
 use crate::ui::view::{Behavior, DefaultBehavior};
 use std::cell::{Cell, RefCell};
@@ -114,21 +114,26 @@ custom_view!(
 
             if let Some(parent_layer) = &inner_self.layer {
                 let frame = view.frame();
-                let whole_text = rendering::WholeText::from(&attributed_string, view.frame());
+                let mut whole_text = rendering::WholeText::from(&attributed_string, view.frame());
+                // whole_text.align_horizontally(HorizontalAlignment::Right);
+                // whole_text.align_vertically(VerticalAlignment::Bottom);
 
                 for (character, position, attributed_substring) in whole_text.iter_characters_with_position() {
-                    let character_frame = Rectangle {
-                        origin: position,
-                        size: character.size().clone()
-                    };
+                    // let character_frame = Rectangle {
+                    //     origin: position,
+                    //     size: character.size().clone()
+                    // };
 
                     // TODO: replace with attributed font
-                    let mut font = self.font.borrow_mut();
+                    let font = self.font.borrow_mut();
+
+                    // TODO: remove after debugging
+                    let check = font.size_for(&character.to_string());
+                    assert_eq!(&check, character.size());
 
                     // TODO: replace with attributed color
                     let color = self.text_color.borrow();
                     let color = color.to_graphics_color();
-
 
                     let child_layer = font.layer_for(
                         &parent_layer.context.clone(),
@@ -136,7 +141,20 @@ custom_view!(
                         color
                     );
 
-                    parent_layer.draw_child_layer(&child_layer, &character_frame);
+                    // assert_eq!(child_layer.size().width / 2, character.size().width);
+
+                    let size = child_layer.size();
+                    let size = Size {
+                        width: size.width,
+                        height: size.height
+                    };
+
+                    let character_frame = Rectangle {
+                        origin: position,
+                        size: size
+                    };
+
+                    parent_layer.draw_child_layer_without_scaling(&child_layer, &character_frame);
                 }
             }
         }

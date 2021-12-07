@@ -103,6 +103,17 @@ impl Layer {
         self.needs_display.set(true)
     }
 
+    /// To be used when the layer is already a higher resolution. Examples:
+    /// * Rendering text (e.g. at twice the font size than specified)
+    /// * Rendering a "@2x" image
+    pub fn draw_child_layer_without_scaling(&self, child_layer: &Layer, destination: &Rectangle<i32, u32>) {
+        let mut parent_texture = self.texture.borrow_mut();
+        let child_texture = child_layer.texture.borrow();
+        let context = &self.context;
+
+        context.draw_texture_in_texture(&mut parent_texture, &child_texture, &destination);
+    }
+
     // TODO: pub(crate)
     pub fn draw_child_layer(&self, child_layer: &Layer, destination: &Rectangle<i32, u32>) {
         let mut parent_texture = self.texture.borrow_mut();

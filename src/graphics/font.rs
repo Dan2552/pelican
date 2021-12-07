@@ -86,6 +86,8 @@ impl Font {
     pub fn size_for(&self, text: &str) -> Size<u32> {
         let font = self.load_font_for_size(self.size);
         let (width, height) = font.size_of(text).unwrap();
+        let width = width * 2;
+        let height = height * 2;
         Size { width, height }
     }
 

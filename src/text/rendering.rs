@@ -167,6 +167,7 @@ impl LineOfText {
                 .get_attribute_for(char_index, attributed_string::Key::Font);
             let font = font_attribute.font();
             let size = font.size_for(&String::from(character));
+
             let character = Character { character, size };
 
             let potential_word_width = current_word.size.width + character.size.width;
@@ -291,7 +292,7 @@ impl WholeText<'_> {
         self.lines.iter().fold(0, |acc, line| acc + line.size.height)
     }
 
-    fn align_horizontally(&mut self, horizontal_alignment: HorizontalAlignment) {
+    pub fn align_horizontally(&mut self, horizontal_alignment: HorizontalAlignment) {
         // Aligning horizontalling is simple as we don't need to account for
         // other lines of text, as they cannot overlap horizontally.
         for (index, line) in self.lines.iter().enumerate() {
@@ -313,7 +314,7 @@ impl WholeText<'_> {
         }
     }
 
-    fn align_vertically(&mut self, vertical_alignment: VerticalAlignment) {
+    pub fn align_vertically(&mut self, vertical_alignment: VerticalAlignment) {
         // Aligning vertically is a bit more complicated as we need to account
         // for other lines of text.
         match vertical_alignment {
