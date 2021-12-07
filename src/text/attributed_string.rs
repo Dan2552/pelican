@@ -105,6 +105,14 @@ impl AttributedString {
         lines
     }
 
+    pub fn substring_for_char(&self, char_index: usize) -> AttributedSubstring {
+        AttributedSubstring {
+            attributed_string: self,
+            start: char_index,
+            end: char_index + 1
+        }
+    }
+
     pub fn chars(&self) -> std::str::Chars {
         self.text.chars()
     }
@@ -155,6 +163,10 @@ impl AttributedSubstring<'_> {
 
     pub fn get_attribute_for(&self, index: usize, key: Key) -> Ref<'_, Attribute> {
         self.attributed_string.get_attribute_for(self.start + index, key)
+    }
+
+    pub fn substring_for_char(&self, char_index: usize) -> AttributedSubstring {
+        self.attributed_string.substring_for_char(self.start + char_index)
     }
 }
 
@@ -267,5 +279,15 @@ mod tests {
         assert_eq!(attributed_string.get_attribute_for(0, Key::Color).color(), &Color::BLUE);
         assert_eq!(line0.get_attribute_for(0, Key::Color).color(), &Color::BLUE);
         assert_eq!(line1.get_attribute_for(0, Key::Color).color(), &Color::GREEN);
+    }
+
+    #[test]
+    fn test_substring_for_char() {
+        let text = "abc";
+        let attributed_string = AttributedString::new(text.to_string());
+        attributed_string.set_attribute_for(1, Key::Color, Attribute::Color { color: Color::RED });
+        let substring = attributed_string.substring_for_char(1);
+        assert_eq!(attributed_string.get_attribute_for(0, Key::Color).color(), &Color::BLACK);
+        assert_eq!(substring.get_attribute_for(0, Key::Color).color(), &Color::RED);
     }
 }

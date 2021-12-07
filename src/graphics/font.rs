@@ -65,6 +65,7 @@ impl Font {
     pub fn layer_for(&self, context: &Rc<Context>, text: &str, color: Color) -> Layer {
         let font_size = (self.size as f32 * context.render_scale) as u16;
         let font = self.load_font_for_size(font_size);
+
         let (width, height) = font.size_of(text).unwrap();
 
         let surface = font
@@ -96,7 +97,8 @@ impl Font {
 
         if font_sizes.get(&font_size).is_none() {
             let ttf_context = unsafe { TTF_CONTAINER.lazy() };
-            let font = ttf_context.load_font(&self.path, font_size).unwrap();
+            let mut font = ttf_context.load_font(&self.path, font_size).unwrap();
+            font.set_kerning(false);
             font_sizes.insert(font_size, Rc::new(font));
         }
 

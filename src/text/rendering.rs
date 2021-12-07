@@ -17,7 +17,7 @@ pub struct Character {
     character: char,
 
     /// The size of the character.
-    size: Size<u32>
+    size: Size<u32>,
 }
 
 /// Used for rendering.
@@ -30,10 +30,6 @@ pub struct Character {
 /// into multiple `Word`s for simplicity of rendering.
 pub struct Word {
     characters: Vec<Character>,
-
-    /// We only care about the x position of the character, because the y
-    /// position is determined by the line height (so is up to `LineOfText`).
-    x: i32,
 
     /// The size of the word.
     size: Size<u32>
@@ -63,11 +59,14 @@ pub struct LineOfText {
 /// The `WholeText` struct contains lines of text to be rendered, but also
 /// the positions for them. This is designed so that the `WholeText` has total
 /// control for text-alignment.
-pub struct WholeText {
+pub struct WholeText<'a> {
     /// The text to be rendered.
     lines: Vec<LineOfText>,
 
     /// Positions of each line of text.
+    ///
+    /// Note that these positions are relative to the top-left of the
+    /// `WholeText`.
     positions: Vec<Point<i32>>,
 
     /// The position and size of the text.
@@ -76,12 +75,24 @@ pub struct WholeText {
     /// lines.
     ///
     /// The width of the text is determined by the largest line.
-    frame: Rectangle<i32, u32>
+    frame: Rectangle<i32, u32>,
+
+    /// The attributed string that was used to create this `WholeText`.
+    /// Contains the styles and sizes of each character.
+    attributed_string: &'a AttributedString
 }
 
 impl Character {
     fn is_whitespace(&self) -> bool {
         self.character.is_whitespace()
+    }
+
+    pub fn size(&self) -> &Size<u32> {
+        &self.size
+    }
+
+    pub fn to_string(&self) -> String {
+        self.character.to_string()
     }
 }
 
@@ -93,10 +104,9 @@ impl std::fmt::Debug for Character {
 
 impl Word {
     /// Constructs an empty `Word`, to be populated with `add_character`.
-    fn new(x: i32) -> Word {
+    fn new() -> Word {
         Word {
             characters: Vec::new(),
-            x: x,
             size: Size::new(0, 0)
         }
     }
@@ -114,18 +124,6 @@ impl Word {
         self.size.height = character.size.height.max(self.size.height);
         self.characters.push(character);
         self.characters.last().unwrap()
-    }
-
-    /// Set the x position of the word. I.e. for use when the word is wrapped
-    /// to a new line.
-    fn set_x(&mut self, x: i32) {
-        self.x = x;
-    }
-
-    /// Calculate the x of the next word (the word following this one).
-    fn next_word_x(&self) -> i32 {
-        let width = self.size.width as i32;
-        self.x + width
     }
 }
 
@@ -161,7 +159,7 @@ impl LineOfText {
         let mut current_line_height = 0;
 
         // The current word being formed.
-        let mut current_word = Word::new(0);
+        let mut current_word = Word::new();
 
         for (char_index, character) in attributed_string.chars().enumerate() {
             // Calculate the size of the character.
@@ -195,7 +193,7 @@ impl LineOfText {
                 current_line_height = 0;
 
                 // Reset the current word.
-                current_word = Word::new(0);
+                current_word = Word::new();
             }
 
             // Add the character to the current word.
@@ -210,12 +208,11 @@ impl LineOfText {
             if character.is_whitespace() {
                 // Add the current word to the current line.
                 current_line_width += current_word.size.width;
-                let next_word_x = current_word.next_word_x();
                 current_line_height = current_word.size.height.max(current_line_height);
                 current_line_words.push(current_word);
 
                 // Reset the current word.
-                current_word = Word::new(next_word_x);
+                current_word = Word::new();
             } else {
                 // If the word won't fit on the current line, we need to
                 // wrap it.
@@ -232,9 +229,6 @@ impl LineOfText {
                     current_line_words = Vec::new();
                     current_line_width = 0;
                     current_line_height = 0;
-
-                    // Reset the x of the current word.
-                    current_word.set_x(0);
                 }
             }
         }
@@ -268,7 +262,7 @@ impl std::fmt::Debug for LineOfText {
     }
 }
 
-impl WholeText {
+impl WholeText<'_> {
     /// Creates a `rendering::WholeText` from an `AttributedString`.
     pub fn from(attributed_string: &AttributedString, frame: Rectangle<i32, u32>) -> WholeText {
         let mut lines: Vec<LineOfText> = Vec::new();
@@ -285,7 +279,7 @@ impl WholeText {
 
         // Knowing the size of the lines, we can calculate positions based on
         // the text alignment rules.
-        let mut whole_text = WholeText { lines, positions, frame };
+        let mut whole_text = WholeText { lines, positions, frame, attributed_string };
 
         whole_text.align_horizontally(HorizontalAlignment::Left);
         whole_text.align_vertically(VerticalAlignment::Top);
@@ -298,37 +292,33 @@ impl WholeText {
     }
 
     fn align_horizontally(&mut self, horizontal_alignment: HorizontalAlignment) {
-        let origin_x = self.frame.origin.x;
-
         // Aligning horizontalling is simple as we don't need to account for
         // other lines of text, as they cannot overlap horizontally.
         for (index, line) in self.lines.iter().enumerate() {
             match horizontal_alignment {
                 HorizontalAlignment::Left => {
-                    self.positions[index].x = origin_x;
+                    self.positions[index].x = 0;
                 }
                 HorizontalAlignment::Center => {
                     let center_x = self.frame.size.width as f32 * 0.5;
                     let center_line_x = line.size.width as f32 * 0.5;
                     let top_left_x = center_x - center_line_x;
 
-                    self.positions[index].x = origin_x + top_left_x.round() as i32;
+                    self.positions[index].x = top_left_x.round() as i32;
                 }
                 HorizontalAlignment::Right => {
-                    self.positions[index].x = origin_x + (self.frame.size.width - line.size.width) as i32;
+                    self.positions[index].x = (self.frame.size.width - line.size.width) as i32;
                 }
             }
         }
     }
 
     fn align_vertically(&mut self, vertical_alignment: VerticalAlignment) {
-        let origin_y = self.frame.origin.y;
-
         // Aligning vertically is a bit more complicated as we need to account
         // for other lines of text.
         match vertical_alignment {
             VerticalAlignment::Top => {
-                let mut line_y = origin_y;
+                let mut line_y = 0;
                 for (index, line) in self.lines.iter().enumerate() {
                     self.positions[index].y = line_y;
                     line_y += line.size.height as i32;
@@ -339,7 +329,7 @@ impl WholeText {
                 let middle_line_y = self.lines_total_height() as f32 * 0.5;
                 let top_left_y = middle_y - middle_line_y;
 
-                let mut line_y = origin_y + top_left_y.round() as i32;
+                let mut line_y = top_left_y.round() as i32;
                 for (index, line) in self.lines.iter().enumerate() {
                     self.positions[index].y = line_y;
                     line_y += line.size.height as i32;
@@ -347,7 +337,7 @@ impl WholeText {
             }
             VerticalAlignment::Bottom => {
                 let bottom_y = self.frame.size.height as i32 - self.lines_total_height() as i32;
-                let mut line_y = origin_y + bottom_y;
+                let mut line_y = bottom_y;
                 for (index, line) in self.lines.iter().enumerate() {
                     self.positions[index].y = line_y;
                     line_y += line.size.height as i32;
@@ -356,16 +346,44 @@ impl WholeText {
         }
     }
 
-    // /// Iterate chars with their positions.
-    // fn chars_with_positions(&self) -> impl Iterator<Item = (char, Point<i32>)> {
-    //     self.lines.iter().enumerate().flat_map(move |(line_index, line)| {
-    //         line.words.iter().enumerate().flat_map(move |(word_index, word)| {
-    //             word.characters.iter().enumerate().map(move |(char_index, char)| {
-    //                 (char, self.positions[line_index] + word.positions[word_index] + Point { x: char_index as i32, y: 0 })
-    //             })
-    //         })
-    //     })
-    // }
+    /// Iterate chars with their positions.
+    pub fn iter_characters_with_position(&self) -> impl Iterator<Item = (&Character, Point<i32>, AttributedSubstring<'_>)> {
+        let mut char_index = 0;
+        self.lines.iter().enumerate().flat_map(move |(line_index, line)| {
+            let line_relative_position = &self.positions[line_index];
+
+            let mut word_x = 0;
+            line.words.iter().flat_map(move |word| {
+                let word_relative_position = Point {
+                    x: word_x + line_relative_position.x,
+                    y: line_relative_position.y
+                };
+
+                word_x += word.size.width as i32;
+
+                let mut character_x = 0;
+                word.characters.iter().map(move |character| {
+                    let character_relative_position = Point {
+                        x: character_x + word_relative_position.x,
+                        y: word_relative_position.y
+                    };
+
+                    character_x += character.size.width as i32;
+
+                    let absolute_position = Point {
+                        x: character_relative_position.x + self.frame.origin.x,
+                        y: character_relative_position.y + self.frame.origin.y
+                    };
+
+                    let attributed_substring = self.attributed_string.substring_for_char(char_index);
+
+                    char_index += 1;
+
+                    (character, absolute_position, attributed_substring)
+                })
+            })
+        })
+    }
 }
 
 #[cfg(test)]
@@ -381,12 +399,13 @@ mod tests {
 
         assert_eq!(character.character, 'a');
         assert_eq!(character.size, Size::new(10, 20));
+        assert_eq!(character.size().width, 10);
+        assert_eq!(character.size().height, 20);
     }
 
     #[test]
     fn test_word() {
-        let x = 10;
-        let mut word = Word::new(x);
+        let mut word = Word::new();
 
         word.add_character(Character {
             character: 'a',
@@ -397,15 +416,11 @@ mod tests {
         assert_eq!(word.characters[0].character, 'a');
         assert_eq!(word.characters[0].size, Size::new(10, 20));
         assert_eq!(word.size, Size::new(10, 20));
-        assert_eq!(word.x, 10);
-
-        let next_word_x = word.next_word_x();
-        assert_eq!(next_word_x, 20);
     }
 
     #[test]
     fn test_word_is_empty() {
-        let mut word = Word::new(0);
+        let mut word = Word::new();
         assert!(word.is_empty());
 
         word.add_character(Character {
@@ -414,14 +429,6 @@ mod tests {
         });
 
         assert!(!word.is_empty());
-    }
-
-    #[test]
-    fn test_word_set_x() {
-        let mut word = Word::new(0);
-        assert_eq!(word.x, 0);
-        word.set_x(10);
-        assert_eq!(word.x, 10);
     }
 
     #[test]
@@ -583,8 +590,8 @@ mod tests {
         let line1_position = &text.positions[0];
         let line2_position = &text.positions[1];
 
-        assert_eq!(line1_position.x, 50);
-        assert_eq!(line2_position.x, 50);
+        assert_eq!(line1_position.x, 0);
+        assert_eq!(line2_position.x, 0);
     }
 
     #[test]
@@ -598,8 +605,8 @@ mod tests {
         let line1_position = &text.positions[0];
         let line2_position = &text.positions[1];
 
-        assert_eq!(line1_position.x, 55);
-        assert_eq!(line2_position.x, 64);
+        assert_eq!(line1_position.x, 5);
+        assert_eq!(line2_position.x, 14);
     }
 
     #[test]
@@ -613,8 +620,8 @@ mod tests {
         let line1_position = &text.positions[0];
         let line2_position = &text.positions[1];
 
-        assert_eq!(line1_position.x, 60);
-        assert_eq!(line2_position.x, 77);
+        assert_eq!(line1_position.x, 10);
+        assert_eq!(line2_position.x, 27);
     }
 
     #[test]
@@ -628,8 +635,8 @@ mod tests {
         let line1_position = &text.positions[0];
         let line2_position = &text.positions[1];
 
-        assert_eq!(line1_position.y, 50);
-        assert_eq!(line2_position.y, 50 + 16);
+        assert_eq!(line1_position.y, 0);
+        assert_eq!(line2_position.y, 16);
     }
 
     #[test]
@@ -643,8 +650,8 @@ mod tests {
         let line1_position = &text.positions[0];
         let line2_position = &text.positions[1];
 
-        assert_eq!(line1_position.y, 76);
-        assert_eq!(line2_position.y, 92);
+        assert_eq!(line1_position.y, 26);
+        assert_eq!(line2_position.y, 42);
     }
 
     #[test]
@@ -658,7 +665,7 @@ mod tests {
         let line1_position = &text.positions[0];
         let line2_position = &text.positions[1];
 
-        assert_eq!(line1_position.y, 102);
-        assert_eq!(line2_position.y, 118);
+        assert_eq!(line1_position.y, 52);
+        assert_eq!(line2_position.y, 68);
     }
 }

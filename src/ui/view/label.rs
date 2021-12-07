@@ -112,11 +112,32 @@ custom_view!(
 
             let attributed_string = AttributedString::new(text.clone());
 
-            if let Some(layer) = &inner_self.layer {
+            if let Some(parent_layer) = &inner_self.layer {
                 let frame = view.frame();
-                let mut whole_text = rendering::WholeText::from(&attributed_string, view.frame());
+                let whole_text = rendering::WholeText::from(&attributed_string, view.frame());
 
-                // TODO: make an iterator for each char
+                for (character, position, attributed_substring) in whole_text.iter_characters_with_position() {
+                    let character_frame = Rectangle {
+                        origin: position,
+                        size: character.size().clone()
+                    };
+
+                    // TODO: replace with attributed font
+                    let mut font = self.font.borrow_mut();
+
+                    // TODO: replace with attributed color
+                    let color = self.text_color.borrow();
+                    let color = color.to_graphics_color();
+
+
+                    let child_layer = font.layer_for(
+                        &parent_layer.context.clone(),
+                        &character.to_string(),
+                        color
+                    );
+
+                    parent_layer.draw_child_layer(&child_layer, &character_frame);
+                }
             }
         }
     }

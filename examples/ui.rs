@@ -12,10 +12,10 @@ impl ViewControllerBehavior for ExampleViewController {
         view.add_subview(image_view.view);
 
         let frame = Rectangle::new(0, 0, 200, 200);
-        let label = Label::new(frame, String::from("hello rusty world\nhello hello"));
+        let label = Label::new(frame, String::from("hello rusty world\nhello hello\nmultiline"));
         label.set_text_alignment(HorizontalAlignment::Center);
         label.set_vertical_alignment(VerticalAlignment::Middle);
-        label.view.set_background_color(Color::red());
+        // label.view.set_background_color(Color::red());
         // label.fit_to_text();
 
         view.add_subview(label.view);
@@ -35,10 +35,10 @@ impl ViewControllerBehavior for ExampleViewController {
         let frame = Rectangle::new(200, 200, 200, 200);
         let button = Button::new(frame, "this is a button");
 
-        view.add_subview(red_view);
-        view.add_subview(green_view);
-        view.add_subview(blue_view);
-        view.add_subview(button.view);
+        // view.add_subview(red_view);
+        // view.add_subview(green_view);
+        // view.add_subview(blue_view);
+        // view.add_subview(button.view);
     }
 }
 

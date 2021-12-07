@@ -15,6 +15,9 @@ name = "graphics"
 [[example]]
 name = "ui"
 
+[[example]]
+name = "textbychar"
+
 [[test]]
 name = "main_thread_tests"
 path = "main_thread_tests/main.rs"
