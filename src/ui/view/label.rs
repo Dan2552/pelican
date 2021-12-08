@@ -115,8 +115,8 @@ custom_view!(
             if let Some(parent_layer) = &inner_self.layer {
                 let context = parent_layer.context();
                 let mut whole_text = rendering::WholeText::from(&attributed_string, view.frame(), context.render_scale);
-                // whole_text.align_horizontally(HorizontalAlignment::Right);
-                // whole_text.align_vertically(VerticalAlignment::Bottom);
+                whole_text.align_horizontally(self.text_alignment.get());
+                whole_text.align_vertically(self.text_vertical_alignment.get());
 
                 for (character, position, attributed_substring) in whole_text.iter_characters_with_position() {
                     // let character_frame = Rectangle {
@@ -126,10 +126,6 @@ custom_view!(
 
                     // TODO: replace with attributed font
                     let font = self.font.borrow_mut();
-
-                    // TODO: remove after debugging
-                    let check = font.size_for(&character.to_string());
-                    assert_eq!(&check, character.size());
 
                     // TODO: replace with attributed color
                     let color = self.text_color.borrow();

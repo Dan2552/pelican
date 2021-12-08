@@ -13,8 +13,8 @@ impl ViewControllerBehavior for ExampleViewController {
 
         let frame = Rectangle::new(0, 0, 200, 200);
         let label = Label::new(frame, String::from("hello rusty world\nhello hello\nmultiline\nThe quick brown fox jumps over the lazy dog"));
-        label.set_text_alignment(HorizontalAlignment::Right);
-        label.set_vertical_alignment(VerticalAlignment::Bottom);
+        label.set_text_alignment(HorizontalAlignment::Center);
+        label.set_vertical_alignment(VerticalAlignment::Middle);
         label.view.set_background_color(Color::red());
         // TODO: fit_to_text() support multiline
         // label.fit_to_text();

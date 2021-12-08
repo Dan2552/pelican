@@ -141,7 +141,7 @@ impl LineOfText {
     ///
     /// However, the output can still be more than one `LineOfText` if the text
     /// needs to word-wrap.
-    fn from(attributed_string: &AttributedSubstring, maximum_width: u32) -> Vec<LineOfText> {
+    fn from(attributed_string: &AttributedSubstring, maximum_width: u32, render_scale: f32) -> Vec<LineOfText> {
         // The output.
         let mut lines = Vec::new();
 
@@ -167,6 +167,10 @@ impl LineOfText {
                 .get_attribute_for(char_index, attributed_string::Key::Font);
             let font = font_attribute.font();
             let size = font.size_for(&String::from(character));
+            let size = Size::new(
+                (size.width as f32 * render_scale) as u32, 
+                (size.height as f32 * render_scale) as u32
+            );
 
             let character = Character { character, size };
 
@@ -273,7 +277,7 @@ impl WholeText<'_> {
         // Build the lines of text. The size of the lines is calculated during
         // this process.
         for line in attributed_string.lines() {
-            for line_of_text in LineOfText::from(&line, frame.size.width) {
+            for line_of_text in LineOfText::from(&line, frame.size.width, render_scale) {
                 lines.push(line_of_text);
                 positions.push(Point { x: 0, y: 0 });
             }
@@ -439,7 +443,7 @@ mod tests {
         let lines = attributed_string.lines();
         let line = lines.first().unwrap();
 
-        let lines_of_text = LineOfText::from(&line, 100);
+        let lines_of_text = LineOfText::from(&line, 100, 1.0);
         assert_eq!(lines_of_text.len(), 1);
         let line_of_text = &lines_of_text[0];
 
@@ -476,7 +480,7 @@ mod tests {
         let lines = attributed_string.lines();
         let line = lines.first().unwrap();
 
-        let lines_of_text = LineOfText::from(&line, 50);
+        let lines_of_text = LineOfText::from(&line, 50, 1.0);
         assert_eq!(lines_of_text.len(), 2);
 
         let line1 = &lines_of_text[0];
@@ -495,7 +499,7 @@ mod tests {
         let lines = attributed_string.lines();
         let line = lines.first().unwrap();
 
-        let lines_of_text = LineOfText::from(&line, 35);
+        let lines_of_text = LineOfText::from(&line, 35, 1.0);
 
         assert_eq!(lines_of_text.len(), 4);
 
@@ -521,7 +525,7 @@ mod tests {
         let lines = attributed_string.lines();
         let line = lines.first().unwrap();
 
-        let lines_of_text = LineOfText::from(&line, 10);
+        let lines_of_text = LineOfText::from(&line, 10, 1.0);
 
         assert_eq!(lines_of_text.len(), 10);
 
