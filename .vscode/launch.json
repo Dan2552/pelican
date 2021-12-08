@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
             "type": "lldb",
             "request": "launch",
@@ -38,6 +39,27 @@
                 ],
                 "filter": {
                     "name": "demo",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "LIBRARY_PATH": "/opt/homebrew/lib"
+            }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'label'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=label",
+                    "--package=pelican"
+                ],
+                "filter": {
+                    "name": "label",
                     "kind": "example"
                 }
             },

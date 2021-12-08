@@ -1,9 +1,8 @@
-use crate::graphics::{Rectangle, Font, Size, Point};
+use crate::graphics::{Rectangle, Font, Size};
 use crate::ui::Color;
 use crate::ui::view::{Behavior, DefaultBehavior};
 use std::cell::{Cell, RefCell};
-use crate::graphics::Layer;
-use crate::text::attributed_string::AttributedString;
+use crate::text::attributed_string::{AttributedString, Key, Attribute};
 use crate::text::rendering;
 use crate::macros::*;
 use crate::text::{VerticalAlignment, HorizontalAlignment};
@@ -15,6 +14,7 @@ custom_view!(
         font: RefCell<Font>,
         text_color: RefCell<Color>,
         text: RefCell<String>,
+        attributed_text: RefCell<Option<AttributedString>>,
         text_alignment: Cell<HorizontalAlignment>,
         text_vertical_alignment: Cell<VerticalAlignment>
     }
@@ -32,6 +32,7 @@ custom_view!(
                 font,
                 text_color,
                 text,
+                RefCell::new(None),
                 text_alignment,
                 text_vertical_alignment
             );
@@ -42,7 +43,16 @@ custom_view!(
         pub fn set_text(&self, text: String) {
             let behavior = &self.view.behavior.borrow();
             let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
+            behavior.attributed_text.replace(None);
             behavior.text.replace(text);
+            behavior.set_needs_display();
+        }
+
+        pub fn set_attributed_text(&self, attributed_text: AttributedString) {
+            let behavior = &self.view.behavior.borrow();
+            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
+            behavior.text.replace(String::from(attributed_text.text()));
+            behavior.attributed_text.replace(Some(attributed_text));
             behavior.set_needs_display();
         }
 
@@ -95,10 +105,6 @@ custom_view!(
 
             self.view.set_frame(frame);
         }
-
-
-        // TODO:
-        // number_of_lines=(value)
     }
 
     impl Behavior {
@@ -108,29 +114,42 @@ custom_view!(
             let view = self.view.upgrade().unwrap().clone();
             let inner_self = view.inner_self.borrow();
 
-            let text = self.text.borrow();
+            let behavior = view.behavior.borrow();
+            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
 
-            let attributed_string = AttributedString::new(text.clone());
+            let text = self.text.borrow();
+            let attributed_text = AttributedString::new(text.clone());
+            attributed_text.set_default_attribute(
+                Key::Font,
+                Attribute::Font { font: behavior.font.borrow().clone() }
+            );
+            attributed_text.set_default_attribute(
+                Key::Color,
+                Attribute::Color { color: behavior.text_color.borrow().to_graphics_color() }
+            );
+
+            let mut attributed_text_ref = &attributed_text;
+            let existing = self.attributed_text.borrow();
+            if let Some(existing) = existing.as_ref() {
+                attributed_text_ref = existing;
+            }
 
             if let Some(parent_layer) = &inner_self.layer {
                 let context = parent_layer.context();
-                let mut whole_text = rendering::WholeText::from(&attributed_string, view.frame(), context.render_scale);
+                let mut whole_text = rendering::WholeText::from(attributed_text_ref, view.frame(), context.render_scale);
                 whole_text.align_horizontally(self.text_alignment.get());
                 whole_text.align_vertically(self.text_vertical_alignment.get());
 
-                for (character, position, attributed_substring) in whole_text.iter_characters_with_position() {
-
-                    // TODO: replace with attributed font
-                    let font = self.font.borrow_mut();
-
-                    // TODO: replace with attributed color
-                    let color = self.text_color.borrow();
-                    let color = color.to_graphics_color();
+                for (index, (character, position)) in whole_text.iter_characters_with_position().enumerate() {
+                    let font_attribute = attributed_text_ref.get_attribute_for(index, Key::Font);
+                    let color_attribute = attributed_text_ref.get_attribute_for(index, Key::Color);
+                    let font = font_attribute.font();
+                    let color = color_attribute.color();
 
                     let child_layer = font.layer_for(
                         &parent_layer.context.clone(),
                         &character.to_string(),
-                        color
+                        color.clone()
                     );
 
                     let size = child_layer.size();

@@ -369,8 +369,7 @@ impl WholeText<'_> {
     }
 
     /// Iterate chars with their positions.
-    pub fn iter_characters_with_position(&self) -> impl Iterator<Item = (&Character, Point<i32>, AttributedSubstring<'_>)> {
-        let mut char_index = 0;
+    pub fn iter_characters_with_position(&self) -> impl Iterator<Item = (&Character, Point<i32>)> {
         self.lines.iter().enumerate().flat_map(move |(line_index, line)| {
             let line_relative_position = &self.positions[line_index];
 
@@ -397,11 +396,7 @@ impl WholeText<'_> {
                         y: character_relative_position.y
                     };
 
-                    let attributed_substring = self.attributed_string.substring_for_char(char_index);
-
-                    char_index += 1;
-
-                    (character, absolute_position, attributed_substring)
+                    (character, absolute_position)
                 })
             })
         })

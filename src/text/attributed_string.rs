@@ -136,7 +136,7 @@ impl AttributedString {
         let attributes = self.attributes.borrow();
 
         if index >= attributes.len() {
-            panic!("Index out of bounds");
+            panic!("Index out of bounds. Attempted {}, but length is {} / {}", index, attributes.len(), self.text);
         }
 
         if attributes[index].get(&key).is_some() {
@@ -189,6 +189,11 @@ mod tests {
         assert_eq!(lines.len(), 2);
         assert_eq!(lines[0].text(), "Hello, world!");
         assert_eq!(lines[1].text(), "Goodbye, world!");
+
+        assert_eq!(lines[0].start, 0);
+        assert_eq!(lines[0].end, 13);
+        assert_eq!(lines[1].start, 14);
+        assert_eq!(lines[1].end, 29);
     }
 
     #[test]
@@ -283,11 +288,16 @@ mod tests {
 
     #[test]
     fn test_substring_for_char() {
-        let text = "abc";
+        let text = "abc\ndef";
         let attributed_string = AttributedString::new(text.to_string());
         attributed_string.set_attribute_for(1, Key::Color, Attribute::Color { color: Color::RED });
         let substring = attributed_string.substring_for_char(1);
         assert_eq!(attributed_string.get_attribute_for(0, Key::Color).color(), &Color::BLACK);
         assert_eq!(substring.get_attribute_for(0, Key::Color).color(), &Color::RED);
+
+        let lines = attributed_string.lines();
+        let substring = lines[1].substring_for_char(0);
+        assert_eq!(substring.get_attribute_for(0, Key::Color).color(), &Color::BLACK);
+        assert_eq!(substring.text(), "d");
     }
 }

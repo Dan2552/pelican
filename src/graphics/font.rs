@@ -142,6 +142,16 @@ impl std::fmt::Debug for Font {
     }
 }
 
+impl Clone for Font {
+    fn clone(&self) -> Font {
+        Font {
+            path: self.path.clone(),
+            size: self.size,
+            font_sizes: self.font_sizes.clone()
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
