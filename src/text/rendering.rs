@@ -168,7 +168,7 @@ impl LineOfText {
             let font = font_attribute.font();
             let size = font.size_for(&String::from(character));
             let size = Size::new(
-                (size.width as f32 * render_scale) as u32, 
+                (size.width as f32 * render_scale) as u32,
                 (size.height as f32 * render_scale) as u32
             );
 
@@ -256,8 +256,24 @@ impl LineOfText {
         lines
     }
 
-    pub fn size(&self) -> &Size<u32> {
-        &self.size
+    /// The size of the line.
+    ///
+    /// However, if the last character in the line is whitespace, it will not
+    /// be included in the size. This is because if the line wraps, we don't
+    /// want it to affect the alignment (center or right) of the line.
+    fn visual_size(&self) -> Size<u32> {
+        if let Some(last_word) = self.words.last() {
+            if let Some(last_character) = last_word.characters.last() {
+                if last_character.is_whitespace() {
+                    return Size {
+                        width: self.size.width - last_character.size.width,
+                        height: self.size.height
+                    };
+                }
+            }
+        }
+
+        self.size.clone()
     }
 }
 
@@ -307,13 +323,13 @@ impl WholeText<'_> {
                 }
                 HorizontalAlignment::Center => {
                     let center_x = self.frame.size.width as f32 * 0.5;
-                    let center_line_x = line.size.width as f32 * 0.5;
+                    let center_line_x = line.visual_size().width as f32 * 0.5;
                     let top_left_x = center_x - center_line_x;
 
                     self.positions[index].x = top_left_x.round() as i32;
                 }
                 HorizontalAlignment::Right => {
-                    self.positions[index].x = (self.frame.size.width - line.size.width) as i32;
+                    self.positions[index].x = (self.frame.size.width - line.visual_size().width) as i32;
                 }
             }
         }
@@ -377,8 +393,8 @@ impl WholeText<'_> {
                     character_x += character.size.width as i32;
 
                     let absolute_position = Point {
-                        x: character_relative_position.x + self.frame.origin.x,
-                        y: character_relative_position.y + self.frame.origin.y
+                        x: character_relative_position.x,
+                        y: character_relative_position.y
                     };
 
                     let attributed_substring = self.attributed_string.substring_for_char(char_index);
@@ -471,7 +487,6 @@ mod tests {
         assert_eq!(word2.size, Size::new(44, 16));
 
         assert_eq!(line_of_text.size, Size::new(90, 16));
-        assert_eq!(line_of_text.size(), &Size::new(90, 16));
     }
 
     #[test]
@@ -566,6 +581,26 @@ mod tests {
     }
 
     #[test]
+    fn test_line_visual_size() {
+        let text = "The quick brown fox jumps ";
+        let text_without_space = "The quick brown fox jumps";
+
+        let attributed_string1 = AttributedString::new(String::from(text));
+        let attributed_lines = attributed_string1.lines();
+        let line = attributed_lines.first().unwrap();
+        let lines = LineOfText::from(line, 200, 1.0);
+        let line_of_text = lines.first().unwrap();
+
+        let attributed_string2 = AttributedString::new(String::from(text_without_space));
+        let attributed_lines = attributed_string2.lines();
+        let line = attributed_lines.first().unwrap();
+        let lines = LineOfText::from(line, 200, 1.0);
+        let line_of_text_without_space = lines.first().unwrap();
+
+        assert_eq!(line_of_text.visual_size(), line_of_text_without_space.visual_size());
+    }
+
+    #[test]
     fn test_whole_text_single_line() {
         let attributed_string = AttributedString::new(String::from("Hello, world!"));
 
@@ -612,7 +647,31 @@ mod tests {
         let line2_position = &text.positions[1];
 
         assert_eq!(line1_position.x, 5);
-        assert_eq!(line2_position.x, 14);
+        assert_eq!(line2_position.x, 16);
+    }
+
+    #[test]
+    fn test_whole_text_horizontal_alignment_center_with_trailing_space() {
+        let x_with_space: i32;
+        let x_without_space: i32;
+        {
+            let attributed_string = AttributedString::new(String::from("The quick brown fox jumps "));
+            let frame = Rectangle::new(50, 50, 100, 100);
+            let mut text = WholeText::from(&attributed_string, frame, 1.0);
+            text.align_horizontally(HorizontalAlignment::Center);
+            let line1_position = &text.positions[0];
+            x_with_space = line1_position.x;
+        }
+        {
+            let attributed_string = AttributedString::new(String::from("The quick brown fox jumps"));
+            let frame = Rectangle::new(50, 50, 100, 100);
+            let mut text = WholeText::from(&attributed_string, frame, 1.0);
+            text.align_horizontally(HorizontalAlignment::Center);
+            let line1_position = &text.positions[0];
+            x_without_space = line1_position.x;
+        }
+
+        assert_eq!(x_with_space, x_without_space);
     }
 
     #[test]
@@ -627,7 +686,31 @@ mod tests {
         let line2_position = &text.positions[1];
 
         assert_eq!(line1_position.x, 10);
-        assert_eq!(line2_position.x, 27);
+        assert_eq!(line2_position.x, 31);
+    }
+
+    #[test]
+    fn test_whole_text_horizontal_alignment_right_with_trailing_space() {
+        let x_with_space: i32;
+        let x_without_space: i32;
+        {
+            let attributed_string = AttributedString::new(String::from("The quick brown fox jumps "));
+            let frame = Rectangle::new(50, 50, 100, 100);
+            let mut text = WholeText::from(&attributed_string, frame, 1.0);
+            text.align_horizontally(HorizontalAlignment::Right);
+            let line1_position = &text.positions[0];
+            x_with_space = line1_position.x;
+        }
+        {
+            let attributed_string = AttributedString::new(String::from("The quick brown fox jumps"));
+            let frame = Rectangle::new(50, 50, 100, 100);
+            let mut text = WholeText::from(&attributed_string, frame, 1.0);
+            text.align_horizontally(HorizontalAlignment::Right);
+            let line1_position = &text.positions[0];
+            x_without_space = line1_position.x;
+        }
+
+        assert_eq!(x_with_space, x_without_space);
     }
 
     #[test]

@@ -1,4 +1,4 @@
-use crate::graphics::{Rectangle, Font, Size};
+use crate::graphics::{Rectangle, Font, Size, Point};
 use crate::ui::Color;
 use crate::ui::view::{Behavior, DefaultBehavior};
 use std::cell::{Cell, RefCell};
@@ -119,10 +119,6 @@ custom_view!(
                 whole_text.align_vertically(self.text_vertical_alignment.get());
 
                 for (character, position, attributed_substring) in whole_text.iter_characters_with_position() {
-                    // let character_frame = Rectangle {
-                    //     origin: position,
-                    //     size: character.size().clone()
-                    // };
 
                     // TODO: replace with attributed font
                     let font = self.font.borrow_mut();
@@ -136,8 +132,6 @@ custom_view!(
                         &character.to_string(),
                         color
                     );
-
-                    // assert_eq!(child_layer.size().width / 2, character.size().width);
 
                     let size = child_layer.size();
                     let size = Size {
