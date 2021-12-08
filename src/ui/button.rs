@@ -20,17 +20,19 @@ custom_view!(
     struct ButtonBehavior {
         state: Cell<State>,
         pressed_text_color: RefCell<Color>,
-        last_normal_text_color: RefCell<Color>
+        last_normal_text_color: RefCell<Color>,
+        action: Box<dyn Fn() -> ()>
     }
 
     impl Self {
-        pub fn new(frame: Rectangle<i32, u32>, text: &str) -> Button {
+        pub fn new(frame: Rectangle<i32, u32>, text: &str, action: impl Fn() -> () + 'static) -> Button {
             let state = Cell::new(State::Normal);
             let button = Button::new_all(
                 frame.clone(),
                 state,
                 RefCell::new(DEFAULT_COLOR_PRESSED.clone()),
                 RefCell::new(DEFAULT_COLOR_NORMAL.clone()),
+                Box::new(action)
             );
             let label_rectangle = Rectangle::new(0, 0, frame.size.width, frame.size.height);
             let label = Label::new(label_rectangle, String::from(text));
@@ -61,7 +63,7 @@ custom_view!(
     }
 
     impl Behavior {
-        fn touches_began(&self, touches: &Vec<Touch>, _event: Event) {
+        fn touches_began(&self, _touches: &Vec<Touch>, _event: Event) {
             self.set_state(State::Pressed);
         }
 
@@ -74,7 +76,7 @@ custom_view!(
                 let position = window.view.convert_point_to(&touch.get_position(), &view);
 
                 if view.get_bounds().contains(&position) {
-                    println!("Button clicked");
+                    (self.action)();
                 }
             }
 

@@ -16,7 +16,10 @@ name = "graphics"
 name = "ui"
 
 [[example]]
-name = "textbychar"
+name = "label"
+
+[[example]]
+name = "debug__textbychar"
 
 [[test]]
 name = "main_thread_tests"

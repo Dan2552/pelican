@@ -86,6 +86,12 @@ macro_rules! custom_view {
 
             $($($custom_behavior_impl)*)?
         }
+
+        impl Clone for $view {
+            fn clone(&self) -> Self {
+                Self { view: self.view.clone() }
+            }
+        }
     };
 }
 

@@ -57,6 +57,15 @@ impl Color {
         }
     }
 
+    pub fn gray() -> Color {
+        Color {
+            red: 128,
+            green: 128,
+            blue: 128,
+            alpha: 255
+        }
+    }
+
     pub fn clear() -> Color {
         Color {
             red: 0,
