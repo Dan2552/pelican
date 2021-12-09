@@ -19,6 +19,9 @@ name = "ui"
 name = "label"
 
 [[example]]
+name = "scroll"
+
+[[example]]
 name = "debug__textbychar"
 
 [[test]]

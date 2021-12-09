@@ -6,6 +6,7 @@ mod weak_view;
 mod delegate;
 mod image_view;
 mod label;
+mod scroll_view;
 
 pub use view::View;
 pub use weak_view::WeakView;
@@ -14,6 +15,7 @@ pub use default_behavior::DefaultBehavior;
 pub(crate) use view_inner::ViewInner;
 pub use image_view::ImageView;
 pub use label::Label;
+pub use scroll_view::ScrollView;
 
 #[cfg(test)]
 mod tests {

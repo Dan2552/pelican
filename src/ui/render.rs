@@ -30,6 +30,10 @@ pub(crate) fn window_display(window: View) {
 }
 
 fn draw_view(view: &View, behavior: &WindowBehavior) {
+    if view.is_hidden() {
+        return;
+    }
+
     {
         {
             let mut inner_view = view.inner_self.borrow_mut();
@@ -59,6 +63,10 @@ fn draw_view(view: &View, behavior: &WindowBehavior) {
     let layer = inner_view.layer.as_ref().unwrap();
 
     for subview in view.subviews().iter() {
+        if subview.is_hidden() {
+            continue;
+        }
+
         // redraw the subview (if it needs it!)
         draw_view(subview, behavior);
 

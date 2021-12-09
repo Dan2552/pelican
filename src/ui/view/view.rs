@@ -92,6 +92,19 @@ impl View {
         child.set_needs_display();
     }
 
+    /// Remove the view from its superview.
+    pub fn remove_from_superview(&self) {
+        let inner_self = self.inner_self.borrow();
+
+        if let Some(superview) = inner_self.superview.upgrade() {
+            {
+                let mut superview_inner = superview.inner_self.borrow_mut();
+                superview_inner.subviews.retain(|view| view.id != self.id);
+            }
+            superview.set_needs_display();
+        }
+    }
+
     fn draw(&self) {
         let behavior = self.behavior.borrow();
         behavior.draw();
@@ -101,11 +114,11 @@ impl View {
     pub fn set_background_color(&self, color: Color) {
         {
             let mut inner_self = self.inner_self.borrow_mut();
-            
+
             if inner_self.background_color == color {
                 return;
             }
-            
+
             inner_self.background_color = color;
         }
 
@@ -142,6 +155,10 @@ impl View {
         }
 
         self.set_needs_display();
+    }
+
+    pub fn is_hidden(&self) -> bool {
+        self.inner_self.borrow().hidden
     }
 
     pub fn touches_began(&self, touches: &Vec<Touch>, event: Event) {
@@ -199,8 +216,8 @@ impl View {
     ///
     /// Used for click/touch handling in regards to determining which view it
     /// should fire an event to.
-    /// 
-    /// Will not return views that have `user_interaction_enabled` set to 
+    ///
+    /// Will not return views that have `user_interaction_enabled` set to
     /// `false`.
     pub fn hit_test(&self, point: &Point<i32>) -> Option<View> {
         let inner_self = self.inner_self.borrow();
@@ -454,6 +471,10 @@ mod tests {
         let subview = View::new(Rectangle::new(0, 0, 100, 100));
         view.add_subview(subview.clone());
 
+        assert_eq!(view.subviews().len(), 1);
         assert_eq!(view.subviews().get(0).unwrap(), &subview);
+
+        subview.remove_from_superview();
+        assert_eq!(view.subviews().len(), 0);
     }
 }

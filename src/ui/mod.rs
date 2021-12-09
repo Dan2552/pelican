@@ -24,6 +24,7 @@ pub use view::Label;
 mod view_controller;
 pub use view_controller::ViewControllerBehavior;
 pub use view_controller::ViewController;
+pub use view::ScrollView;
 
 mod event;
 pub use event::Event;
