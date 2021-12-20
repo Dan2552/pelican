@@ -179,17 +179,17 @@ impl View {
         self.inner_self.borrow().hidden
     }
 
-    pub fn touches_began(&self, touches: &Vec<Touch>, event: &TouchEvent) {
+    pub fn touches_began(&self, touches: &Vec<Touch>, _event: &TouchEvent) {
         let behavior = self.behavior.borrow();
         behavior.touches_began(touches);
     }
 
-    pub fn touches_ended(&self, touches: &Vec<Touch>, event: &TouchEvent) {
+    pub fn touches_ended(&self, touches: &Vec<Touch>, _event: &TouchEvent) {
         let behavior = self.behavior.borrow();
         behavior.touches_ended(touches);
     }
 
-    pub fn touches_moved(&self, touches: &Vec<Touch>, event: &TouchEvent) {
+    pub fn touches_moved(&self, touches: &Vec<Touch>, _event: &TouchEvent) {
         let behavior = self.behavior.borrow();
         behavior.touches_moved(touches);
     }

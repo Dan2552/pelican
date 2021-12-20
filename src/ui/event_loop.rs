@@ -2,7 +2,6 @@ use crate::ui::{Application};
 use crate::ui::touch::Touch;
 use crate::graphics::Point;
 use crate::ui::event::EventArena;
-use crate::ui::view::View;
 
 pub(crate) fn update(sdl: &sdl2::Sdl) {
     let mut event_pump = sdl.event_pump().unwrap();
