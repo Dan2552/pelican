@@ -1,14 +1,22 @@
 use crate::graphics::Point;
 use crate::ui::{View, Window};
 use std::time::Instant;
+use crate::ui::gesture::recognizer::Recognizer;
+use std::rc::{Rc, Weak};
+use std::cell::{Ref, RefCell};
 
-pub struct Touch {
-    id: i32,
+struct TouchInner {
+    id: usize,
     timestamp: Instant,
     position: Point<i32>,
     phase: TouchPhase,
     view: Option<View>,
     window: Option<Window>,
+    gesture_recognizers: Vec<Weak<Box<dyn Recognizer>>>
+}
+
+pub struct Touch {
+    inner: Rc<RefCell<TouchInner>>
 }
 
 /// A touch phase describes the lifecycle of a touch event.
@@ -21,60 +29,93 @@ pub enum TouchPhase {
 }
 
 impl Touch {
-    pub fn new(id: i32, position: Point<i32>, phase: TouchPhase) -> Touch {
+    pub fn new(id: usize, position: Point<i32>) -> Touch {
         Touch {
-            id,
-            timestamp: Instant::now(),
-            position,
-            phase,
-            view: None,
-            window: None
+            inner: Rc::new(RefCell::new(TouchInner {
+                id,
+                timestamp: Instant::now(),
+                position,
+                phase: TouchPhase::Began,
+                view: None,
+                window: None,
+                gesture_recognizers: Vec::new()
+            }))
         }
     }
 
-    pub fn get_position(&self) -> &Point<i32> {
-        &self.position
+    pub fn position(&self) -> Point<i32> {
+        self.inner.borrow().position.clone()
     }
 
     pub(crate) fn set_position(&mut self, position: Point<i32>) {
-        self.position = position;
+        self.inner.borrow_mut().position = position;
     }
 
     pub(crate) fn set_view(&mut self, view: View) {
-        self.view = Some(view);
+        self.inner.borrow_mut().view = Some(view);
     }
 
-    pub fn get_view(&self) -> Option<&View> {
-        self.view.as_ref()
+    pub fn view(&self) -> Option<View> {
+        let inner = self.inner.borrow();
+        if let Some(view) = &inner.view {
+            Some(view.clone())
+        } else {
+            None
+        }
     }
 
     pub(crate) fn set_window(&mut self, window: Window) {
-        self.window = Some(window);
+        self.inner.borrow_mut().window = Some(window);
     }
 
-    pub fn get_window(&self) -> Option<&Window> {
-        self.window.as_ref()
+    pub(crate) fn gesture_recognizers(&self) -> Ref<'_, Vec<Weak<Box<dyn Recognizer>>>> {
+        // &self.inner.borrow().gesture_recognizers
+        Ref::map(self.inner.borrow(), |inner| &inner.gesture_recognizers)
     }
 
-    pub fn get_id(&self) -> i32 {
-        self.id
+    pub(crate) fn set_gesture_recognizers(&mut self, recognizers: Vec<Weak<Box<dyn Recognizer>>>) {
+        self.inner.borrow_mut().gesture_recognizers = recognizers;
+    }
+
+    pub fn window(&self) -> Option<Window> {
+        self.inner.borrow().window.clone()
+    }
+
+    pub fn phase(&self) -> TouchPhase {
+        self.inner.borrow().phase
+    }
+
+    pub(crate) fn set_phase(&mut self, phase: TouchPhase) {
+        self.inner.borrow_mut().phase = phase;
+    }
+
+    pub(crate) fn set_timestamp(&mut self, timestamp: Instant) {
+        self.inner.borrow_mut().timestamp = timestamp;
+    }
+
+    pub(crate) fn timestamp(&self) -> Instant {
+        self.inner.borrow().timestamp
+    }
+
+    pub fn id(&self) -> usize {
+        self.inner.borrow().id
     }
 
     pub(crate) fn update_timestamp(&mut self) {
-        self.timestamp = Instant::now();
+        self.inner.borrow_mut().timestamp = Instant::now();
     }
 }
 
 impl PartialEq for Touch {
     fn eq(&self, other: &Touch) -> bool {
-        self.id == other.id
+        self.id() == other.id()
     }
 }
 
 impl std::fmt::Debug for Touch {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("Touch")
-         .field(&self.id)
+         .field(&self.id())
          .finish()
     }
 }
@@ -82,12 +123,7 @@ impl std::fmt::Debug for Touch {
 impl Clone for Touch {
     fn clone(&self) -> Touch {
         Touch {
-            id: self.id,
-            timestamp: self.timestamp.clone(),
-            position: self.position.clone(),
-            phase: self.phase.clone(),
-            view: self.view.clone(),
-            window: self.window.clone()
+            inner: self.inner.clone()
         }
     }
 }
@@ -96,46 +132,79 @@ impl Clone for Touch {
 mod tests {
     use super::*;
     use crate::graphics::Rectangle;
+    use crate::ui::gesture::pan_recognizer::PanRecognizer;
+    use std::rc::Rc;
 
     #[test]
     fn test_get_position() {
-        let touch = Touch::new(0, Point { x: 5, y: 5 }, TouchPhase::Began);
-        assert_eq!(touch.get_position(), &Point { x: 5, y: 5 });
+        let touch = Touch::new(0, Point { x: 5, y: 5 });
+        assert_eq!(touch.position(), Point { x: 5, y: 5 });
     }
 
     #[test]
     fn test_eq() {
-        let touch1 = Touch::new(0, Point { x: 5, y: 5 }, TouchPhase::Began);
-        let touch2 = Touch::new(0, Point { x: 5, y: 5 }, TouchPhase::Began);
+        let touch1 = Touch::new(0, Point { x: 5, y: 5 });
+        let touch2 = Touch::new(0, Point { x: 5, y: 5 });
         assert_eq!(touch1, touch2);
     }
-    
+
     #[test]
     fn test_debug() {
-        let touch = Touch::new(0, Point { x: 5, y: 5 }, TouchPhase::Began);
+        let touch = Touch::new(0, Point { x: 5, y: 5 });
         assert_eq!(format!("{:?}", touch), "Touch(0)");
     }
 
     #[test]
     fn test_get_id() {
-        let touch = Touch::new(2, Point { x: 5, y: 5 }, TouchPhase::Began);
-        assert_eq!(touch.get_id(), 2);
+        let touch = Touch::new(2, Point { x: 5, y: 5 });
+        assert_eq!(touch.id(), 2);
     }
 
     #[test]
     fn test_get_view() {
         let view = View::new(Rectangle::new(0, 0, 100, 100));
-        let mut touch = Touch::new(0, Point { x: 5, y: 5 }, TouchPhase::Began);
+        let mut touch = Touch::new(0, Point { x: 5, y: 5 });
         touch.set_view(view.clone());
-        assert_eq!(touch.get_view(), Some(&view));
+        assert_eq!(touch.view(), Some(view));
     }
 
     #[test]
     fn test_update_timestamp() {
-        let mut touch = Touch::new(0, Point { x: 5, y: 5 }, TouchPhase::Began);
-        let original_time = touch.timestamp;
+        let mut touch = Touch::new(0, Point { x: 5, y: 5 });
+        let original_time = touch.timestamp();
         std::thread::sleep(std::time::Duration::from_millis(10));
         touch.update_timestamp();
-        assert!(touch.timestamp != original_time);
+        assert!(touch.timestamp() != original_time);
+    }
+
+    #[test]
+    fn test_set_phase() {
+        let mut touch = Touch::new(0, Point { x: 5, y: 5 });
+        touch.set_phase(TouchPhase::Moved);
+        assert_eq!(touch.phase(), TouchPhase::Moved);
+    }
+
+    #[test]
+    fn test_phase() {
+        let touch = Touch::new(0, Point { x: 5, y: 5 });
+        assert_eq!(touch.phase(), TouchPhase::Began);
+    }
+
+    #[test]
+    fn test_set_recognizers() {
+        let mut touch = Touch::new(0, Point { x: 5, y: 5 });
+        let recognizer: Box<dyn Recognizer> = Box::new(PanRecognizer::new(|_| {}));
+        let recognizer = Rc::new(recognizer);
+        let weak_recognizer = Rc::downgrade(&recognizer);
+        assert_eq!(touch.gesture_recognizers().len(), 0);
+        touch.set_gesture_recognizers(vec![weak_recognizer]);
+        assert_eq!(touch.gesture_recognizers().len(), 1);
+    }
+
+    #[test]
+    fn test_clone() {
+        let touch = Touch::new(0, Point { x: 5, y: 5 });
+        let clone = touch.clone();
+        assert_eq!(touch, clone);
     }
 }

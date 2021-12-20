@@ -13,7 +13,7 @@ pub struct WindowBehavior {
     view: WeakView,
     super_behavior: Box<dyn Behavior>,
     pub(crate) graphics_context: Rc<Context>,
-    pub(crate) view_controller: ViewController<'static>
+    pub(crate) view_controller: ViewController<'static>,
 }
 
 pub struct Window {

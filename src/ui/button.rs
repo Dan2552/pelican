@@ -1,6 +1,6 @@
 use crate::macros::*;
 use crate::ui::view::DefaultBehavior;
-use crate::ui::{Touch, Event, Label, Color};
+use crate::ui::{Touch, Label, Color};
 use crate::graphics::Rectangle;
 use std::cell::{Cell, RefCell};
 use crate::text::{HorizontalAlignment, VerticalAlignment};
@@ -63,17 +63,17 @@ custom_view!(
     }
 
     impl Behavior {
-        fn touches_began(&self, _touches: &Vec<Touch>, _event: Event) {
+        fn touches_began(&self, _touches: &Vec<Touch>) {
             self.set_state(State::Pressed);
         }
 
-        fn touches_ended(&self, touches: &Vec<Touch>, _event: Event) {
+        fn touches_ended(&self, touches: &Vec<Touch>) {
             if let Some(touch) = touches.first() {
 
                 let view = self.view.upgrade().unwrap();
-                let window = touch.get_window().unwrap();
+                let window = touch.window().unwrap();
 
-                let position = window.view.convert_point_to(&touch.get_position(), &view);
+                let position = window.view.convert_point_to(&touch.position(), &view);
 
                 if view.get_bounds().contains(&position) {
                     (self.action)();
@@ -83,12 +83,12 @@ custom_view!(
             self.set_state(State::Normal);
         }
 
-        fn touches_moved(&self, touches: &Vec<Touch>, _event: Event) {
+        fn touches_moved(&self, touches: &Vec<Touch>) {
             if let Some(touch) = touches.first() {
                 let view = self.view.upgrade().unwrap();
-                let window = touch.get_window().unwrap();
+                let window = touch.window().unwrap();
 
-                let position = window.view.convert_point_to(&touch.get_position(), &view);
+                let position = window.view.convert_point_to(&touch.position(), &view);
 
                 if view.get_bounds().contains(&position) {
                     self.set_state(State::Pressed);

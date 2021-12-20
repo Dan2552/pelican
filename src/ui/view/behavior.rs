@@ -1,4 +1,4 @@
-use crate::ui::{View, WeakView, Touch, Event};
+use crate::ui::{View, WeakView, Touch};
 
 pub trait Behavior {
     // TODO: macro for these
@@ -39,7 +39,7 @@ pub trait Behavior {
         }
     }
 
-    fn touches_began(&self, _touches: &Vec<Touch>, _event: Event) {}
-    fn touches_ended(&self, _touches: &Vec<Touch>, _event: Event) {}
-    fn touches_moved(&self, _touches: &Vec<Touch>, _event: Event) {}
+    fn touches_began(&self, _touches: &Vec<Touch>) {}
+    fn touches_ended(&self, _touches: &Vec<Touch>) {}
+    fn touches_moved(&self, _touches: &Vec<Touch>) {}
 }

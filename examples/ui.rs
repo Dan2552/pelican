@@ -34,7 +34,7 @@ impl ViewControllerBehavior for ExampleViewController {
         blue_view.set_background_color(Color::new(0, 0, 255, 100));
 
         let frame = Rectangle::new(200, 200, 200, 200);
-        let button = Button::new(frame, "this is a button", || {
+        let _button = Button::new(frame, "this is a button", || {
             println!("button clicked");
         });
 

@@ -22,7 +22,10 @@ name = "label"
 name = "scroll"
 
 [[example]]
-name = "debug__textbychar"
+name = "pan_gesture"
+
+[[example]]
+name = "debug_textbychar"
 
 [[test]]
 name = "main_thread_tests"

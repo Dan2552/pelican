@@ -41,6 +41,10 @@ impl Timer {
         Timer::new(Duration::new(0, 0), false, action)
     }
 
+    pub fn new_once_delayed(delay: Duration, action: impl Fn() -> () + 'static) -> Self {
+        Timer::new(delay, false, action)
+    }
+
     pub fn new_repeating(interval: Duration, action: impl Fn() -> () + 'static) -> Self {
         Timer::new(interval, true, action)
     }

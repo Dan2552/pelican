@@ -1,20 +1,20 @@
 macro_rules! singleton {
-    ($func_name:ident, $($key:ident: $value:expr),*) => {
+    ($singleton_name:ident$(, $key:ident: $value:expr)*) => {
         struct SingletonOwner {
-            value: std::cell::RefCell<$func_name>,
+            value: std::cell::RefCell<$singleton_name>,
         }
         impl SingletonOwner {
         }
         static mut SINGLETON_OWNER: SingletonOwner = SingletonOwner {
-            value: std::cell::RefCell::new($func_name { $($key: $value),* }),
+            value: std::cell::RefCell::new($singleton_name { $($key: $value),* }),
         };
 
-        impl $func_name {
-            pub fn borrow<'a>() -> std::cell::Ref<'a, $func_name> {
+        impl $singleton_name {
+            pub fn borrow<'a>() -> std::cell::Ref<'a, $singleton_name> {
                 unsafe { SINGLETON_OWNER.value.borrow() }
             }
 
-            pub fn borrow_mut<'a>() -> std::cell::RefMut<'a, $func_name> {
+            pub fn borrow_mut<'a>() -> std::cell::RefMut<'a, $singleton_name> {
                 unsafe { SINGLETON_OWNER.value.borrow_mut() }
             }
         }

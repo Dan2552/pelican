@@ -26,8 +26,9 @@ pub use view_controller::ViewControllerBehavior;
 pub use view_controller::ViewController;
 pub use view::ScrollView;
 
-mod event;
-pub use event::Event;
+pub mod gesture;
+
+pub mod event;
 
 mod window;
 pub use window::Window;

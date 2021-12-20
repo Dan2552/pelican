@@ -40,9 +40,51 @@ impl WeakView {
 
     pub fn is_none(&self) -> bool {
         if let Some(_) = self.upgrade() {
-            true
-        } else {
             false
+        } else {
+            true
         }
+    }
+}
+
+impl Clone for WeakView {
+    fn clone(&self) -> Self {
+        WeakView {
+            id: self.id,
+            inner_self: self.inner_self.clone(),
+            behavior: self.behavior.clone(),
+            debug_name: self.debug_name.clone()
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::graphics::Rectangle;
+
+    #[test]
+    fn test_weak_view_upgrade() {
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let view = View::new(frame);
+        let weak_view = view.downgrade();
+        assert!(weak_view.upgrade().is_some());
+        assert_eq!(weak_view.upgrade().unwrap(), view);
+    }
+
+    #[test]
+    fn test_weak_view_is_none() {
+        let weak_view = WeakView::none();
+        assert!(weak_view.is_none());
+    }
+
+    #[test]
+    fn test_clone() {
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let view = View::new(frame);
+        let weak_view = view.downgrade();
+        let weak_view_clone = weak_view.clone();
+        assert!(weak_view_clone.upgrade().is_some());
+        assert_eq!(weak_view_clone.upgrade().unwrap(), view);
     }
 }

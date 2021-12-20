@@ -48,14 +48,14 @@ mod tests {
       let p2 = p1.clone();
       assert_eq!(p1, p2);
     }
-  
+
     #[test]
     fn test_eq() {
       let p1 = Point { x: 1, y: 2 };
       let p2 = Point { x: 1, y: 2 };
       assert_eq!(p1, p2);
     }
-  
+
     #[test]
     fn test_debug() {
       let p1 = Point { x: 1, y: 2 };

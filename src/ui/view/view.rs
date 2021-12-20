@@ -1,11 +1,12 @@
 use crate::ui::Color;
-use crate::ui::Event;
 use crate::ui::Touch;
 use crate::ui::view::{WeakView, Behavior, DefaultBehavior, ViewInner};
 use crate::graphics::{Layer, Rectangle, Point, LayerDelegate};
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::cell::RefCell;
 use std::cell::Ref;
+use crate::ui::gesture::recognizer::Recognizer;
+use crate::ui::event::TouchEvent;
 
 pub struct View {
     /// Some way to compare `View`s (`==`) and `WeakView`s
@@ -52,6 +53,7 @@ impl View {
             layer: None,
             superview: WeakView::none(),
             subviews: Vec::new(),
+            gesture_recognizers: Vec::new(),
             hidden: false,
             user_interaction_enabled: true
         };
@@ -103,6 +105,22 @@ impl View {
             }
             superview.set_needs_display();
         }
+    }
+
+    /// Add a gesture recognizer to the view.
+    /// TODO: Ref here means that inner_self is still borrowed, which means
+    /// other things can't borrow mut it.
+    pub fn add_gesture_recognizer(&self, gesture_recognizer: Box<dyn Recognizer>) {
+        let mut inner_self = self.inner_self.borrow_mut();
+        gesture_recognizer.set_view(self.downgrade());
+        inner_self.gesture_recognizers.push(Rc::new(gesture_recognizer));
+    }
+
+    pub fn gesture_recognizers(&self) -> Vec<Weak<Box<dyn Recognizer>>> {
+        let inner_self = self.inner_self.borrow();
+        inner_self.gesture_recognizers
+            .iter()
+            .map(|recognizer| Rc::downgrade(recognizer)).collect()
     }
 
     fn draw(&self) {
@@ -161,19 +179,19 @@ impl View {
         self.inner_self.borrow().hidden
     }
 
-    pub fn touches_began(&self, touches: &Vec<Touch>, event: Event) {
+    pub fn touches_began(&self, touches: &Vec<Touch>, event: &TouchEvent) {
         let behavior = self.behavior.borrow();
-        behavior.touches_began(touches, event);
+        behavior.touches_began(touches);
     }
 
-    pub fn touches_ended(&self, touches: &Vec<Touch>, event: Event) {
+    pub fn touches_ended(&self, touches: &Vec<Touch>, event: &TouchEvent) {
         let behavior = self.behavior.borrow();
-        behavior.touches_ended(touches, event);
+        behavior.touches_ended(touches);
     }
 
-    pub fn touches_moved(&self, touches: &Vec<Touch>, event: Event) {
+    pub fn touches_moved(&self, touches: &Vec<Touch>, event: &TouchEvent) {
         let behavior = self.behavior.borrow();
-        behavior.touches_moved(touches, event);
+        behavior.touches_moved(touches);
     }
 
     /// Returns the location of this view in the highest superview coordinate

@@ -1,17 +1,18 @@
-use crate::graphics::Point;
-use crate::ui::input_state::InputState;
-use crate::ui::{Window, WeakView, Event, RunLoop};
+use crate::ui::{Window, WeakView, RunLoop};
 use crate::macros::*;
+use crate::ui::touch::Touch;
+use crate::ui::gesture::recognizer::Recognizer;
+use std::rc::Weak;
 
 singleton!(
-    Application, 
-    key_window_index: None, 
+    Application,
+    key_window_index: None,
     windows: Vec::new()
 );
 
 pub struct Application {
     key_window_index: Option<usize>,
-    pub(crate) windows: Vec<Window>,
+    pub(crate) windows: Vec<Window>
 }
 
 impl<'a> Application {
@@ -42,98 +43,28 @@ impl<'a> Application {
         None
     }
 
-    pub(crate) fn send_event(&self, event: Event) {
-        match event {
-            Event::Quit { .. } => quit(),
-            Event::MouseButtonDown { .. } => self.mouse_button_down(event),
-            Event::MouseButtonUp { .. } => self.mouse_button_up(event),
-            Event::MouseMotion { .. } => self.mouse_move(event),
-            _  => ()
-        }
+    pub fn exit(&self) {
+        let run_loop = RunLoop::borrow();
+        run_loop.exit();
     }
 
-    fn mouse_button_down(&self, event: Event) {
-        match event {
-            Event::MouseButtonDown {
-                window_id,
-                x,
-                y,
-                ..
-            } => {
-                let mut input_state = InputState::borrow_mut();
+    pub(crate) fn assign_targets_to_touch(&self, window_id: u32, touch: &mut Touch) {
+        let window = self.get_window(window_id).unwrap();
+        touch.set_window(window.clone());
 
-                // Because this is a click and not a real touch, there's no
-                // real id, so 0 is always used.
-                let touch = input_state.find_or_create_touch(0);
-                touch.set_position(Point::new(x, y));
+        if let Some(view) = window.hit_test(&touch.position()) {
+            touch.set_view(view.clone());
 
-                let window = self.get_window(window_id).unwrap();
-                touch.set_window(window.clone());
-                if let Some(view) = window.hit_test(&Point { x, y }) {
-                    touch.set_view(view.clone());
-                    view.touches_began(&vec![touch.clone()], event);
+            let mut recognizers: Vec<Weak<Box<dyn Recognizer>>> = Vec::new();
+            let mut current_view = view;
+            while let Some(view) = current_view.superview().upgrade() {
+                for recognizer in view.gesture_recognizers().iter() {
+                    recognizers.push(recognizer.clone());
                 }
+                current_view = view;
             }
-            _ => panic!("unexpected event")
+
+            touch.set_gesture_recognizers(recognizers);
         }
     }
-
-    fn mouse_button_up(&self, event: Event) {
-        match event {
-            Event::MouseButtonUp {
-                x,
-                y,
-                ..
-            } => {
-                let mut input_state = InputState::borrow_mut();
-
-                // Because this is a click and not a real touch, there's no
-                // real id, so 0 is always used.
-                let touch = input_state.find_or_create_touch(0);
-                touch.set_position(Point::new(x, y));
-                touch.update_timestamp();
-
-                if let Some(view) = touch.get_view() {
-                    view.touches_ended(&vec![touch.clone()], event);
-                }
-
-                input_state.remove_touch(0);
-            }
-            _ => panic!("unexpected event")
-        }
-    }
-
-    fn mouse_move(&self, event: Event) {
-        match event {
-            Event::MouseMotion {
-                x,
-                y,
-                ..
-            } => {
-                let mut input_state = InputState::borrow_mut();
-
-                // Because this is a click and not a real touch, there's no
-                // real id, so 0 is always used.
-                //
-                // With "usual" mouse input, you may care about mouse movement
-                // even if a click is not currently happening. This is
-                // specifically avoided to keep consistent behavior with touch
-                // input.
-                if let Some(touch) = input_state.find_touch(0) {
-                    touch.set_position(Point::new(x, y));
-                    touch.update_timestamp();
-
-                    if let Some(view) = touch.get_view() {
-                        view.touches_moved(&vec![touch.clone()], event);
-                    }
-                }
-            }
-            _ => panic!("unexpected event")
-        }
-    }
-}
-
-fn quit() {
-    let run_loop = RunLoop::borrow();
-    run_loop.exit();
 }
