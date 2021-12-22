@@ -66,8 +66,10 @@ impl EventArena {
 
         for t in event.inner.borrow_mut().touches.iter_mut() {
             if t.id() == touch_id {
-                t.set_phase(TouchPhase::Moved);
-                t.set_position(position);
+                if t.phase() == TouchPhase::Began || t.phase() == TouchPhase::Moved {
+                    t.set_phase(TouchPhase::Moved);
+                    t.set_position(position);
+                }
                 return;
             }
         }

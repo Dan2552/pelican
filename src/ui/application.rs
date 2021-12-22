@@ -56,6 +56,11 @@ impl<'a> Application {
             touch.set_view(view.clone());
 
             let mut recognizers: Vec<Weak<Box<dyn Recognizer>>> = Vec::new();
+
+            for recognizer in view.gesture_recognizers().iter() {
+                recognizers.push(recognizer.clone());
+            }
+
             let mut current_view = view;
             while let Some(view) = current_view.superview().upgrade() {
                 for recognizer in view.gesture_recognizers().iter() {

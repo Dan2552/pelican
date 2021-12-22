@@ -3,9 +3,6 @@ use crate::graphics::Point;
 use std::cell::RefCell;
 use crate::ui::gesture::recognizer::Recognizer;
 use crate::ui::Touch;
-use crate::ui::RunLoop;
-use crate::ui::Timer;
-use std::time::Duration;
 use std::rc::Rc;
 use crate::ui::event::TouchEvent;
 
@@ -15,6 +12,7 @@ pub enum PanState {
     Began,
     Changed,
     Ended,
+    Cancelled,
     Failed
 }
 
@@ -25,9 +23,10 @@ pub struct PanRecognizer {
 struct PanRecognizerInner {
     view: WeakView,
     state: PanState,
-    action: Box<dyn Fn(&PanRecognizer) -> ()>,
+    action: Rc<Box<dyn Fn(&PanRecognizer) -> ()>>,
     translation: Point<i32>,
-    start_position: Point<i32>
+    initial_position: Point<i32>,
+    last_position: Point<i32>
 }
 
 impl PanRecognizer {
@@ -36,22 +35,18 @@ impl PanRecognizer {
             inner: Rc::new(RefCell::new(PanRecognizerInner {
                 view: WeakView::none(),
                 state: PanState::Possible,
-                action: Box::new(action),
+                action: Rc::new(Box::new(action)),
                 translation: Point::new(0, 0),
-                start_position: Point::new(0, 0)
+                initial_position: Point::new(0, 0),
+                last_position: Point::new(0, 0)
             }))
         }
     }
 
-    fn translation_in(&self, view: &View) -> Point<i32> {
+    pub fn translation_in(&self, _view: &View) -> Point<i32> {
         let inner = self.inner.borrow();
         let translation = &inner.translation;
-
-        if let Some(self_view) = inner.view.upgrade() {
-            self_view.convert_point_to(&translation.clone(), view)
-        } else {
-            translation.clone()
-        }
+        translation.clone()
     }
 
     fn set_translation(&self, translation: Point<i32>, view: &View) {
@@ -63,11 +58,11 @@ impl PanRecognizer {
         }
     }
 
-    fn state(&self) -> PanState {
+    pub fn state(&self) -> PanState {
         self.inner.borrow().state.clone()
     }
 
-    fn view(&self) -> WeakView {
+    pub fn view(&self) -> WeakView {
         self.inner.borrow().view.clone()
     }
 }
@@ -76,24 +71,11 @@ impl Recognizer for PanRecognizer {
     fn touches_began(&self, touches: &Vec<Touch>, _event: &TouchEvent) {
         let mut inner = self.inner.borrow_mut();
 
-        if inner.state == PanState::Failed || inner.state == PanState::Ended {
-            inner.state = PanState::Possible;
-        }
+        inner.state = PanState::Possible;
 
-        if inner.state != PanState::Possible {
-            return;
-        }
-
-        inner.start_position = touches.first().unwrap().position().clone();
-
-        let timer_self = self.clone();
-        let timer = Timer::new_once_delayed(Duration::from_millis(150), move || {
-            let mut inner = timer_self.inner.borrow_mut();
-            if inner.state == PanState::Possible {
-                inner.state = PanState::Failed;
-            }
-        });
-        RunLoop::borrow().add_timer(timer);
+        inner.last_position = touches.first().unwrap().position().clone();
+        inner.initial_position = inner.last_position.clone();
+        inner.translation = Point::new(0, 0);
     }
 
     fn touches_ended(&self, _touches: &Vec<Touch>, _event: &TouchEvent) {
@@ -102,29 +84,37 @@ impl Recognizer for PanRecognizer {
     }
 
     fn touches_moved(&self, touches: &Vec<Touch>, _event: &TouchEvent) {
-        let touch_position = touches.first().unwrap().position();
-        let mut inner = self.inner.borrow_mut();
+        let action: Rc<Box<dyn Fn(&PanRecognizer) -> ()>>;
+        {
+            let touch_position = touches.first().unwrap().position();
+            let mut inner = self.inner.borrow_mut();
 
-        inner.translation = Point::new(
-            touch_position.x - inner.start_position.x,
-            touch_position.y - inner.start_position.y
-        );
+            inner.translation = Point::new(
+                touch_position.x - inner.initial_position.x,
+                touch_position.y - inner.initial_position.y
+            );
 
-        match inner.state {
-            PanState::Possible => {
-                if inner.translation.x.abs() > 10 || inner.translation.y.abs() > 10 {
-                    inner.state = PanState::Began;
-                } else {
+            inner.last_position = touch_position;
+
+            match inner.state {
+                PanState::Possible => {
+                    if inner.translation.x.abs() > 10 || inner.translation.y.abs() > 10 {
+                        inner.state = PanState::Began;
+                    } else {
+                        return;
+                    }
+                },
+                PanState::Began => { inner.state = PanState::Changed },
+                PanState::Changed => {},
+                _ => {
                     return;
                 }
-            },
-            PanState::Began => { inner.state = PanState::Changed },
-            _ => {
-                return;
             }
+
+            action = inner.action.clone();
         }
 
-        (inner.action)(self);
+        action(self);
     }
 
     fn set_view(&self, view: WeakView) {
