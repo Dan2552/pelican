@@ -49,13 +49,10 @@ impl PanRecognizer {
         translation.clone()
     }
 
-    fn set_translation(&self, translation: Point<i32>, view: &View) {
+    pub fn set_translation(&self, translation: Point<i32>, view: &View) {
         let mut inner = self.inner.borrow_mut();
-        if let Some(self_view) = inner.view.upgrade() {
-            inner.translation = view.convert_point_to(&translation, &self_view);
-        } else {
-            inner.translation = translation;
-        }
+        inner.translation = translation;
+        inner.initial_position = inner.last_position.clone();
     }
 
     pub fn state(&self) -> PanState {
@@ -183,7 +180,7 @@ mod tests {
             parent_view.add_gesture_recognizer(Box::new(recognizer.clone()));
             recognizer.set_translation(Point::new(1, 2), &child_view);
             assert_eq!(recognizer.translation_in(&child_view), Point::new(1, 2));
-            assert_eq!(recognizer.translation_in(&parent_view), Point::new(11, 12));
+            assert_eq!(recognizer.translation_in(&parent_view), Point::new(1, 2));
         }
     }
 

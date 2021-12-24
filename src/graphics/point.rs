@@ -23,6 +23,17 @@ impl<T> Clone for Point<T> where T: Number {
     }
 }
 
+impl std::ops::Add<Point<i32>> for Point<i32> {
+    type Output = Point<i32>;
+
+    fn add(self, other: Point<i32>) -> Point<i32> {
+        Point {
+            x: self.x + other.x,
+            y: self.y + other.y
+        }
+    }
+}
+
 impl<T> PartialEq for Point<T> where T: Number {
     fn eq(&self, rhs: &Point<T>) -> bool {
         self.x == rhs.x && self.y == rhs.y
@@ -60,5 +71,13 @@ mod tests {
     fn test_debug() {
       let p1 = Point { x: 1, y: 2 };
       assert_eq!(format!("{:?}", p1), "Point(1, 2)");
+    }
+
+    #[test]
+    fn test_add() {
+      let p1 = Point { x: 1, y: 2 };
+      let p2 = Point { x: 3, y: 4 };
+      let p3 = p1 + p2;
+      assert_eq!(p3, Point { x: 4, y: 6 });
     }
 }

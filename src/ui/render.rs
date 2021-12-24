@@ -1,6 +1,7 @@
 use crate::ui::view::View;
 use crate::ui::window::WindowBehavior;
 use crate::graphics::Layer;
+use crate::graphics::Rectangle;
 
 pub(crate) fn window_display(window: View) {
     // Additional reference for view controller notification.
@@ -75,6 +76,13 @@ fn draw_view(view: &View, behavior: &WindowBehavior) {
 
         let frame = subview.frame();
 
-        layer.draw_child_layer(subview_layer, &frame);
+        let frame_relative_to_superview_bounds = Rectangle::new(
+            frame.origin.x - view.bounds().origin.x,
+            frame.origin.y - view.bounds().origin.y,
+            frame.size.width,
+            frame.size.height,
+        );
+
+        layer.draw_child_layer(subview_layer, &frame_relative_to_superview_bounds);
     }
 }

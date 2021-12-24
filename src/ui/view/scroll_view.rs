@@ -4,6 +4,9 @@ use crate::ui::view::View;
 use crate::ui::Color;
 use crate::ui::view::DefaultBehavior;
 use crate::macros::*;
+use crate::ui::gesture::pan_recognizer::PanRecognizer;
+use crate::graphics::Point;
+use std::cell::Cell;
 
 custom_view!(
     ScrollView subclasses DefaultBehavior
@@ -14,23 +17,8 @@ custom_view!(
 
     impl Self {
         pub fn new(frame: Rectangle<i32, u32>) -> Self {
-            let scroll_bar_frame = Rectangle::new(
-                frame.size.width as i32 - 10,
-                0,
-                10,
-                frame.size.height
-            );
-
-            let vertical_scroll_bar = ScrollBarView::new(scroll_bar_frame);
-
-            let scroll_bar_frame = Rectangle::new(
-                0,
-                frame.size.height as i32 - 10,
-                frame.size.width,
-                10
-            );
-
-            let horizontal_scroll_bar = ScrollBarView::new(scroll_bar_frame);
+            let vertical_scroll_bar = ScrollBarView::new(ScrollBarDirection::Vertical);
+            let horizontal_scroll_bar = ScrollBarView::new(ScrollBarDirection::Horizontal);
 
             let content_view = View::new(Rectangle::new(0, 0, 0, 0));
             content_view.set_background_color(Color::clear());
@@ -38,10 +26,80 @@ custom_view!(
             let scroll_view = Self::new_all(frame);
             scroll_view.view.set_background_color(Color::clear());
             scroll_view.view.add_subview(content_view);
-            scroll_view.view.add_subview(vertical_scroll_bar.view);
-            scroll_view.view.add_subview(horizontal_scroll_bar.view);
+            scroll_view.view.add_subview(vertical_scroll_bar.view.clone());
+            scroll_view.view.add_subview(horizontal_scroll_bar.view.clone());
+
+            vertical_scroll_bar.fit_to_superview();
+            horizontal_scroll_bar.fit_to_superview();
+
+            let pan_gesture = PanRecognizer::new(|gesture_recognizer| {
+                if gesture_recognizer.view().is_none() {
+                    return;
+                }
+
+                let view = gesture_recognizer.view().upgrade().unwrap();
+                let scroll_view = ScrollView::from_view(view.clone());
+
+                let translation = gesture_recognizer.translation_in(&view);
+
+                let translation = Point::new(
+                    translation.x,
+                    -translation.y
+                );
+
+                scroll_view.set_content_offset(
+                    scroll_view.content_offset() + translation
+                );
+
+                gesture_recognizer.set_translation(Point::new(0, 0), &view);
+            });
+
+            scroll_view.view.add_gesture_recognizer(Box::new(pan_gesture));
 
             scroll_view
+        }
+
+        pub fn content_offset(&self) -> Point<i32> {
+            self.inner_content_view().bounds().origin
+        }
+
+        fn content_size(&self) -> Size<u32> {
+            if let Some(content_view) = self.content_view() {
+                content_view.frame().size
+            } else {
+                Size::new(0, 0)
+            }
+        }
+
+        fn set_content_offset(&self, offset: Point<i32>) {
+            let content_width = self.content_size().width;
+            let scrollview_width = self.view.frame().size.width;
+
+            let content_height = self.content_size().height;
+            let scrollview_height = self.view.frame().size.height;
+
+            let max_x = content_width - scrollview_width;
+            let max_y = content_height - scrollview_height;
+
+            let x = offset.x.min(0).max(max_x as i32);
+            let y = offset.y.max(0).min(max_y as i32);
+
+            println!("{}, {}, -- size {:?}", x, y, self.content_size());
+
+            self.inner_content_view().set_bounds(
+                Rectangle::new(
+                    x,
+                    y,
+                    self.view.bounds().size.width,
+                    self.view.bounds().size.height
+                )
+            );
+
+            let vertical_percent = y as f32 / max_y as f32 * 100.0;
+            let horizontal_percent = x as f32 / max_x as f32 * 100.0;
+
+            self.vertical_scroll_bar().set_percent(vertical_percent as u8);
+            self.horizontal_scroll_bar().set_percent(horizontal_percent as u8);
         }
 
         fn inner_content_view(&self) -> View {
@@ -83,67 +141,139 @@ custom_view!(
             let inner_content_view = self.inner_content_view();
             inner_content_view.set_frame(Rectangle::new(0, 0, size.width, size.height));
 
-            let vertical_scroll_bar_handle = self.vertical_scroll_bar().handle();
-            let horizontal_scroll_bar_handle = self.horizontal_scroll_bar().handle();
-
-            let scrollview_height = self.view.frame().size.height;
-            let content_view_height = size.height;
-            let height_of_vertical_handle = ((scrollview_height as f32 / content_view_height as f32 ) * scrollview_height as f32) as u32;
-
-            vertical_scroll_bar_handle.set_frame(
-                Rectangle {
-                    origin: vertical_scroll_bar_handle.frame().origin,
-                    size: Size { width: 10, height: height_of_vertical_handle }
-                }
-            );
-
-            let scrollview_width = self.view.frame().size.width;
-            let content_view_width = size.width;
-            let width_of_horizontal_handle = ((scrollview_width as f32 / content_view_width as f32 ) * scrollview_width as f32) as u32;
-
-            horizontal_scroll_bar_handle.set_frame(
-                Rectangle {
-                    origin: horizontal_scroll_bar_handle.frame().origin,
-                    size: Size { width: width_of_horizontal_handle, height: 10 }
-                }
-            );
-
-            if scrollview_width == width_of_horizontal_handle {
-                horizontal_scroll_bar_handle.set_hidden(true);
-            } else {
-                horizontal_scroll_bar_handle.set_hidden(false);
-            }
-
-            if scrollview_height == height_of_vertical_handle {
-                vertical_scroll_bar_handle.set_hidden(true);
-            } else {
-                vertical_scroll_bar_handle.set_hidden(false);
-            }
+            self.vertical_scroll_bar().update_scroll_handle();
+            self.horizontal_scroll_bar().update_scroll_handle();
         }
     }
 );
 
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum ScrollBarDirection {
+    Vertical,
+    Horizontal
+}
+
 custom_view!(
     ScrollBarView subclasses DefaultBehavior
 
-    struct ScrollBarViewBehavior {}
+    struct ScrollBarViewBehavior {
+        direction: ScrollBarDirection,
+        percent: Cell<u8>
+    }
 
     impl Self {
-        pub fn new(frame: Rectangle<i32, u32>) -> Self {
-            let handle_frame = Rectangle::new(0, 0, 10, 10);
-            let handle = View::new(handle_frame);
-
+        fn new(direction: ScrollBarDirection) -> Self {
+            let handle = View::new(Rectangle::new(0, 0, 10, 10));
             handle.set_background_color(Color::new(127, 127, 127, 127));
 
-            let scroll_bar_view = Self::new_all(frame);
+            let scroll_bar_view = Self::new_all(Rectangle::new(0, 0, 10, 10), direction, Cell::new(0));
             scroll_bar_view.view.set_background_color(Color::clear());
             scroll_bar_view.view.add_subview(handle);
 
             scroll_bar_view
         }
 
+        fn percent(&self) -> u8 {
+            let behavior = self.view.behavior.borrow();
+            let behavior = behavior.as_any().downcast_ref::<ScrollBarViewBehavior>().unwrap();
+            behavior.percent.get()
+        }
+
+        fn set_percent(&self, percent: u8) {
+            let behavior = self.view.behavior.borrow();
+            let behavior = behavior.as_any().downcast_ref::<ScrollBarViewBehavior>().unwrap();
+            behavior.percent.set(percent);
+            self.update_scroll_handle();
+        }
+
         fn handle(&self) -> View {
             self.view.subviews().get(0).unwrap().clone()
+        }
+
+        fn direction(&self) -> ScrollBarDirection {
+            let behavior = self.view.behavior.borrow();
+            let behavior = behavior.as_any().downcast_ref::<ScrollBarViewBehavior>().unwrap();
+            behavior.direction
+        }
+
+        fn fit_to_superview(&self) {
+            let superview = self.view.superview().upgrade().unwrap();
+            let superview_size = superview.frame().size;
+            let frame: Rectangle<i32, u32>;
+
+            match self.direction() {
+                ScrollBarDirection::Vertical => {
+                    frame = Rectangle::new(
+                        superview_size.width as i32 - 10,
+                        0,
+                        10,
+                        superview_size.height
+                    );
+                },
+                ScrollBarDirection::Horizontal => {
+                    frame = Rectangle::new(
+                        0,
+                        superview_size.height as i32 - 10,
+                        superview_size.width,
+                        10
+                    );
+                }
+            }
+
+            self.view.set_frame(frame);
+        }
+
+        fn update_scroll_handle(&self) {
+            let superview = self.view.superview().upgrade().unwrap();
+            let scrollview = ScrollView::from_view(superview);
+            let inner_content_view = scrollview.inner_content_view();
+            let handle = self.handle();
+
+            let content_view_size = inner_content_view.frame().size;
+            let scrollview_size = scrollview.view.frame().size;
+
+            match self.direction() {
+                ScrollBarDirection::Vertical => {
+                    let height_of_vertical_handle = (
+                        (scrollview_size.height as f32 / content_view_size.height as f32 ) *
+                        scrollview_size.height as f32
+                    ) as u32;
+
+                    let handle_size = Size {
+                        width: 10,
+                        height: height_of_vertical_handle
+                    };
+
+                    let percent_of_scrollview = self.percent() as f32 / 100.0;
+                    let origin_y = (percent_of_scrollview * (scrollview_size.height - handle_size.height) as f32) as i32;
+                    let origin_x = handle.frame().origin.x;
+
+                    handle.set_frame(Rectangle {
+                        origin: Point::new(origin_x, origin_y),
+                        size: handle_size
+                    });
+
+                    handle.set_hidden(scrollview_size.height == height_of_vertical_handle);
+                },
+                ScrollBarDirection::Horizontal => {
+                    let width_of_horizontal_handle = (
+                        (scrollview_size.width as f32 / content_view_size.width as f32 ) *
+                        scrollview_size.width as f32
+                    ) as u32;
+
+                    let handle_size = Size {
+                        width: width_of_horizontal_handle,
+                        height: 10
+                    };
+
+                    handle.set_frame(Rectangle {
+                        origin: handle.frame().origin,
+                        size: handle_size
+                    });
+
+                    handle.set_hidden(scrollview_size.width == width_of_horizontal_handle);
+                }
+            }
         }
     }
 );
@@ -181,5 +311,16 @@ mod tests {
             scroll_view.vertical_scroll_bar().handle().frame().size,
             Size::new(10, 10)
         );
+    }
+
+    #[test]
+    fn test_content_offset() {
+        let scroll_view = ScrollView::new(Rectangle::new(0, 0, 100, 100));
+
+        assert_eq!(scroll_view.content_offset(), Point::new(0, 0));
+
+        scroll_view.set_content_offset(Point::new(10, 10));
+
+        assert_eq!(scroll_view.content_offset(), Point::new(10, 10));
     }
 }

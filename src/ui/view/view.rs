@@ -271,6 +271,19 @@ impl View {
         self.set_needs_display();
     }
 
+    pub fn bounds(&self) -> Rectangle<i32, u32> {
+        self.inner_self.borrow().bounds.clone()
+    }
+
+    pub fn set_bounds(&self, bounds: Rectangle<i32, u32>) {
+        {
+            let mut inner_self = self.inner_self.borrow_mut();
+            inner_self.bounds = bounds;
+        }
+
+        self.set_needs_display();
+    }
+
     /// Returns a boolean indicating whether the given point is contained in
     /// this view's bounds.
     pub fn is_point_inside(&self, point: &Point<i32>) -> bool {
@@ -316,11 +329,6 @@ impl View {
 
     pub fn subviews(&self) -> Ref<'_, Vec<View>> {
         Ref::map(self.inner_self.borrow(), |inner_self| &inner_self.subviews)
-    }
-
-    pub fn get_bounds(&self) -> Rectangle<i32, u32> {
-        let inner_self = self.inner_self.borrow();
-        inner_self.bounds.clone()
     }
 }
 
@@ -494,5 +502,18 @@ mod tests {
 
         subview.remove_from_superview();
         assert_eq!(view.subviews().len(), 0);
+    }
+
+    #[test]
+    fn test_bounds() {
+        let frame = Rectangle::new(100, 100, 500, 500);
+        let view = View::new(frame);
+
+        // By default the same size as the frame, with 0, 0 origin.
+        assert_eq!(view.bounds(), Rectangle::new(0, 0, 500, 500));
+
+        view.set_bounds(Rectangle::new(10, 10, 100, 100));
+
+        assert_eq!(view.bounds(), Rectangle::new(10, 10, 100, 100));
     }
 }

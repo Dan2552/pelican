@@ -75,7 +75,7 @@ custom_view!(
 
                 let position = window.view.convert_point_to(&touch.position(), &view);
 
-                if view.get_bounds().contains(&position) {
+                if view.bounds().contains(&position) {
                     (self.action)();
                 }
             }
@@ -90,7 +90,7 @@ custom_view!(
 
                 let position = window.view.convert_point_to(&touch.position(), &view);
 
-                if view.get_bounds().contains(&position) {
+                if view.bounds().contains(&position) {
                     self.set_state(State::Pressed);
                 } else {
                     self.set_state(State::Normal);
