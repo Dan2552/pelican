@@ -49,7 +49,7 @@ impl PanRecognizer {
         translation.clone()
     }
 
-    pub fn set_translation(&self, translation: Point<i32>, view: &View) {
+    pub fn set_translation(&self, translation: Point<i32>, _view: &View) {
         let mut inner = self.inner.borrow_mut();
         inner.translation = translation;
         inner.initial_position = inner.last_position.clone();

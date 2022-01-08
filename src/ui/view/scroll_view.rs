@@ -72,19 +72,25 @@ custom_view!(
         }
 
         fn set_content_offset(&self, offset: Point<i32>) {
-            let content_width = self.content_size().width;
+            let mut content_width = self.content_size().width;
             let scrollview_width = self.view.frame().size.width;
 
-            let content_height = self.content_size().height;
+            let mut content_height = self.content_size().height;
             let scrollview_height = self.view.frame().size.height;
+
+            if content_width < scrollview_width {
+                content_width = scrollview_width;
+            }
+
+            if content_height < scrollview_height {
+                content_height = scrollview_height;
+            }
 
             let max_x = content_width - scrollview_width;
             let max_y = content_height - scrollview_height;
 
             let x = offset.x.min(0).max(max_x as i32);
             let y = offset.y.max(0).min(max_y as i32);
-
-            println!("{}, {}, -- size {:?}", x, y, self.content_size());
 
             self.inner_content_view().set_bounds(
                 Rectangle::new(
@@ -229,6 +235,8 @@ custom_view!(
             let inner_content_view = scrollview.inner_content_view();
             let handle = self.handle();
 
+            handle.set_hidden(true);
+
             let content_view_size = inner_content_view.frame().size;
             let scrollview_size = scrollview.view.frame().size;
 
@@ -315,12 +323,35 @@ mod tests {
 
     #[test]
     fn test_content_offset() {
-        let scroll_view = ScrollView::new(Rectangle::new(0, 0, 100, 100));
+        // No content view meaning it's not scrollable
+        {
+            let scroll_view = ScrollView::new(Rectangle::new(0, 0, 100, 100));
+            assert_eq!(scroll_view.content_offset(), Point::new(0, 0));
+            scroll_view.set_content_offset(Point::new(10, 10));
+            assert_eq!(scroll_view.content_offset(), Point::new(0, 0));
+        }
 
-        assert_eq!(scroll_view.content_offset(), Point::new(0, 0));
+        // With content view of the same size as the scroll view, meaning it's
+        // not scrollable still.
+        {
+            let scroll_view = ScrollView::new(Rectangle::new(0, 0, 100, 100));
+            let content_view = View::new(Rectangle::new(0, 0, 100, 100));
+            scroll_view.set_content_view(content_view);
 
-        scroll_view.set_content_offset(Point::new(10, 10));
+            assert_eq!(scroll_view.content_offset(), Point::new(0, 0));
+            scroll_view.set_content_offset(Point::new(10, 10));
+            assert_eq!(scroll_view.content_offset(), Point::new(10, 10));
+        }
 
-        assert_eq!(scroll_view.content_offset(), Point::new(10, 10));
+        // With content view bigger than the scroll view
+        // {
+        //     let scroll_view = ScrollView::new(Rectangle::new(0, 0, 100, 100));
+        //     let content_view = View::new(Rectangle::new(0, 0, 200, 200));
+        //     scroll_view.set_content_view(content_view);
+
+        //     assert_eq!(scroll_view.content_offset(), Point::new(0, 0));
+        //     scroll_view.set_content_offset(Point::new(10, 10));
+        //     assert_eq!(scroll_view.content_offset(), Point::new(10, 10));
+        // }
     }
 }

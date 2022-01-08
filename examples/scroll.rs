@@ -3,6 +3,7 @@ use pelican::ui::{View, Window, Color};
 use pelican::ui::{ApplicationMain, ApplicationDelegate};
 use pelican::ui::{ViewController, ViewControllerBehavior};
 use pelican::ui::ScrollView;
+use pelican::ui::button::Button;
 
 struct ExampleViewController {}
 impl ViewControllerBehavior for ExampleViewController {
@@ -16,9 +17,16 @@ impl ViewControllerBehavior for ExampleViewController {
 
         let frame = Rectangle::new(0, 50, 400, 400 - 100);
         let child = View::new(frame);
-        child.set_background_color(Color::blue());
-
+        child.set_background_color(Color::gray());
         content_view.add_subview(child);
+
+        let frame = Rectangle::new(0, 100, 100, 30);
+        let button = Button::new(frame, "Button", move || {
+            println!("button tapped");
+        });
+        button.view.set_background_color(Color::white());
+        content_view.add_subview(button.view);
+
         scroll_view.set_content_view(content_view);
         view.add_subview(scroll_view.view);
     }
