@@ -13,7 +13,7 @@ impl ViewControllerBehavior for ExampleViewController {
         let scroll_view = ScrollView::new(frame);
 
         // View as "content" for the scrollview.
-        let content_view = View::new(Rectangle::new(0, 0, 400, 400));
+        let content_view = View::new(Rectangle::new(0, 0, 800, 400));
 
         let frame = Rectangle::new(0, 50, 400, 400 - 100);
         let child = View::new(frame);

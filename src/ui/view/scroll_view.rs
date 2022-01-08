@@ -43,7 +43,7 @@ custom_view!(
                 let translation = gesture_recognizer.translation_in(&view);
 
                 let translation = Point::new(
-                    translation.x,
+                    -translation.x,
                     -translation.y
                 );
 
@@ -89,7 +89,7 @@ custom_view!(
             let max_x = content_width - scrollview_width;
             let max_y = content_height - scrollview_height;
 
-            let x = offset.x.min(0).max(max_x as i32);
+            let x = offset.x.max(0).min(max_x as i32);
             let y = offset.y.max(0).min(max_y as i32);
 
             self.inner_content_view().set_bounds(
@@ -242,10 +242,16 @@ custom_view!(
 
             match self.direction() {
                 ScrollBarDirection::Vertical => {
-                    let height_of_vertical_handle = (
-                        (scrollview_size.height as f32 / content_view_size.height as f32 ) *
-                        scrollview_size.height as f32
-                    ) as u32;
+                    let height_of_vertical_handle: u32;
+
+                    if content_view_size.height == 0 {
+                        height_of_vertical_handle = 0;
+                    } else {
+                        height_of_vertical_handle = (
+                            (scrollview_size.height as f32 / content_view_size.height as f32 ) *
+                            scrollview_size.height as f32
+                        ) as u32;
+                    }
 
                     let handle_size = Size {
                         width: 10,
@@ -264,18 +270,29 @@ custom_view!(
                     handle.set_hidden(scrollview_size.height == height_of_vertical_handle);
                 },
                 ScrollBarDirection::Horizontal => {
-                    let width_of_horizontal_handle = (
-                        (scrollview_size.width as f32 / content_view_size.width as f32 ) *
-                        scrollview_size.width as f32
-                    ) as u32;
+                    let width_of_horizontal_handle: u32;
+
+                    if content_view_size.width == 0 {
+                        width_of_horizontal_handle = 0;
+                    } else {
+                        width_of_horizontal_handle = (
+                            (scrollview_size.width as f32 / content_view_size.width as f32 ) *
+                            scrollview_size.width as f32
+                        ) as u32;
+                    }
+
 
                     let handle_size = Size {
                         width: width_of_horizontal_handle,
                         height: 10
                     };
 
+                    let percent_of_scrollview = self.percent() as f32 / 100.0;
+                    let origin_x = (percent_of_scrollview * (scrollview_size.width - handle_size.width) as f32) as i32;
+                    let origin_y = handle.frame().origin.y;
+
                     handle.set_frame(Rectangle {
-                        origin: handle.frame().origin,
+                        origin: Point::new(origin_x, origin_y),
                         size: handle_size
                     });
 
@@ -340,18 +357,18 @@ mod tests {
 
             assert_eq!(scroll_view.content_offset(), Point::new(0, 0));
             scroll_view.set_content_offset(Point::new(10, 10));
-            assert_eq!(scroll_view.content_offset(), Point::new(10, 10));
+            assert_eq!(scroll_view.content_offset(), Point::new(0, 0));
         }
 
         // With content view bigger than the scroll view
-        // {
-        //     let scroll_view = ScrollView::new(Rectangle::new(0, 0, 100, 100));
-        //     let content_view = View::new(Rectangle::new(0, 0, 200, 200));
-        //     scroll_view.set_content_view(content_view);
+        {
+            let scroll_view = ScrollView::new(Rectangle::new(0, 0, 100, 100));
+            let content_view = View::new(Rectangle::new(0, 0, 200, 200));
+            scroll_view.set_content_view(content_view);
 
-        //     assert_eq!(scroll_view.content_offset(), Point::new(0, 0));
-        //     scroll_view.set_content_offset(Point::new(10, 10));
-        //     assert_eq!(scroll_view.content_offset(), Point::new(10, 10));
-        // }
+            assert_eq!(scroll_view.content_offset(), Point::new(0, 0));
+            scroll_view.set_content_offset(Point::new(10, 10));
+            assert_eq!(scroll_view.content_offset(), Point::new(10, 10));
+        }
     }
 }
