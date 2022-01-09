@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use crate::ui::gesture::recognizer::Recognizer;
 use crate::ui::Touch;
 use std::rc::Rc;
-use crate::ui::event::TouchEvent;
+use crate::ui::event::{TouchEvent, ScrollEvent};
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub enum PanState {
@@ -111,6 +111,23 @@ impl Recognizer for PanRecognizer {
             action = inner.action.clone();
         }
 
+        action(self);
+    }
+
+    fn scroll_did_translate(&self, translation: &Point<i32>, event: &ScrollEvent) {
+        println!("scroll_did_translate: {:?}", translation);
+
+        let action: Rc<Box<dyn Fn(&PanRecognizer) -> ()>>;
+        {
+            let mut inner = self.inner.borrow_mut();
+            inner.translation = Point::new(
+                -translation.x,
+                translation.y
+            );
+            // inner.initial_position = inner.last_position.clone();
+            // inner.last_position = event.position().clone();
+            action = inner.action.clone();
+        }
         action(self);
     }
 

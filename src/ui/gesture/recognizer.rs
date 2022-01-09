@@ -1,11 +1,14 @@
 use crate::ui::Touch;
 use crate::ui::WeakView;
-use crate::ui::event::TouchEvent;
+use crate::ui::event::{TouchEvent, ScrollEvent};
+use crate::graphics::Point;
 
 pub trait Recognizer {
     fn touches_began(&self, touches: &Vec<Touch>, event: &TouchEvent);
     fn touches_ended(&self, touches: &Vec<Touch>, event: &TouchEvent);
     fn touches_moved(&self, touches: &Vec<Touch>, event: &TouchEvent);
+
+    fn scroll_did_translate(&self, _translation: &Point<i32>, _event: &ScrollEvent) {}
 
     /// If `true`, the recognizer can cancel touches sent to the view if it
     /// recognizes the touch is its gesture.

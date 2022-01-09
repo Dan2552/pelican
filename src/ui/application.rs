@@ -48,7 +48,7 @@ impl<'a> Application {
         run_loop.exit();
     }
 
-    pub(crate) fn assign_targets_to_touch(&self, window_id: u32, touch: &mut Touch) {
+    pub(crate) fn assign_targets_to_touch(&self, window_id: u32, touch: &Touch) {
         let window = self.get_window(window_id).unwrap();
         touch.set_window(window.clone());
 

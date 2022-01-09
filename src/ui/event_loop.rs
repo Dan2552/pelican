@@ -16,13 +16,13 @@ pub(crate) fn update(sdl: &sdl2::Sdl) {
                 application.exit();
             },
             sdl2::event::Event::MouseButtonDown { window_id, x, y, .. } => {
-                let mut touch = Touch::new(
+                let touch = Touch::new(
                     0,
                     Point { x, y },
                 );
 
                 let application = Application::borrow();
-                application.assign_targets_to_touch(window_id, &mut touch);
+                application.assign_targets_to_touch(window_id, &touch);
                 let event = event_arena.touch_began(touch.clone());
 
                 for gesture_recognizer in touch.gesture_recognizers().iter() {
@@ -70,7 +70,23 @@ pub(crate) fn update(sdl: &sdl2::Sdl) {
                 }
             },
             sdl2::event::Event::MultiGesture { .. } => println!("SDL_MultiGestureEvent"),
-            sdl2::event::Event::MouseWheel { .. } => println!("SDL_MouseWheelEvent"),
+
+            // https://stackoverflow.com/a/47597200/869367
+            sdl2::event::Event::MouseWheel { window_id, x, y, .. } => {
+                let event = event_arena.scroll_event();
+                let touch = event.touch();
+
+                let application = Application::borrow();
+                application.assign_targets_to_touch(window_id, &touch);
+
+                event_arena.scroll_did_translate(Point::new(x, y));
+
+                for gesture_recognizer in touch.gesture_recognizers().iter() {
+                    if let Some(gesture_recognizer) = gesture_recognizer.upgrade() {
+                        gesture_recognizer.scroll_did_translate(&event.translation(), &event);
+                    }
+                }
+            },
             _ => (),
         }
     }

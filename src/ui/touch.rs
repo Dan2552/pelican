@@ -47,11 +47,11 @@ impl Touch {
         self.inner.borrow().position.clone()
     }
 
-    pub(crate) fn set_position(&mut self, position: Point<i32>) {
+    pub(crate) fn set_position(&self, position: Point<i32>) {
         self.inner.borrow_mut().position = position;
     }
 
-    pub(crate) fn set_view(&mut self, view: View) {
+    pub(crate) fn set_view(&self, view: View) {
         self.inner.borrow_mut().view = Some(view);
     }
 
@@ -64,7 +64,7 @@ impl Touch {
         }
     }
 
-    pub(crate) fn set_window(&mut self, window: Window) {
+    pub(crate) fn set_window(&self, window: Window) {
         self.inner.borrow_mut().window = Some(window);
     }
 
@@ -73,7 +73,7 @@ impl Touch {
         Ref::map(self.inner.borrow(), |inner| &inner.gesture_recognizers)
     }
 
-    pub(crate) fn set_gesture_recognizers(&mut self, recognizers: Vec<Weak<Box<dyn Recognizer>>>) {
+    pub(crate) fn set_gesture_recognizers(&self, recognizers: Vec<Weak<Box<dyn Recognizer>>>) {
         self.inner.borrow_mut().gesture_recognizers = recognizers;
     }
 

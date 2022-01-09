@@ -6,7 +6,7 @@ use std::rc::{Rc, Weak};
 use std::cell::RefCell;
 use std::cell::Ref;
 use crate::ui::gesture::recognizer::Recognizer;
-use crate::ui::event::TouchEvent;
+use crate::ui::event::{TouchEvent, ScrollEvent};
 
 pub struct View {
     /// Some way to compare `View`s (`==`) and `WeakView`s

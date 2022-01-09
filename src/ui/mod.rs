@@ -38,7 +38,6 @@ mod application;
 use application::Application;
 
 mod render;
-mod input_state;
 
 pub mod button;
 pub use button::Button;
