@@ -115,8 +115,6 @@ impl Recognizer for PanRecognizer {
     }
 
     fn scroll_did_translate(&self, translation: &Point<i32>, event: &ScrollEvent) {
-        println!("scroll_did_translate: {:?}", translation);
-
         let action: Rc<Box<dyn Fn(&PanRecognizer) -> ()>>;
         {
             let mut inner = self.inner.borrow_mut();
