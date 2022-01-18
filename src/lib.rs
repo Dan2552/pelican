@@ -1,5 +1,4 @@
-#![allow(dead_code)]
-
+pub mod structures;
 pub mod graphics;
 pub mod ui;
 pub mod text;
