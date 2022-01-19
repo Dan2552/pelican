@@ -114,18 +114,28 @@ impl Recognizer for PanRecognizer {
         action(self);
     }
 
-    fn scroll_did_translate(&self, translation: &Point<i32>, event: &ScrollEvent) {
-        println!("scroll_did_translate: {:?}", translation);
+    fn scroll_did_translate(&self, translation: &Point<i32>, _: &ScrollEvent) {
+        let render_scale: f32;
+        {
+            if let Some(view) = self.view().upgrade() {
+                if let Some(layer) = view.layer() {
+                    render_scale = layer.context().render_scale;
+                } else {
+                    return;
+                }
+            } else {
+                return;
+            }
+        }
 
         let action: Rc<Box<dyn Fn(&PanRecognizer) -> ()>>;
         {
             let mut inner = self.inner.borrow_mut();
             inner.translation = Point::new(
-                -translation.x,
-                translation.y
+                -(translation.x as f32 * render_scale).round() as i32,
+                (translation.y as f32 * render_scale).round() as i32
             );
-            // inner.initial_position = inner.last_position.clone();
-            // inner.last_position = event.position().clone();
+
             action = inner.action.clone();
         }
         action(self);

@@ -302,6 +302,15 @@ impl View {
         inner_self.frame.clone()
     }
 
+    pub fn layer(&self) -> Option<Ref<'_, Layer>> {
+        let inner_self = self.inner_self.borrow();
+        if let Some(_) = inner_self.layer {
+            Some(Ref::map(self.inner_self.borrow(), |inner_self| inner_self.layer.as_ref().unwrap()))
+        } else {
+            None
+        }
+    }
+
     /// Get a weak reference (`WeakView`) for this `View`
     ///
     /// E.g. used to refer to a superview to not cause a cyclic reference.

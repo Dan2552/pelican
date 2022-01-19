@@ -5,6 +5,7 @@
     "version": "0.2.0",
     "configurations": [
 
+
         {
             "type": "lldb",
             "request": "launch",
@@ -60,6 +61,27 @@
                 ],
                 "filter": {
                     "name": "label",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "LIBRARY_PATH": "/opt/homebrew/lib"
+            }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'scroll'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=scroll",
+                    "--package=pelican"
+                ],
+                "filter": {
+                    "name": "scroll",
                     "kind": "example"
                 }
             },
