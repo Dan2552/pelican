@@ -89,20 +89,12 @@ impl Touch {
         self.inner.borrow_mut().phase = phase;
     }
 
-    pub(crate) fn set_timestamp(&mut self, timestamp: Instant) {
-        self.inner.borrow_mut().timestamp = timestamp;
-    }
-
-    pub(crate) fn timestamp(&self) -> Instant {
+    pub fn timestamp(&self) -> Instant {
         self.inner.borrow().timestamp
     }
 
     pub fn id(&self) -> usize {
         self.inner.borrow().id
-    }
-
-    pub(crate) fn update_timestamp(&mut self) {
-        self.inner.borrow_mut().timestamp = Instant::now();
     }
 }
 
@@ -163,18 +155,9 @@ mod tests {
     #[test]
     fn test_get_view() {
         let view = View::new(Rectangle::new(0, 0, 100, 100));
-        let mut touch = Touch::new(0, Point { x: 5, y: 5 });
+        let touch = Touch::new(0, Point { x: 5, y: 5 });
         touch.set_view(view.clone());
         assert_eq!(touch.view(), Some(view));
-    }
-
-    #[test]
-    fn test_update_timestamp() {
-        let mut touch = Touch::new(0, Point { x: 5, y: 5 });
-        let original_time = touch.timestamp();
-        std::thread::sleep(std::time::Duration::from_millis(10));
-        touch.update_timestamp();
-        assert!(touch.timestamp() != original_time);
     }
 
     #[test]
@@ -192,7 +175,7 @@ mod tests {
 
     #[test]
     fn test_set_recognizers() {
-        let mut touch = Touch::new(0, Point { x: 5, y: 5 });
+        let touch = Touch::new(0, Point { x: 5, y: 5 });
         let recognizer: Box<dyn Recognizer> = Box::new(PanRecognizer::new(|_| {}));
         let recognizer = Rc::new(recognizer);
         let weak_recognizer = Rc::downgrade(&recognizer);

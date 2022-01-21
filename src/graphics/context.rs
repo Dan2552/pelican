@@ -42,8 +42,16 @@ pub static mut SDL_CONTAINER: SdlContainer = SdlContainer {
 pub struct Context {
     pub id: u32,
 
-    /// The size of the drawable canvas
+    /// The point size of the drawable canvas.
+    ///
+    /// As opposed to the actual pixel size: `pixel_size`. This would be
+    /// different to `pixel_size` if the display has has higher DPI.
     size: Size<u32>,
+
+    /// The actual pixel size of the drawable canvas.
+    ///
+    /// As opposed to the point size: `size`.
+    pixel_size: Size<u32>,
 
     /// The render scale. This would be different if using a higher density
     /// display.
@@ -53,11 +61,7 @@ pub struct Context {
     canvas: Rc<RefCell<Canvas<Window>>>,
 
     /// Internal SDL texture creator
-    pub(crate) texture_creator: TextureCreator<WindowContext>,
-
-    // TODO: which one of these is the same as `size: Size`?
-    render_size: Size<u32>,
-    pixel_size: Size<u32>
+    pub(crate) texture_creator: TextureCreator<WindowContext>
 }
 
 impl Context {
@@ -88,6 +92,8 @@ impl Context {
         let render_size = Size { width: render_width, height: render_height };
         let pixel_size = Size { width: pixel_width, height: pixel_height  };
 
+        assert_eq!(render_size, size);
+
         let render_scale = pixel_width as f32 / size.width as f32;
 
         let texture_creator = canvas.texture_creator();
@@ -97,10 +103,17 @@ impl Context {
             size: size,
             render_scale: render_scale,
             canvas: Rc::new(RefCell::new(canvas)),
-            render_size: render_size,
             pixel_size: pixel_size,
             texture_creator: texture_creator
         }
+    }
+
+    pub fn size(&self) -> Size<u32> {
+        self.size.clone()
+    }
+
+    pub fn pixel_size(&self) -> Size<u32> {
+        self.pixel_size.clone()
     }
 
     pub fn draw(&self) {

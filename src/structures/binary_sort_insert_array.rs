@@ -5,13 +5,13 @@ pub struct BinarySortInsertArray<T> {
 }
 
 impl<T> BinarySortInsertArray<T> {
-    fn new() -> BinarySortInsertArray<T> {
+    pub fn new() -> BinarySortInsertArray<T> {
         BinarySortInsertArray {
             store: Vec::new()
         }
     }
 
-    fn push(&mut self, new_element: T, f: fn(&T, &T) -> Ordering) {
+    pub fn push(&mut self, new_element: T, f: fn(&T, &T) -> Ordering) {
         let result = self.store.binary_search_by(|comparison| f(&new_element, comparison));
         match result {
             Ok(index) => {
@@ -23,7 +23,7 @@ impl<T> BinarySortInsertArray<T> {
         }
     }
 
-    fn delete(&mut self, element_to_delete: T, f: fn(&T, &T) -> Ordering) {
+    pub fn delete(&mut self, element_to_delete: T, f: fn(&T, &T) -> Ordering) {
         let result = self.store.binary_search_by(|comparison| f(&element_to_delete, comparison));
         match result {
             Ok(index) => {
@@ -35,15 +35,15 @@ impl<T> BinarySortInsertArray<T> {
         }
     }
 
-    fn iter(&self) -> std::slice::Iter<T> {
+    pub fn iter(&self) -> std::slice::Iter<T> {
         self.store.iter()
     }
 
-    fn count(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.store.len()
     }
 
-    fn contains(&self, element: T, f: fn(&T, &T) -> Ordering) -> bool {
+    pub fn contains(&self, element: T, f: fn(&T, &T) -> Ordering) -> bool {
         let result = self.store.binary_search_by(|comparison| f(&element, comparison));
         match result {
             Ok(_) => {
@@ -55,7 +55,7 @@ impl<T> BinarySortInsertArray<T> {
         }
     }
 
-    fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.store.is_empty()
     }
 }
@@ -65,7 +65,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn push__it_inserts_in_order_of_the_comparison_value() {
+    fn push_it_inserts_in_order_of_the_comparison_value() {
         let mut described_instance: BinarySortInsertArray<u32> = BinarySortInsertArray::new();
         let f: fn(&u32, &u32) -> Ordering = |new_element, comparison| comparison.cmp(new_element);
         described_instance.push(1, f);
@@ -79,7 +79,7 @@ mod tests {
     }
 
     #[test]
-    fn delete__it_deletes_in_order_of_the_comparison_value() {
+    fn delete_it_deletes_in_order_of_the_comparison_value() {
         let mut described_instance: BinarySortInsertArray<u32> = BinarySortInsertArray::new();
         let f: fn(&u32, &u32) -> Ordering = |new_element, comparison| comparison.cmp(new_element);
         described_instance.push(1, f);

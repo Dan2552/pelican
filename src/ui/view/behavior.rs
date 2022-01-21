@@ -1,5 +1,4 @@
 use crate::ui::{View, WeakView, Touch};
-use crate::graphics::Point;
 
 pub trait Behavior {
     // TODO: macro for these

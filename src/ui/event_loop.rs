@@ -1,4 +1,4 @@
-use crate::ui::{Application};
+use crate::ui::application::Application;
 use crate::ui::touch::Touch;
 use crate::graphics::Point;
 use crate::ui::event::EventArena;

@@ -50,11 +50,11 @@ custom_view!(
             Label::from_view(view)
         }
 
-        fn set_text_color(&self, color: Color) {
+        pub fn set_text_color(&self, color: Color) {
             self.label().set_text_color(color);
         }
 
-        fn set_pressed_text_color(&self, color: Color) {
+        pub fn set_pressed_text_color(&self, color: Color) {
             let behavior = self.view.behavior.borrow();
             let behavior = behavior.as_any().downcast_ref::<ButtonBehavior>().unwrap();
 
@@ -113,11 +113,28 @@ impl ButtonBehavior {
                 button.label().set_text_color(self.last_normal_text_color.borrow().clone());
             },
             State::Pressed => {
-                self.last_normal_text_color.replace(button.label().get_text_color());
+                self.last_normal_text_color.replace(button.label().text_color());
                 button.label().set_text_color(self.pressed_text_color.borrow().clone());
             }
         }
 
         self.state.set(state);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_button_new() {
+        let button = Button::new(
+            Rectangle::new(0, 0, 100, 100),
+            "Test",
+            Box::new(|| {})
+        );
+
+        assert_eq!(button.view.frame(), Rectangle::new(0, 0, 100, 100));
+        assert_eq!(button.label().text(), String::from("Test"));
     }
 }

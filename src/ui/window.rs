@@ -1,11 +1,11 @@
 use crate::graphics::{Context, Rectangle};
 use crate::ui::{View, WeakView, ViewController};
 use crate::ui::view::{Behavior, DefaultBehavior};
-use crate::ui::Application;
+use crate::ui::application::Application;
 use crate::ui::render;
 use crate::ui::Color;
-use crate::ui::Timer;
-use crate::ui::RunLoop;
+use crate::ui::timer::Timer;
+use crate::ui::run_loop::RunLoop;
 use std::rc::Rc;
 use std::option::Option;
 

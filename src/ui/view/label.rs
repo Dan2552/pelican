@@ -40,6 +40,13 @@ custom_view!(
             label
         }
 
+        pub fn text(&self) -> String {
+            let behavior = &self.view.behavior.borrow();
+            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
+            let text = behavior.text.borrow();
+            text.clone()
+        }
+
         pub fn set_text(&self, text: String) {
             let behavior = &self.view.behavior.borrow();
             let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
@@ -63,7 +70,7 @@ custom_view!(
             behavior.set_needs_display();
         }
 
-        pub fn get_text_color(&self) -> Color {
+        pub fn text_color(&self) -> Color {
             let behavior = &self.view.behavior.borrow();
             let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
             let text_color = behavior.text_color.borrow();
@@ -77,11 +84,24 @@ custom_view!(
             behavior.set_needs_display();
         }
 
+        pub fn font(&self) -> Font {
+            let behavior = &self.view.behavior.borrow();
+            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
+            let font = behavior.font.borrow();
+            font.clone()
+        }
+
         pub fn set_text_alignment(&self, text_alignment: HorizontalAlignment) {
             let behavior = &self.view.behavior.borrow();
             let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
             behavior.text_alignment.set(text_alignment);
             behavior.set_needs_display();
+        }
+
+        pub fn text_alignment(&self) -> HorizontalAlignment {
+            let behavior = &self.view.behavior.borrow();
+            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
+            behavior.text_alignment.get()
         }
 
         pub fn set_vertical_alignment(&self, text_vertical_alignment: VerticalAlignment) {
@@ -169,3 +189,71 @@ custom_view!(
         }
     }
 );
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ui::View;
+
+    #[test]
+    fn test_label_text() {
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let view = View::new(frame.clone());
+        let label = Label::new(frame, String::from("Hello World"));
+
+        assert_eq!(label.text(), String::from("Hello World"));
+
+        label.set_text(String::from("Hello World 1"));
+
+        assert_eq!(label.text(), String::from("Hello World 1"));
+    }
+
+    #[test]
+    fn test_label_attributed_text() {
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let view = View::new(frame.clone());
+        let label = Label::new(frame, String::from("A"));
+
+        let attributed_text = AttributedString::new(String::from("Hello World"));
+        attributed_text.set_default_attribute(
+            Key::Font,
+            Attribute::Font { font: Font::default() }
+        );
+        attributed_text.set_default_attribute(
+            Key::Color,
+            Attribute::Color { color: sdl2::pixels::Color::BLACK }
+        );
+        label.set_attributed_text(attributed_text);
+        assert_eq!(label.text(), String::from("Hello World"));
+    }
+
+    #[test]
+    fn test_label_text_color() {
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let view = View::new(frame.clone());
+        let label = Label::new(frame, String::from("A"));
+
+        label.set_text_color(Color::black());
+
+        assert_eq!(label.text_color(), Color::black());
+    }
+
+    #[test]
+    fn test_label_font() {
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let view = View::new(frame.clone());
+        let label = Label::new(frame, String::from("A"));
+
+        label.set_font(Font::new("Arial", 16));
+        assert_eq!(label.font(), Font::new("Arial", 16));
+    }
+
+    #[test]
+    fn test_label_text_alignment() {
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let view = View::new(frame.clone());
+        let label = Label::new(frame, String::from("A"));
+        label.set_text_alignment(HorizontalAlignment::Right);
+        assert_eq!(label.text_alignment(), HorizontalAlignment::Right);
+    }
+}

@@ -313,6 +313,10 @@ impl WholeText<'_> {
         self.lines.iter().fold(0, |acc, line| acc + line.size.height)
     }
 
+    pub fn attributed_string(&self) -> &AttributedString {
+        &self.attributed_string
+    }
+
     pub fn align_horizontally(&mut self, horizontal_alignment: HorizontalAlignment) {
         // Aligning horizontalling is simple as we don't need to account for
         // other lines of text, as they cannot overlap horizontally.
@@ -751,5 +755,14 @@ mod tests {
 
         assert_eq!(line1_position.y, 52);
         assert_eq!(line2_position.y, 68);
+    }
+
+    #[test]
+    fn test_attributed_string_getter() {
+        let attributed_string = AttributedString::new(String::from("Hello, world!"));
+        let frame = Rectangle::new(50, 50, 100, 100);
+        let text = WholeText::from(&attributed_string, frame, 1.0);
+
+        assert_eq!(text.attributed_string(), &attributed_string);
     }
 }

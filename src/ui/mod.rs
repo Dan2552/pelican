@@ -7,11 +7,9 @@ pub use color::Color;
 
 mod event_loop;
 
-mod run_loop;
-use run_loop::RunLoop;
+pub mod run_loop;
 
-mod timer;
-use timer::Timer;
+pub mod timer;
 
 mod touch;
 use touch::Touch;
@@ -34,8 +32,7 @@ mod window;
 pub use window::Window;
 pub use window::WindowBehavior;
 
-mod application;
-use application::Application;
+pub mod application;
 
 mod render;
 

@@ -135,6 +135,7 @@ mod tests {
         assert_ne!(color1, color2);
     }
 
+    #[test]
     fn test_white() {
         let color = Color::white();
         assert_eq!(color.red, 255);
@@ -143,6 +144,7 @@ mod tests {
         assert_eq!(color.alpha, 255);
     }
 
+    #[test]
     fn test_black() {
         let color = Color::black();
         assert_eq!(color.red, 0);
@@ -151,6 +153,7 @@ mod tests {
         assert_eq!(color.alpha, 255);
     }
 
+    #[test]
     fn test_red() {
         let color = Color::red();
         assert_eq!(color.red, 255);
@@ -159,6 +162,7 @@ mod tests {
         assert_eq!(color.alpha, 255);
     }
 
+    #[test]
     fn test_green() {
         let color = Color::green();
         assert_eq!(color.red, 0);
@@ -167,6 +171,7 @@ mod tests {
         assert_eq!(color.alpha, 255);
     }
 
+    #[test]
     fn test_blue() {
         let color = Color::blue();
         assert_eq!(color.red, 0);
@@ -175,6 +180,7 @@ mod tests {
         assert_eq!(color.alpha, 255);
     }
 
+    #[test]
     fn test_clear() {
         let color = Color::clear();
         assert_eq!(color.red, 0);
@@ -183,6 +189,7 @@ mod tests {
         assert_eq!(color.alpha, 0);
     }
 
+    #[test]
     fn test_to_graphics_color() {
         let color = Color::new(123, 45, 67, 89);
         let graphics_color = color.to_graphics_color();
@@ -192,6 +199,7 @@ mod tests {
         assert_eq!(graphics_color.a, 89);
     }
 
+    #[test]
     fn test_debug() {
         let color = Color::new(123, 45, 67, 89);
         assert_eq!(format!("{:?}", color), "Color(123, 45, 67, 89)");

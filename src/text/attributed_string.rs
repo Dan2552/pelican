@@ -39,6 +39,8 @@ pub enum Key {
 type AttributeContainer = HashMap<Key, Attribute>;
 
 pub struct AttributedString {
+    id: uuid::Uuid,
+
     /// The actual text that this `AttributedString` represents.
     text: String,
 
@@ -73,6 +75,7 @@ impl AttributedString {
         }
 
         AttributedString {
+            id: uuid::Uuid::new_v4(),
             text: text,
             attributes: RefCell::new(attributes),
             default_attributes: RefCell::new(default_attributes)
@@ -167,6 +170,27 @@ impl AttributedSubstring<'_> {
 
     pub fn substring_for_char(&self, char_index: usize) -> AttributedSubstring {
         self.attributed_string.substring_for_char(self.start + char_index)
+    }
+}
+
+impl std::fmt::Debug for AttributedString {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "AttributedString {{ text: \"{}\", attributes: [", self.text)?;
+        let mut first = true;
+        for attrs in self.attributes.borrow().iter() {
+            if !first {
+                write!(f, ", ")?;
+            }
+            first = false;
+            write!(f, "{:?}", attrs)?;
+        }
+        write!(f, "] }}")
+    }
+}
+
+impl PartialEq for AttributedString {
+    fn eq(&self, other: &AttributedString) -> bool {
+        self.id == other.id
     }
 }
 

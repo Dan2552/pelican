@@ -15,8 +15,8 @@ enum State {
     DidLoad,
     WillAppear,
     DidAppear,
-    WillDisappear,
-    DidDisappear
+    // WillDisappear,
+    // DidDisappear
 }
 
 pub struct ViewController<'a> {
@@ -66,12 +66,12 @@ impl ViewController<'_> {
             },
             State::WillAppear => (),
             State::DidAppear => (),
-            State::WillDisappear => {
-                panic!("TODO: what should happen here?")
-            },
-            State::DidDisappear => {
-                panic!("TODO: what should happen here?")
-            }
+            // State::WillDisappear => {
+            //     panic!("TODO: what should happen here?")
+            // },
+            // State::DidDisappear => {
+            //     panic!("TODO: what should happen here?")
+            // }
         }
     }
 
@@ -92,9 +92,9 @@ impl ViewController<'_> {
                 self.state.set(State::DidAppear);
                 self.behavior.view_did_appear(view);
             },
-            State::DidDisappear => {
-                panic!("Disappeared but still rendering")
-            }
+            // State::DidDisappear => {
+            //     panic!("Disappeared but still rendering")
+            // }
             _ => ()
         }
     }

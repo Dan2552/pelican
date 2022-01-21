@@ -29,11 +29,6 @@ pub(crate) struct ViewInner {
     /// rectangle with a single color - this is that color.
     pub background_color: Color,
 
-    /// The z position. A view with a higher number compared to its sibling
-    /// views (the same superview) will result in the view being drawn infront
-    /// of the others.
-    pub z_index: u32,
-
     /// The actual drawable canvas from the `graphics` library.
     ///
     /// Think of the View as instructions or a template for a picture (this

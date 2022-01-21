@@ -5,8 +5,6 @@ use std::cell::{Ref, RefCell};
 use crate::ui::touch::TouchPhase;
 use crate::graphics::Point;
 
-pub(crate) struct QuitEvent {}
-
 struct TouchEventInner {
     touches: Vec<Touch>
 }

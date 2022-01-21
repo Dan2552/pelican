@@ -1,6 +1,7 @@
-use crate::ui::{Window, WeakView, RunLoop};
+use crate::ui::{Window, WeakView};
 use crate::macros::*;
 use crate::ui::touch::Touch;
+use crate::ui::run_loop::RunLoop;
 use crate::ui::gesture::recognizer::Recognizer;
 use std::rc::Weak;
 
@@ -26,6 +27,10 @@ impl<'a> Application {
         } else {
             WeakView::none()
         }
+    }
+
+    pub fn windows(&self) -> &Vec<Window> {
+        &self.windows
     }
 
     pub fn set_key_window(&mut self, window: &Window) {
@@ -71,5 +76,21 @@ impl<'a> Application {
 
             touch.set_gesture_recognizers(recognizers);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::graphics::{Rectangle, Point, Size};
+    use crate::ui::view_controller::{ViewController, ViewControllerBehavior};
+
+    struct ExampleViewController {}
+    impl ViewControllerBehavior for ExampleViewController {}
+
+    #[test]
+    fn test_application_singleton() {
+        let application = Application::borrow();
+        assert_eq!(application.windows.len(), 0);
     }
 }

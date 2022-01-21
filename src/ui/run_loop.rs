@@ -1,4 +1,4 @@
-use crate::ui::Timer;
+use crate::ui::timer::Timer;
 use std::time::Instant;
 use std::thread::sleep;
 use std::cell::{Cell, RefCell};
@@ -11,7 +11,7 @@ singleton!(
     state: Cell::new(State::Running)
 );
 
-pub(crate) struct RunLoop {
+pub struct RunLoop {
     timers: RefCell<Vec<Timer>>,
     state: Cell<State>
 }
@@ -22,7 +22,10 @@ impl RunLoop {
         timers.push(timer)
     }
 
-    pub(crate) fn run(&self) {
+    /// Run the run loop until the application exits.
+    ///
+    /// This isn't intended to be called in your app.
+    pub fn run(&self) {
         let mut last_loop_instant = Instant::now();
 
         loop {
@@ -45,7 +48,7 @@ impl RunLoop {
     }
 
     /// Notify the run loop to break the loop and end.
-    pub(crate) fn exit(&self) {
+    pub fn exit(&self) {
         self.state.set(State::Exit);
     }
 

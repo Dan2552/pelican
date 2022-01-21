@@ -10,6 +10,7 @@ macro_rules! singleton {
         };
 
         impl $singleton_name {
+            #![allow(dead_code)]
             pub fn borrow<'a>() -> std::cell::Ref<'a, $singleton_name> {
                 unsafe { SINGLETON_OWNER.value.borrow() }
             }
@@ -58,6 +59,7 @@ macro_rules! custom_view {
         }
 
         impl $behavior {
+            #![allow(dead_code)]
             fn view_type(&self) -> $view {
                 $view::from_view(self.view.upgrade().unwrap())
             }

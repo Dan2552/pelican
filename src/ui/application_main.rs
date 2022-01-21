@@ -1,6 +1,7 @@
-use crate::ui::{RunLoop, Timer};
+use crate::ui::timer::Timer;
 use crate::ui::event_loop;
 use std::time::Duration;
+use crate::ui::run_loop::RunLoop;
 
 use objc_foundation::{NSString,  INSString};
 use objc::runtime::{Object, YES};

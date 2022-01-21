@@ -15,7 +15,7 @@ pub struct Font {
     /// A new font needs to be constructed for each desired font size. These are
     /// lazily created and cached so as to not need to repeatedly load the same
     /// fonts.
-    font_sizes: RefCell<HashMap<u16, Rc<sdl2::ttf::Font<'static, 'static>>>>
+    font_sizes: Rc<RefCell<HashMap<u16, Rc<sdl2::ttf::Font<'static, 'static>>>>>
 }
 
 const PATHS: &[&str] = &[
@@ -53,7 +53,7 @@ static mut TTF_CONTAINER: SdlTtfContainer = SdlTtfContainer {
 impl Font {
     pub fn new(font_name: &str, size: u16) -> Font {
         let path = find_font(font_name);
-        let font_sizes = RefCell::new(HashMap::new());
+        let font_sizes = Rc::new(RefCell::new(HashMap::new()));
         Font { path, size, font_sizes }
     }
 

@@ -4,9 +4,12 @@ use crate::graphics::Layer;
 use crate::graphics::Rectangle;
 
 pub(crate) fn window_display(window: View) {
+    if window.is_hidden() {
+        return;
+    }
+
     // Additional reference for view controller notification.
     let window1 = window.clone();
-
 
     let behavior = window.behavior.borrow();
     let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().unwrap();
