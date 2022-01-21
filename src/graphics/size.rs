@@ -54,6 +54,7 @@ mod tests {
         assert_eq!(size, size_clone);
     }
 
+    #[test]
     fn test_eq() {
         let size1 = Size {
             width: 1,
@@ -68,6 +69,7 @@ mod tests {
         assert_eq!(size1, size2);
     }
 
+    #[test]
     fn test_debug() {
         let size = Size {
             width: 1,

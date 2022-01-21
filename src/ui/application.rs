@@ -82,11 +82,6 @@ impl<'a> Application {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::graphics::{Rectangle, Point, Size};
-    use crate::ui::view_controller::{ViewController, ViewControllerBehavior};
-
-    struct ExampleViewController {}
-    impl ViewControllerBehavior for ExampleViewController {}
 
     #[test]
     fn test_application_singleton() {

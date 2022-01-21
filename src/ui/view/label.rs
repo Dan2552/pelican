@@ -193,12 +193,10 @@ custom_view!(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ui::View;
 
     #[test]
     fn test_label_text() {
         let frame = Rectangle::new(0, 0, 100, 100);
-        let view = View::new(frame.clone());
         let label = Label::new(frame, String::from("Hello World"));
 
         assert_eq!(label.text(), String::from("Hello World"));
@@ -211,7 +209,6 @@ mod tests {
     #[test]
     fn test_label_attributed_text() {
         let frame = Rectangle::new(0, 0, 100, 100);
-        let view = View::new(frame.clone());
         let label = Label::new(frame, String::from("A"));
 
         let attributed_text = AttributedString::new(String::from("Hello World"));
@@ -230,7 +227,6 @@ mod tests {
     #[test]
     fn test_label_text_color() {
         let frame = Rectangle::new(0, 0, 100, 100);
-        let view = View::new(frame.clone());
         let label = Label::new(frame, String::from("A"));
 
         label.set_text_color(Color::black());
@@ -241,7 +237,6 @@ mod tests {
     #[test]
     fn test_label_font() {
         let frame = Rectangle::new(0, 0, 100, 100);
-        let view = View::new(frame.clone());
         let label = Label::new(frame, String::from("A"));
 
         label.set_font(Font::new("Arial", 16));
@@ -251,7 +246,6 @@ mod tests {
     #[test]
     fn test_label_text_alignment() {
         let frame = Rectangle::new(0, 0, 100, 100);
-        let view = View::new(frame.clone());
         let label = Label::new(frame, String::from("A"));
         label.set_text_alignment(HorizontalAlignment::Right);
         assert_eq!(label.text_alignment(), HorizontalAlignment::Right);
