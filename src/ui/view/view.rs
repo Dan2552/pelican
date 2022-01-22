@@ -46,6 +46,7 @@ impl View {
         };
 
         let inner_self = ViewInner {
+            tag: 0,
             frame: frame,
             bounds: bounds,
             background_color: white,
@@ -73,6 +74,42 @@ impl View {
 
         view
     }
+
+
+    /// An optional identifier for the view. Can be used to find the view in
+    /// the view hierarchy.
+    pub fn tag(&self) -> u32 {
+        self.inner_self.borrow().tag
+    }
+
+    /// Set the tag for this view. See `View::view` and `View::view_with_tag`.
+    pub fn set_tag(&self, tag: u32) {
+        self.inner_self.borrow_mut().tag = tag;
+    }
+
+    /// Finds the first view in the view hierarchy that matches the given tag.
+    ///
+    /// Will search this view's subviews and any of its subviews' subviews, etc.
+    pub fn view_with_tag(&self, tag: u32) -> Option<View> {
+        let mut found = None;
+
+        let mut stack = Vec::new();
+        stack.push(self.clone());
+
+        while let Some(view) = stack.pop() {
+            if view.inner_self.borrow().tag == tag {
+                found = Some(view);
+                break;
+            }
+
+            for subview in view.inner_self.borrow().subviews.iter() {
+                stack.push(subview.clone());
+            }
+        }
+
+        found
+    }
+
 
     /// Adds a child `View` to this `View`.
     ///
@@ -573,5 +610,23 @@ mod tests {
         view.set_bounds(Rectangle::new(10, 10, 100, 100));
 
         assert_eq!(view.bounds(), Rectangle::new(10, 10, 100, 100));
+    }
+
+    #[test]
+    fn test_tag() {
+        let frame = Rectangle::new(0, 0, 1000, 1000);
+        let view = View::new(frame);
+
+        assert_eq!(view.tag(), 0);
+
+        view.set_tag(42);
+
+        assert_eq!(view.tag(), 42);
+
+        let parent_view = View::new(Rectangle::new(0, 0, 1000, 1000));
+        parent_view.add_subview(view.clone());
+
+        let found_view = parent_view.view_with_tag(42);
+        assert_eq!(found_view, Some(view));
     }
 }

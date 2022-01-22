@@ -5,6 +5,12 @@ use crate::ui::gesture::recognizer::Recognizer;
 use std::rc::Rc;
 
 pub(crate) struct ViewInner {
+    /// An optional identifier for the view. Can be used to find the view in
+    /// the view hierarchy.
+    ///
+    /// See `View::view_with_tag`
+    pub(crate) tag: u32,
+
     /// The size and position (within its superview) of this View.
     ///
     /// Used for placing the view in the parent.
