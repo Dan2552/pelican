@@ -210,6 +210,8 @@ impl View {
         let mut location = inner_self.frame.origin.clone();
         location.x += superview_location.x;
         location.y += superview_location.y;
+        location.x -= superview.bounds().origin.x;
+        location.y -= superview.bounds().origin.y;
 
         location
     }
@@ -245,9 +247,15 @@ impl View {
 
         let user_interaction_enabled = inner_self.user_interaction_enabled;
 
-        if inner_self.bounds.contains(point) && user_interaction_enabled {
+        let relative_frame = Rectangle {
+            origin: Point::new(0, 0),
+            size: inner_self.frame.size.clone(),
+        };
+
+        if relative_frame.contains(point) && user_interaction_enabled {
             for subview in self.subviews().iter().rev() {
                 let subview_point = self.convert_point_to(point, subview);
+
                 let hit_test_result = subview.hit_test(&subview_point);
 
                 if hit_test_result.is_some() {
@@ -265,6 +273,10 @@ impl View {
         {
             let mut inner_self = self.inner_self.borrow_mut();
             inner_self.frame = frame;
+            inner_self.bounds = Rectangle {
+                origin: inner_self.bounds.origin.clone(),
+                size: inner_self.frame.size.clone(),
+            };
         }
 
         self.set_needs_display();
@@ -369,11 +381,8 @@ impl PartialEq for View {
 
 impl std::fmt::Debug for View {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let id = &self.id.to_string();
-
-        f.debug_tuple("")
-         .field(&id)
-         .finish()
+        let behavior = self.behavior.borrow();
+        write!(f, "View({:?})", behavior.name())
     }
 }
 
@@ -384,33 +393,71 @@ mod tests {
 
     #[test]
     fn test_get_location_in_window() {
-        let main = View::new(Rectangle {
-            origin: Point { x: 0, y: 0 },
-            size: Size { width: 100, height: 100 }
-        });
+        {
+            let main = View::new(Rectangle {
+                origin: Point { x: 0, y: 0 },
+                size: Size { width: 100, height: 100 }
+            });
 
-        let a = View::new(Rectangle {
-            origin: Point { x: 0, y: 1 },
-            size: Size { width: 10, height: 10 }
-        });
+            let a = View::new(Rectangle {
+                origin: Point { x: 0, y: 1 },
+                size: Size { width: 10, height: 10 }
+            });
 
-        let b = View::new(Rectangle {
-            origin: Point { x: 1, y: 0 },
-            size: Size { width: 10, height: 10 }
-        });
+            let b = View::new(Rectangle {
+                origin: Point { x: 1, y: 0 },
+                size: Size { width: 10, height: 10 }
+            });
 
-        let c = View::new(Rectangle {
-            origin: Point { x: 1, y: 0 },
-            size: Size { width: 10, height: 10 }
-        });
+            let c = View::new(Rectangle {
+                origin: Point { x: 1, y: 0 },
+                size: Size { width: 10, height: 10 }
+            });
 
-        main.add_subview(a.clone());
-        a.add_subview(b.clone());
-        b.add_subview(c.clone());
+            main.add_subview(a.clone());
+            a.add_subview(b.clone());
+            b.add_subview(c.clone());
 
-        assert_eq!(a.get_location_in_window(), Point { x: 0 as i32, y: 1 as i32 });
-        assert_eq!(b.get_location_in_window(), Point { x: 1 as i32, y: 1 as i32 });
-        assert_eq!(c.get_location_in_window(), Point { x: 2 as i32, y: 1 as i32 });
+            assert_eq!(a.get_location_in_window(), Point { x: 0 as i32, y: 1 as i32 });
+            assert_eq!(b.get_location_in_window(), Point { x: 1 as i32, y: 1 as i32 });
+            assert_eq!(c.get_location_in_window(), Point { x: 2 as i32, y: 1 as i32 });
+        }
+
+        {
+            let main = View::new(Rectangle {
+                origin: Point { x: 0, y: 0 },
+                size: Size { width: 100, height: 100 }
+            });
+
+            let a = View::new(Rectangle {
+                origin: Point { x: 0, y: 1 },
+                size: Size { width: 10, height: 10 }
+            });
+
+            let b = View::new(Rectangle {
+                origin: Point { x: 1, y: 0 },
+                size: Size { width: 10, height: 10 }
+            });
+
+            let c = View::new(Rectangle {
+                origin: Point { x: 1, y: 0 },
+                size: Size { width: 10, height: 10 }
+            });
+
+            main.add_subview(a.clone());
+            a.add_subview(b.clone());
+            b.add_subview(c.clone());
+
+            // b in this case is similar to a scroll view's content view
+            b.set_bounds(Rectangle {
+                origin: Point { x: 0, y: 100 },
+                size: Size { width: 10, height: 10 }
+            });
+
+            assert_eq!(a.get_location_in_window(), Point { x: 0 as i32, y: 1 as i32 });
+            assert_eq!(b.get_location_in_window(), Point { x: 1 as i32, y: 1 as i32 });
+            assert_eq!(c.get_location_in_window(), Point { x: 2 as i32, y: 1 - 100 as i32 });
+        }
     }
 
     #[test]
@@ -491,10 +538,13 @@ mod tests {
         let frame = Rectangle::new(0, 0, 1000, 1000);
         let view = View::new(frame);
 
+        assert_eq!(view.bounds().size(), &Size::new(1000, 1000));
+
         let new_frame = Rectangle::new(10, 10, 100, 100);
         view.set_frame(new_frame.clone());
 
         assert_eq!(view.frame(), new_frame);
+        assert_eq!(view.bounds().size(), &Size::new(100, 100));
     }
 
     #[test]

@@ -1,7 +1,10 @@
 use crate::ui::{View, WeakView, Touch};
 
 pub trait Behavior {
-    // TODO: macro for these
+    fn name(&self) -> String {
+        String::from(std::any::type_name::<Self>())
+    }
+
     fn as_any(&self) -> &dyn std::any::Any;
     fn set_view(&mut self, view: WeakView);
     fn get_view(&self) -> &WeakView;

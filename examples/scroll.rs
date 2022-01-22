@@ -20,7 +20,7 @@ impl ViewControllerBehavior for ExampleViewController {
         child.set_background_color(Color::gray());
         content_view.add_subview(child);
 
-        let frame = Rectangle::new(0, 100, 100, 30);
+        let frame = Rectangle::new(100, 100, 100, 30);
         let button = Button::new(frame, "Button", move || {
             println!("button tapped");
         });
