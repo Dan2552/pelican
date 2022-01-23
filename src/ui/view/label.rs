@@ -160,7 +160,7 @@ custom_view!(
                 whole_text.align_horizontally(self.text_alignment.get());
                 whole_text.align_vertically(self.text_vertical_alignment.get());
 
-                for (index, (character, position)) in whole_text.iter_characters_with_position().enumerate() {
+                for (index, (character, position)) in whole_text.calculate_character_render_positions().enumerate() {
                     let font_attribute = attributed_text_ref.get_attribute_for(index, Key::Font);
                     let color_attribute = attributed_text_ref.get_attribute_for(index, Key::Color);
                     let font = font_attribute.font();

@@ -4,6 +4,7 @@ use crate::graphics::Size;
 use crate::text::attributed_string::{AttributedString, AttributedSubstring};
 use crate::text::attributed_string;
 use crate::text::{VerticalAlignment, HorizontalAlignment};
+use std::cell::RefCell;
 
 /// Used for rendering.
 ///
@@ -67,7 +68,13 @@ pub struct WholeText<'a> {
     ///
     /// Note that these positions are relative to the top-left of the
     /// `WholeText`.
-    positions: Vec<Point<i32>>,
+    line_positions: Vec<Point<i32>>,
+
+    /// The last rendered positions of each character.
+    ///
+    /// This will only be populated when
+    /// `calculate_character_render_positions` has been called.
+    last_rendered_character_positions: RefCell<Vec<Point<i32>>>,
 
     /// The position and size of the text.
     ///
@@ -288,20 +295,27 @@ impl WholeText<'_> {
     pub fn from(attributed_string: &AttributedString, frame: Rectangle<i32, u32>, render_scale: f32) -> WholeText {
         let frame = &frame * render_scale;
         let mut lines: Vec<LineOfText> = Vec::new();
-        let mut positions = Vec::new();
+        let mut line_positions = Vec::new();
+        let last_rendered_character_positions = RefCell::new(Vec::new());
 
         // Build the lines of text. The size of the lines is calculated during
         // this process.
         for line in attributed_string.lines() {
             for line_of_text in LineOfText::from(&line, frame.size.width, render_scale) {
                 lines.push(line_of_text);
-                positions.push(Point { x: 0, y: 0 });
+                line_positions.push(Point { x: 0, y: 0 });
             }
         }
 
         // Knowing the size of the lines, we can calculate positions based on
         // the text alignment rules.
-        let mut whole_text = WholeText { lines, positions, frame, attributed_string };
+        let mut whole_text = WholeText {
+            lines,
+            line_positions,
+            last_rendered_character_positions,
+            frame,
+            attributed_string
+        };
 
         whole_text.align_horizontally(HorizontalAlignment::Left);
         whole_text.align_vertically(VerticalAlignment::Top);
@@ -323,17 +337,17 @@ impl WholeText<'_> {
         for (index, line) in self.lines.iter().enumerate() {
             match horizontal_alignment {
                 HorizontalAlignment::Left => {
-                    self.positions[index].x = 0;
+                    self.line_positions[index].x = 0;
                 }
                 HorizontalAlignment::Center => {
                     let center_x = self.frame.size.width as f32 * 0.5;
                     let center_line_x = line.visual_size().width as f32 * 0.5;
                     let top_left_x = center_x - center_line_x;
 
-                    self.positions[index].x = top_left_x.round() as i32;
+                    self.line_positions[index].x = top_left_x.round() as i32;
                 }
                 HorizontalAlignment::Right => {
-                    self.positions[index].x = (self.frame.size.width - line.visual_size().width) as i32;
+                    self.line_positions[index].x = (self.frame.size.width - line.visual_size().width) as i32;
                 }
             }
         }
@@ -346,7 +360,7 @@ impl WholeText<'_> {
             VerticalAlignment::Top => {
                 let mut line_y = 0;
                 for (index, line) in self.lines.iter().enumerate() {
-                    self.positions[index].y = line_y;
+                    self.line_positions[index].y = line_y;
                     line_y += line.size.height as i32;
                 }
             }
@@ -357,7 +371,7 @@ impl WholeText<'_> {
 
                 let mut line_y = top_left_y.round() as i32;
                 for (index, line) in self.lines.iter().enumerate() {
-                    self.positions[index].y = line_y;
+                    self.line_positions[index].y = line_y;
                     line_y += line.size.height as i32;
                 }
             }
@@ -365,17 +379,24 @@ impl WholeText<'_> {
                 let bottom_y = self.frame.size.height as i32 - self.lines_total_height() as i32;
                 let mut line_y = bottom_y;
                 for (index, line) in self.lines.iter().enumerate() {
-                    self.positions[index].y = line_y;
+                    self.line_positions[index].y = line_y;
                     line_y += line.size.height as i32;
                 }
             }
         }
     }
 
-    /// Iterate chars with their positions.
-    pub fn iter_characters_with_position(&self) -> impl Iterator<Item = (&Character, Point<i32>)> {
+    /// Iterate characters of the text with their positions to render.
+    ///
+    /// Positions of characters are calculated during this iteration.
+    pub fn calculate_character_render_positions(&self) -> impl Iterator<Item = (&Character, Point<i32>)> {
+        {
+            let mut positions = self.last_rendered_character_positions.borrow_mut();
+            positions.clear();
+        }
+
         self.lines.iter().enumerate().flat_map(move |(line_index, line)| {
-            let line_relative_position = &self.positions[line_index];
+            let line_relative_position = &self.line_positions[line_index];
 
             let mut word_x = 0;
             line.words.iter().flat_map(move |word| {
@@ -400,10 +421,50 @@ impl WholeText<'_> {
                         y: character_relative_position.y
                     };
 
+                    let mut positions = self.last_rendered_character_positions.borrow_mut();
+                    positions.push(absolute_position.clone());
+
                     (character, absolute_position)
                 })
             })
         })
+    }
+
+    /// Searches for the character at the given position.
+    ///
+    /// using this method because it calculates the positions of the characters.
+    pub fn character_at_position(&self, position: Point<i32>) -> (usize, Option<&Character>) {
+        let positions = self.last_rendered_character_positions.borrow();
+
+        if positions.is_empty() {
+            return (0, None);
+        }
+
+        let mut character_index = 0;
+
+        for line in self.lines.iter() {
+            for word in line.words.iter() {
+                for character in word.characters.iter() {
+                    println!("char: {:?}", character);
+                    let character_position = positions.get(character_index).unwrap();
+
+                    let character_rectangle = Rectangle {
+                        origin: character_position.clone(),
+                        size: character.size.clone()
+                    };
+
+                    println!("char: {:?} - {:?} in {:?}, {:?}" , character, position, character_position, character.size);
+
+                    if character_rectangle.contains(&position) {
+                        return (character_index, Some(character));
+                    }
+
+                    character_index += 1;
+                }
+            }
+        }
+
+        (0, None)
     }
 }
 
@@ -610,6 +671,26 @@ mod tests {
     }
 
     #[test]
+    fn test_whole_text_multiple_lines() {
+        let attributed_string = AttributedString::new(String::from("Hello, world!\nGoodbye, world!"));
+
+        let frame = Rectangle::new(0, 0, 300, 100);
+        let text = WholeText::from(&attributed_string, frame, 1.0);
+
+        assert_eq!(text.lines.len(), 2);
+    }
+
+    #[test]
+    fn test_whole_text_word_wrap() {
+        let attributed_string = AttributedString::new(String::from("Hello, world!"));
+
+        let frame = Rectangle::new(0, 0, 50, 100);
+        let text = WholeText::from(&attributed_string, frame, 1.0);
+
+        assert_eq!(text.lines.len(), 2);
+    }
+
+    #[test]
     fn test_whole_text_lines_total_height() {
         let attributed_string = AttributedString::new(String::from("Hello, world!\nGoodbye, world!"));
 
@@ -627,8 +708,8 @@ mod tests {
         let mut text = WholeText::from(&attributed_string, frame, 1.0);
         text.align_horizontally(HorizontalAlignment::Left);
 
-        let line1_position = &text.positions[0];
-        let line2_position = &text.positions[1];
+        let line1_position = &text.line_positions[0];
+        let line2_position = &text.line_positions[1];
 
         assert_eq!(line1_position.x, 0);
         assert_eq!(line2_position.x, 0);
@@ -642,8 +723,8 @@ mod tests {
         let mut text = WholeText::from(&attributed_string, frame, 1.0);
         text.align_horizontally(HorizontalAlignment::Center);
 
-        let line1_position = &text.positions[0];
-        let line2_position = &text.positions[1];
+        let line1_position = &text.line_positions[0];
+        let line2_position = &text.line_positions[1];
 
         assert_eq!(line1_position.x, 5);
         assert_eq!(line2_position.x, 16);
@@ -658,7 +739,7 @@ mod tests {
             let frame = Rectangle::new(50, 50, 100, 100);
             let mut text = WholeText::from(&attributed_string, frame, 1.0);
             text.align_horizontally(HorizontalAlignment::Center);
-            let line1_position = &text.positions[0];
+            let line1_position = &text.line_positions[0];
             x_with_space = line1_position.x;
         }
         {
@@ -666,7 +747,7 @@ mod tests {
             let frame = Rectangle::new(50, 50, 100, 100);
             let mut text = WholeText::from(&attributed_string, frame, 1.0);
             text.align_horizontally(HorizontalAlignment::Center);
-            let line1_position = &text.positions[0];
+            let line1_position = &text.line_positions[0];
             x_without_space = line1_position.x;
         }
 
@@ -681,8 +762,8 @@ mod tests {
         let mut text = WholeText::from(&attributed_string, frame, 1.0);
         text.align_horizontally(HorizontalAlignment::Right);
 
-        let line1_position = &text.positions[0];
-        let line2_position = &text.positions[1];
+        let line1_position = &text.line_positions[0];
+        let line2_position = &text.line_positions[1];
 
         assert_eq!(line1_position.x, 10);
         assert_eq!(line2_position.x, 31);
@@ -697,7 +778,7 @@ mod tests {
             let frame = Rectangle::new(50, 50, 100, 100);
             let mut text = WholeText::from(&attributed_string, frame, 1.0);
             text.align_horizontally(HorizontalAlignment::Right);
-            let line1_position = &text.positions[0];
+            let line1_position = &text.line_positions[0];
             x_with_space = line1_position.x;
         }
         {
@@ -705,7 +786,7 @@ mod tests {
             let frame = Rectangle::new(50, 50, 100, 100);
             let mut text = WholeText::from(&attributed_string, frame, 1.0);
             text.align_horizontally(HorizontalAlignment::Right);
-            let line1_position = &text.positions[0];
+            let line1_position = &text.line_positions[0];
             x_without_space = line1_position.x;
         }
 
@@ -720,8 +801,8 @@ mod tests {
         let mut text = WholeText::from(&attributed_string, frame, 1.0);
         text.align_vertically(VerticalAlignment::Top);
 
-        let line1_position = &text.positions[0];
-        let line2_position = &text.positions[1];
+        let line1_position = &text.line_positions[0];
+        let line2_position = &text.line_positions[1];
 
         assert_eq!(line1_position.y, 0);
         assert_eq!(line2_position.y, 16);
@@ -735,8 +816,8 @@ mod tests {
         let mut text = WholeText::from(&attributed_string, frame, 1.0);
         text.align_vertically(VerticalAlignment::Middle);
 
-        let line1_position = &text.positions[0];
-        let line2_position = &text.positions[1];
+        let line1_position = &text.line_positions[0];
+        let line2_position = &text.line_positions[1];
 
         assert_eq!(line1_position.y, 26);
         assert_eq!(line2_position.y, 42);
@@ -750,8 +831,8 @@ mod tests {
         let mut text = WholeText::from(&attributed_string, frame, 1.0);
         text.align_vertically(VerticalAlignment::Bottom);
 
-        let line1_position = &text.positions[0];
-        let line2_position = &text.positions[1];
+        let line1_position = &text.line_positions[0];
+        let line2_position = &text.line_positions[1];
 
         assert_eq!(line1_position.y, 52);
         assert_eq!(line2_position.y, 68);
@@ -764,5 +845,164 @@ mod tests {
         let text = WholeText::from(&attributed_string, frame, 1.0);
 
         assert_eq!(text.attributed_string(), &attributed_string);
+    }
+
+    #[test]
+    fn test_character_at_position() {
+        let attributed_string = AttributedString::new(String::from("Hello, world!"));
+        let frame = Rectangle::new(50, 50, 100, 100);
+        let text = WholeText::from(&attributed_string, frame, 1.0);
+
+        for _ in text.calculate_character_render_positions() {}
+
+        let (index, character) = text.character_at_position(Point::new(10, 5));
+        let character = character.unwrap();
+        assert_eq!(character.character, 'H');
+        assert_eq!(index, 0);
+
+        let (index, character) = text.character_at_position(Point::new(15, 5));
+        let character = character.unwrap();
+        assert_eq!(character.character, 'e');
+        assert_eq!(index, 1);
+
+        let (index, character) = text.character_at_position(Point::new(22, 5));
+        let character = character.unwrap();
+        assert_eq!(character.character, 'l');
+        assert_eq!(index, 2);
+
+        let (index, character) = text.character_at_position(Point::new(28, 5));
+        let character = character.unwrap();
+        assert_eq!(character.character, 'l');
+        assert_eq!(index, 3);
+
+        let (index, character) = text.character_at_position(Point::new(34, 5));
+        let character = character.unwrap();
+        assert_eq!(character.character, 'o');
+        assert_eq!(index, 4);
+
+        let (index, character) = text.character_at_position(Point::new(40, 5));
+        let character = character.unwrap();
+        assert_eq!(character.character, ',');
+        assert_eq!(index, 5);
+
+        let (index, character) = text.character_at_position(Point::new(45, 5));
+        let character = character.unwrap();
+        assert_eq!(character.character, ' ');
+        assert_eq!(index, 6);
+
+        let (index, character) = text.character_at_position(Point::new(50, 5));
+        let character = character.unwrap();
+        assert_eq!(character.character, 'w');
+        assert_eq!(index, 7);
+
+        let (index, character) = text.character_at_position(Point::new(62, 5));
+        let character = character.unwrap();
+        assert_eq!(character.character, 'o');
+        assert_eq!(index, 8);
+
+        let (index, character) = text.character_at_position(Point::new(68, 5));
+        let character = character.unwrap();
+        assert_eq!(character.character, 'r');
+        assert_eq!(index, 9);
+
+        let (index, character) = text.character_at_position(Point::new(74, 5));
+        let character = character.unwrap();
+        assert_eq!(character.character, 'l');
+        assert_eq!(index, 10);
+
+        let (index, character) = text.character_at_position(Point::new(80, 5));
+        let character = character.unwrap();
+        assert_eq!(character.character, 'd');
+        assert_eq!(index, 11);
+
+        let (index, character) = text.character_at_position(Point::new(88, 5));
+        let character = character.unwrap();
+        assert_eq!(character.character, '!');
+        assert_eq!(index, 12);
+
+        let (index, character) = text.character_at_position(Point::new(91, 5));
+        assert!(character.is_none());
+        assert_eq!(index, 0);
+    }
+
+    #[test]
+    fn test_character_at_position_with_word_wrap() {
+        let attributed_string = AttributedString::new(String::from("Hello, world!"));
+
+        let frame = Rectangle::new(0, 0, 50, 100);
+        let text = WholeText::from(&attributed_string, frame, 1.0);
+
+        assert_eq!(text.lines.len(), 2);
+
+        for _ in text.calculate_character_render_positions() {}
+
+        let (index, character) = text.character_at_position(Point::new(10, 5));
+        let character = character.unwrap();
+        assert_eq!(character.character, 'H');
+        assert_eq!(index, 0);
+
+        let (index, character) = text.character_at_position(Point::new(15, 5));
+        let character = character.unwrap();
+        assert_eq!(character.character, 'e');
+        assert_eq!(index, 1);
+
+        let (index, character) = text.character_at_position(Point::new(22, 5));
+        let character = character.unwrap();
+        assert_eq!(character.character, 'l');
+        assert_eq!(index, 2);
+
+        let (index, character) = text.character_at_position(Point::new(28, 5));
+        let character = character.unwrap();
+        assert_eq!(character.character, 'l');
+        assert_eq!(index, 3);
+
+        let (index, character) = text.character_at_position(Point::new(34, 5));
+        let character = character.unwrap();
+        assert_eq!(character.character, 'o');
+        assert_eq!(index, 4);
+
+        let (index, character) = text.character_at_position(Point::new(40, 5));
+        let character = character.unwrap();
+        assert_eq!(character.character, ',');
+        assert_eq!(index, 5);
+
+        let (index, character) = text.character_at_position(Point::new(45, 5));
+        let character = character.unwrap();
+        assert_eq!(character.character, ' ');
+        assert_eq!(index, 6);
+
+        let (index, character) = text.character_at_position(Point::new(0, 26));
+        let character = character.unwrap();
+        assert_eq!(character.character, 'w');
+        assert_eq!(index, 7);
+
+        let (index, character) = text.character_at_position(Point::new(16, 26));
+        let character = character.unwrap();
+        assert_eq!(character.character, 'o');
+        assert_eq!(index, 8);
+
+        let (index, character) = text.character_at_position(Point::new(25, 26));
+        let character = character.unwrap();
+        assert_eq!(character.character, 'r');
+        assert_eq!(index, 9);
+
+        let (index, character) = text.character_at_position(Point::new(28, 26));
+        let character = character.unwrap();
+        assert_eq!(character.character, 'l');
+        assert_eq!(index, 10);
+
+        let (index, character) = text.character_at_position(Point::new(32, 26));
+        let character = character.unwrap();
+        assert_eq!(character.character, 'd');
+        assert_eq!(index, 11);
+
+        let (index, character) = text.character_at_position(Point::new(42, 26));
+        let character = character.unwrap();
+        assert_eq!(character.character, '!');
+        assert_eq!(index, 12);
+
+        let (index, character) = text.character_at_position(Point::new(50, 26));
+        assert!(character.is_none());
+        assert_eq!(index, 0);
     }
 }
