@@ -48,11 +48,14 @@ custom_view!(
             if let Some(character_origin) = self.label().position_for_character_at_index(character_index) {
                 // TODO: temporary hack. The 0.5 is to adjust for render scale.
                 origin = Point {
-                    x: (character_origin.x as f32 * 0.5) as i32 + label_origin.x,
+                    x: (character_origin.x as f32 * 0.5) as i32 + label_origin.x - 1,
                     y: (character_origin.y as f32 * 0.5) as i32 + label_origin.y
                 };
             } else {
-                origin = label_origin.clone();
+                origin = Point {
+                    x: label_origin.x - 1,
+                    y: label_origin.y
+                };
             }
 
             // TODO: line height
