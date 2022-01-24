@@ -1,4 +1,4 @@
-use crate::graphics::{Rectangle, Font, Size};
+use crate::graphics::{Point, Rectangle, Font, Size};
 use crate::ui::Color;
 use crate::ui::view::{Behavior, DefaultBehavior};
 use std::cell::{Cell, RefCell};
@@ -16,7 +16,8 @@ custom_view!(
         text: RefCell<String>,
         attributed_text: RefCell<Option<AttributedString>>,
         text_alignment: Cell<HorizontalAlignment>,
-        text_vertical_alignment: Cell<VerticalAlignment>
+        text_vertical_alignment: Cell<VerticalAlignment>,
+        rendering_result: RefCell<Option<rendering::Result>>
     }
 
     impl Self {
@@ -34,7 +35,8 @@ custom_view!(
                 text,
                 RefCell::new(None),
                 text_alignment,
-                text_vertical_alignment
+                text_vertical_alignment,
+                RefCell::new(None)
             );
             label.view.set_background_color(Color::clear());
             label
@@ -125,6 +127,36 @@ custom_view!(
 
             self.view.set_frame(frame);
         }
+
+        /// Find the position for a given character.
+        ///
+        /// Returns `None` if the character is not found.
+        pub fn position_for_character_at_index(&self, index: usize) -> Option<Point<i32>> {
+            let behavior = &self.view.behavior.borrow();
+            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
+            let rendering_result = behavior.rendering_result.borrow();
+
+            if let Some(rendering_result) = rendering_result.as_ref() {
+                rendering_result.position_for_character_at_index(index)
+            } else {
+                None
+            }
+        }
+
+        /// Returns the character index for a given position.
+        ///
+        /// Returns `None` if the character is not found.
+        pub fn character_at_position(&self, position: Point<i32>) -> Option<usize> {
+            let behavior = &self.view.behavior.borrow();
+            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
+            let rendering_result = behavior.rendering_result.borrow();
+
+            if let Some(rendering_result) = rendering_result.as_ref() {
+                rendering_result.character_at_position(position)
+            } else {
+                None
+            }
+        }
     }
 
     impl Behavior {
@@ -160,11 +192,14 @@ custom_view!(
                 whole_text.align_horizontally(self.text_alignment.get());
                 whole_text.align_vertically(self.text_vertical_alignment.get());
 
-                for (index, (character, position)) in whole_text.calculate_character_render_positions().enumerate() {
+                let rendering_result = whole_text.calculate_character_render_positions();
+
+                for (index, character) in attributed_text.chars().enumerate() {
                     let font_attribute = attributed_text_ref.get_attribute_for(index, Key::Font);
                     let color_attribute = attributed_text_ref.get_attribute_for(index, Key::Color);
                     let font = font_attribute.font();
                     let color = color_attribute.color();
+                    let position = rendering_result.position_for_character_at_index(index).unwrap();
 
                     let child_layer = font.layer_for(
                         &parent_layer.context.clone(),
@@ -185,6 +220,8 @@ custom_view!(
 
                     parent_layer.draw_child_layer_without_scaling(&child_layer, &character_frame);
                 }
+
+                self.rendering_result.replace(Some(rendering_result));
             }
         }
     }

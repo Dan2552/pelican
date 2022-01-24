@@ -4,7 +4,6 @@ use crate::graphics::Size;
 use crate::text::attributed_string::{AttributedString, AttributedSubstring};
 use crate::text::attributed_string;
 use crate::text::{VerticalAlignment, HorizontalAlignment};
-use std::cell::RefCell;
 
 /// Used for rendering.
 ///
@@ -70,12 +69,6 @@ pub struct WholeText<'a> {
     /// `WholeText`.
     line_positions: Vec<Point<i32>>,
 
-    /// The last rendered positions of each character.
-    ///
-    /// This will only be populated when
-    /// `calculate_character_render_positions` has been called.
-    last_rendered_character_positions: RefCell<Vec<Point<i32>>>,
-
     /// The position and size of the text.
     ///
     /// The height of the text is determined by the sum of the heights of all
@@ -87,6 +80,12 @@ pub struct WholeText<'a> {
     /// The attributed string that was used to create this `WholeText`.
     /// Contains the styles and sizes of each character.
     attributed_string: &'a AttributedString
+}
+
+
+pub struct Result {
+    positions: Vec<Point<i32>>,
+    sizes: Vec<Size<u32>>
 }
 
 impl Character {
@@ -296,7 +295,6 @@ impl WholeText<'_> {
         let frame = &frame * render_scale;
         let mut lines: Vec<LineOfText> = Vec::new();
         let mut line_positions = Vec::new();
-        let last_rendered_character_positions = RefCell::new(Vec::new());
 
         // Build the lines of text. The size of the lines is calculated during
         // this process.
@@ -312,7 +310,6 @@ impl WholeText<'_> {
         let mut whole_text = WholeText {
             lines,
             line_positions,
-            last_rendered_character_positions,
             frame,
             attributed_string
         };
@@ -389,17 +386,16 @@ impl WholeText<'_> {
     /// Iterate characters of the text with their positions to render.
     ///
     /// Positions of characters are calculated during this iteration.
-    pub fn calculate_character_render_positions(&self) -> impl Iterator<Item = (&Character, Point<i32>)> {
-        {
-            let mut positions = self.last_rendered_character_positions.borrow_mut();
-            positions.clear();
-        }
+    // pub fn calculate_character_render_positions(&self) -> impl Iterator<Item = (&Character, Point<i32>)> {
+    pub fn calculate_character_render_positions(&self) -> Result {
+        let mut positions: Vec<Point<i32>> = Vec::new();
+        let mut sizes: Vec<Size<u32>> = Vec::new();
 
-        self.lines.iter().enumerate().flat_map(move |(line_index, line)| {
+        for (line_index, line) in self.lines.iter().enumerate() {
             let line_relative_position = &self.line_positions[line_index];
 
             let mut word_x = 0;
-            line.words.iter().flat_map(move |word| {
+            for word in line.words.iter() {
                 let word_relative_position = Point {
                     x: word_x + line_relative_position.x,
                     y: line_relative_position.y
@@ -408,7 +404,7 @@ impl WholeText<'_> {
                 word_x += word.size.width as i32;
 
                 let mut character_x = 0;
-                word.characters.iter().map(move |character| {
+                for character in word.characters.iter() {
                     let character_relative_position = Point {
                         x: character_x + word_relative_position.x,
                         y: word_relative_position.y
@@ -421,50 +417,47 @@ impl WholeText<'_> {
                         y: character_relative_position.y
                     };
 
-                    let mut positions = self.last_rendered_character_positions.borrow_mut();
                     positions.push(absolute_position.clone());
-
-                    (character, absolute_position)
-                })
-            })
-        })
-    }
-
-    /// Searches for the character at the given position.
-    ///
-    /// using this method because it calculates the positions of the characters.
-    pub fn character_at_position(&self, position: Point<i32>) -> (usize, Option<&Character>) {
-        let positions = self.last_rendered_character_positions.borrow();
-
-        if positions.is_empty() {
-            return (0, None);
-        }
-
-        let mut character_index = 0;
-
-        for line in self.lines.iter() {
-            for word in line.words.iter() {
-                for character in word.characters.iter() {
-                    println!("char: {:?}", character);
-                    let character_position = positions.get(character_index).unwrap();
-
-                    let character_rectangle = Rectangle {
-                        origin: character_position.clone(),
-                        size: character.size.clone()
-                    };
-
-                    println!("char: {:?} - {:?} in {:?}, {:?}" , character, position, character_position, character.size);
-
-                    if character_rectangle.contains(&position) {
-                        return (character_index, Some(character));
-                    }
-
-                    character_index += 1;
+                    sizes.push(character.size.clone());
                 }
             }
         }
 
-        (0, None)
+        Result {
+            positions,
+            sizes
+        }
+    }
+}
+
+impl Result {
+    /// Find the position for a given character.
+    ///
+    /// Returns `None` if the character is not found.
+    pub fn position_for_character_at_index(&self, index: usize) -> Option<Point<i32>> {
+        self.positions.get(index).cloned()
+    }
+
+    /// Returns the character index for a given position.
+    ///
+    /// Returns `None` if the character is not found.
+    pub fn character_at_position(&self, position: Point<i32>) -> Option<usize> {
+        for (index, character_position) in self.positions.iter().enumerate() {
+            let size = self.sizes.get(index).unwrap();
+
+            let character_rectangle = Rectangle {
+                origin: character_position.clone(),
+                size: size.clone()
+            };
+
+            // println!("char: {:?} - {:?} in {:?}, {:?}" , character, position, character_position, character.size);
+
+            if character_rectangle.contains(&position) {
+                return Some(index);
+            }
+        }
+
+        None
     }
 }
 
@@ -853,76 +846,49 @@ mod tests {
         let frame = Rectangle::new(50, 50, 100, 100);
         let text = WholeText::from(&attributed_string, frame, 1.0);
 
-        for _ in text.calculate_character_render_positions() {}
+        let result = text.calculate_character_render_positions();
 
-        let (index, character) = text.character_at_position(Point::new(10, 5));
-        let character = character.unwrap();
-        assert_eq!(character.character, 'H');
-        assert_eq!(index, 0);
+        let index = result.character_at_position(Point::new(10, 5));
+        assert_eq!(index.unwrap(), 0);
 
-        let (index, character) = text.character_at_position(Point::new(15, 5));
-        let character = character.unwrap();
-        assert_eq!(character.character, 'e');
-        assert_eq!(index, 1);
+        let index = result.character_at_position(Point::new(15, 5));
+        assert_eq!(index.unwrap(), 1);
 
-        let (index, character) = text.character_at_position(Point::new(22, 5));
-        let character = character.unwrap();
-        assert_eq!(character.character, 'l');
-        assert_eq!(index, 2);
+        let index = result.character_at_position(Point::new(22, 5));
+        assert_eq!(index.unwrap(), 2);
 
-        let (index, character) = text.character_at_position(Point::new(28, 5));
-        let character = character.unwrap();
-        assert_eq!(character.character, 'l');
-        assert_eq!(index, 3);
+        let index = result.character_at_position(Point::new(28, 5));
+        assert_eq!(index.unwrap(), 3);
 
-        let (index, character) = text.character_at_position(Point::new(34, 5));
-        let character = character.unwrap();
-        assert_eq!(character.character, 'o');
-        assert_eq!(index, 4);
+        let index = result.character_at_position(Point::new(34, 5));
+        assert_eq!(index.unwrap(), 4);
 
-        let (index, character) = text.character_at_position(Point::new(40, 5));
-        let character = character.unwrap();
-        assert_eq!(character.character, ',');
-        assert_eq!(index, 5);
+        let index = result.character_at_position(Point::new(40, 5));
+        assert_eq!(index.unwrap(), 5);
 
-        let (index, character) = text.character_at_position(Point::new(45, 5));
-        let character = character.unwrap();
-        assert_eq!(character.character, ' ');
-        assert_eq!(index, 6);
+        let index = result.character_at_position(Point::new(45, 5));
+        assert_eq!(index.unwrap(), 6);
 
-        let (index, character) = text.character_at_position(Point::new(50, 5));
-        let character = character.unwrap();
-        assert_eq!(character.character, 'w');
-        assert_eq!(index, 7);
+        let index = result.character_at_position(Point::new(50, 5));
+        assert_eq!(index.unwrap(), 7);
 
-        let (index, character) = text.character_at_position(Point::new(62, 5));
-        let character = character.unwrap();
-        assert_eq!(character.character, 'o');
-        assert_eq!(index, 8);
+        let index = result.character_at_position(Point::new(62, 5));
+        assert_eq!(index.unwrap(), 8);
 
-        let (index, character) = text.character_at_position(Point::new(68, 5));
-        let character = character.unwrap();
-        assert_eq!(character.character, 'r');
-        assert_eq!(index, 9);
+        let index = result.character_at_position(Point::new(68, 5));
+        assert_eq!(index.unwrap(), 9);
 
-        let (index, character) = text.character_at_position(Point::new(74, 5));
-        let character = character.unwrap();
-        assert_eq!(character.character, 'l');
-        assert_eq!(index, 10);
+        let index = result.character_at_position(Point::new(74, 5));
+        assert_eq!(index.unwrap(), 10);
 
-        let (index, character) = text.character_at_position(Point::new(80, 5));
-        let character = character.unwrap();
-        assert_eq!(character.character, 'd');
-        assert_eq!(index, 11);
+        let index = result.character_at_position(Point::new(80, 5));
+        assert_eq!(index.unwrap(), 11);
 
-        let (index, character) = text.character_at_position(Point::new(88, 5));
-        let character = character.unwrap();
-        assert_eq!(character.character, '!');
-        assert_eq!(index, 12);
+        let index = result.character_at_position(Point::new(88, 5));
+        assert_eq!(index.unwrap(), 12);
 
-        let (index, character) = text.character_at_position(Point::new(91, 5));
-        assert!(character.is_none());
-        assert_eq!(index, 0);
+        let index = result.character_at_position(Point::new(91, 5));
+        assert!(index.is_none());
     }
 
     #[test]
@@ -934,75 +900,66 @@ mod tests {
 
         assert_eq!(text.lines.len(), 2);
 
-        for _ in text.calculate_character_render_positions() {}
+        let result = text.calculate_character_render_positions();
 
-        let (index, character) = text.character_at_position(Point::new(10, 5));
-        let character = character.unwrap();
-        assert_eq!(character.character, 'H');
-        assert_eq!(index, 0);
+        let index = result.character_at_position(Point::new(10, 5));
+        assert_eq!(index.unwrap(), 0);
 
-        let (index, character) = text.character_at_position(Point::new(15, 5));
-        let character = character.unwrap();
-        assert_eq!(character.character, 'e');
-        assert_eq!(index, 1);
+        let index = result.character_at_position(Point::new(15, 5));
+        assert_eq!(index.unwrap(), 1);
 
-        let (index, character) = text.character_at_position(Point::new(22, 5));
-        let character = character.unwrap();
-        assert_eq!(character.character, 'l');
-        assert_eq!(index, 2);
+        let index = result.character_at_position(Point::new(22, 5));
+        assert_eq!(index.unwrap(), 2);
 
-        let (index, character) = text.character_at_position(Point::new(28, 5));
-        let character = character.unwrap();
-        assert_eq!(character.character, 'l');
-        assert_eq!(index, 3);
+        let index = result.character_at_position(Point::new(28, 5));
+        assert_eq!(index.unwrap(), 3);
 
-        let (index, character) = text.character_at_position(Point::new(34, 5));
-        let character = character.unwrap();
-        assert_eq!(character.character, 'o');
-        assert_eq!(index, 4);
+        let index = result.character_at_position(Point::new(34, 5));
+        assert_eq!(index.unwrap(), 4);
 
-        let (index, character) = text.character_at_position(Point::new(40, 5));
-        let character = character.unwrap();
-        assert_eq!(character.character, ',');
-        assert_eq!(index, 5);
+        let index = result.character_at_position(Point::new(40, 5));
+        assert_eq!(index.unwrap(), 5);
 
-        let (index, character) = text.character_at_position(Point::new(45, 5));
-        let character = character.unwrap();
-        assert_eq!(character.character, ' ');
-        assert_eq!(index, 6);
+        let index = result.character_at_position(Point::new(45, 5));
+        assert_eq!(index.unwrap(), 6);
 
-        let (index, character) = text.character_at_position(Point::new(0, 26));
-        let character = character.unwrap();
-        assert_eq!(character.character, 'w');
-        assert_eq!(index, 7);
+        let index = result.character_at_position(Point::new(0, 26));
+        assert_eq!(index.unwrap(), 7);
 
-        let (index, character) = text.character_at_position(Point::new(16, 26));
-        let character = character.unwrap();
-        assert_eq!(character.character, 'o');
-        assert_eq!(index, 8);
+        let index = result.character_at_position(Point::new(16, 26));
+        assert_eq!(index.unwrap(), 8);
 
-        let (index, character) = text.character_at_position(Point::new(25, 26));
-        let character = character.unwrap();
-        assert_eq!(character.character, 'r');
-        assert_eq!(index, 9);
+        let index = result.character_at_position(Point::new(25, 26));
+        assert_eq!(index.unwrap(), 9);
 
-        let (index, character) = text.character_at_position(Point::new(28, 26));
-        let character = character.unwrap();
-        assert_eq!(character.character, 'l');
-        assert_eq!(index, 10);
+        let index = result.character_at_position(Point::new(28, 26));
+        assert_eq!(index.unwrap(), 10);
 
-        let (index, character) = text.character_at_position(Point::new(32, 26));
-        let character = character.unwrap();
-        assert_eq!(character.character, 'd');
-        assert_eq!(index, 11);
+        let index = result.character_at_position(Point::new(32, 26));
+        assert_eq!(index.unwrap(), 11);
 
-        let (index, character) = text.character_at_position(Point::new(42, 26));
-        let character = character.unwrap();
-        assert_eq!(character.character, '!');
-        assert_eq!(index, 12);
+        let index = result.character_at_position(Point::new(42, 26));
+        assert_eq!(index.unwrap(), 12);
 
-        let (index, character) = text.character_at_position(Point::new(50, 26));
-        assert!(character.is_none());
-        assert_eq!(index, 0);
+        let index = result.character_at_position(Point::new(50, 26));
+        assert!(index.is_none());
+    }
+
+    #[test]
+    fn test_position_for_character_at_index() {
+        let attributed_string = AttributedString::new(String::from("Hello, world!"));
+
+        let frame = Rectangle::new(0, 0, 50, 100);
+        let text = WholeText::from(&attributed_string, frame, 1.0);
+
+        assert_eq!(text.lines.len(), 2);
+
+        let result = text.calculate_character_render_positions();
+
+        let position_for_character_at_index = result.position_for_character_at_index(0).unwrap();
+        assert_eq!(position_for_character_at_index, Point::new(0, 0));
+
+        let position_for_character_at_index = result.position_for_character_at_index(1).unwrap();
+        assert_eq!(position_for_character_at_index, Point::new(12, 0));
     }
 }

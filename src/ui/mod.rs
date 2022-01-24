@@ -14,7 +14,7 @@ pub mod timer;
 mod touch;
 use touch::Touch;
 
-mod view;
+pub mod view;
 pub use view::View;
 pub use view::WeakView;
 pub use view::ImageView;
@@ -23,6 +23,7 @@ mod view_controller;
 pub use view_controller::ViewControllerBehavior;
 pub use view_controller::ViewController;
 pub use view::ScrollView;
+pub use view::TextField;
 
 pub mod gesture;
 

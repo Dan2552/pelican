@@ -33,7 +33,7 @@ macro_rules! custom_view {
             $($key: $value),*
         }
         impl $view {
-            pub fn new_all(frame: crate::graphics::Rectangle<i32, u32>, $($key: $value),*) -> Self {
+            pub(crate) fn new_all(frame: crate::graphics::Rectangle<i32, u32>, $($key: $value),*) -> Self {
                 let super_behavior = $super {
                     view: crate::ui::WeakView::none()
                 };

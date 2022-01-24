@@ -7,6 +7,7 @@ mod delegate;
 mod image_view;
 mod label;
 mod scroll_view;
+mod text_field;
 
 pub use view::View;
 pub use weak_view::WeakView;
@@ -16,6 +17,7 @@ pub(crate) use view_inner::ViewInner;
 pub use image_view::ImageView;
 pub use label::Label;
 pub use scroll_view::ScrollView;
+pub use text_field::TextField;
 
 #[cfg(test)]
 mod tests {

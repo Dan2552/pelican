@@ -26,6 +26,9 @@ name = "label"
 name = "scroll"
 
 [[example]]
+name = "text_field"
+
+[[example]]
 name = "pan_gesture"
 
 [[example]]
