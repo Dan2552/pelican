@@ -94,6 +94,27 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "Debug example 'text_field'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=text_field",
+                    "--package=pelican"
+                ],
+                "filter": {
+                    "name": "text_field",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "LIBRARY_PATH": "/opt/homebrew/lib"
+            }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "Debug example 'ui'",
             "cargo": {
                 "args": [

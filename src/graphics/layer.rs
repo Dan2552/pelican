@@ -86,13 +86,15 @@ impl Layer {
         Layer::new(context, size, Box::new(EmptyLayerDelegate {}))
     }
 
-    // TODO: pub(crate)
-    //
     // Requests for the delegate to draw on this layer.
     pub fn draw(&self) {
-        self.needs_display.set(false);
         self.delegate.layer_will_draw(self);
         self.delegate.draw_layer(self);
+        self.needs_display.set(false);
+    }
+
+    pub(crate) fn skip_draw(&self) {
+        self.needs_display.set(false);
     }
 
     pub(crate) fn get_needs_display(&self) -> bool {

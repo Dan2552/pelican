@@ -27,13 +27,13 @@ impl Behavior for DefaultBehavior {
     fn set_needs_display(&self) {
         let view = self.view.upgrade().unwrap().clone();
 
-        let mut inner_self = view.inner_self.borrow_mut();
+        let inner_self = view.inner_self.borrow();
 
         // The layer may not yet exist for this view if it's not drawn to the
         // context at least once. But this is ok, because when a layer is set
         // by `render::window_display()` it will be be implied needs display as
         // default.
-        if let Some(layer) = &mut inner_self.layer {
+        if let Some(layer) = &inner_self.layer {
             if layer.get_needs_display() {
                 return;
             }

@@ -309,11 +309,18 @@ impl View {
     pub fn set_frame(&self, frame: Rectangle<i32, u32>) {
         {
             let mut inner_self = self.inner_self.borrow_mut();
-            inner_self.frame = frame;
-            inner_self.bounds = Rectangle {
+
+            let bounds = Rectangle {
                 origin: inner_self.bounds.origin.clone(),
                 size: inner_self.frame.size.clone(),
             };
+
+            if inner_self.frame == frame && inner_self.bounds == bounds {
+                return;
+            }
+
+            inner_self.frame = frame;
+            inner_self.bounds = bounds;
         }
 
         self.set_needs_display();
