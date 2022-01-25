@@ -267,19 +267,29 @@ impl LineOfText {
     /// However, if the last character in the line is whitespace, it will not
     /// be included in the size. This is because if the line wraps, we don't
     /// want it to affect the alignment (center or right) of the line.
+    ///
+    /// In addition, line height (20% more than the font height) is included
+    /// here.
     fn visual_size(&self) -> Size<u32> {
+        // 20% of height
+        let additional_height = self.size.height as f32 * 0.2;
+        let height = self.size.height as f32 + additional_height;
+        let height = height.round() as u32;
+
         if let Some(last_word) = self.words.last() {
             if let Some(last_character) = last_word.characters.last() {
                 if last_character.is_whitespace() {
                     return Size {
                         width: self.size.width - last_character.size.width,
-                        height: self.size.height
+                        height: height
                     };
                 }
             }
         }
 
-        self.size.clone()
+        let width = self.size.width;
+
+        Size { width, height }
     }
 }
 
@@ -321,7 +331,7 @@ impl WholeText<'_> {
     }
 
     fn lines_total_height(&self) -> u32 {
-        self.lines.iter().fold(0, |acc, line| acc + line.size.height)
+        self.lines.iter().fold(0, |acc, line| acc + line.visual_size().height)
     }
 
     pub fn attributed_string(&self) -> &AttributedString {
@@ -357,8 +367,10 @@ impl WholeText<'_> {
             VerticalAlignment::Top => {
                 let mut line_y = 0;
                 for (index, line) in self.lines.iter().enumerate() {
-                    self.line_positions[index].y = line_y;
-                    line_y += line.size.height as i32;
+                    let line_height = line.visual_size().height;
+                    let around_line_height = ((line_height - line.size.height) as f32 * 0.5).round() as i32;
+                    self.line_positions[index].y = line_y + around_line_height;
+                    line_y += line.size.height as i32 + around_line_height;
                 }
             }
             VerticalAlignment::Middle => {
@@ -369,7 +381,7 @@ impl WholeText<'_> {
                 let mut line_y = top_left_y.round() as i32;
                 for (index, line) in self.lines.iter().enumerate() {
                     self.line_positions[index].y = line_y;
-                    line_y += line.size.height as i32;
+                    line_y += line.visual_size().height as i32;
                 }
             }
             VerticalAlignment::Bottom => {
@@ -377,7 +389,7 @@ impl WholeText<'_> {
                 let mut line_y = bottom_y;
                 for (index, line) in self.lines.iter().enumerate() {
                     self.line_positions[index].y = line_y;
-                    line_y += line.size.height as i32;
+                    line_y += line.visual_size().height as i32;
                 }
             }
         }
@@ -690,7 +702,7 @@ mod tests {
         let frame = Rectangle::new(0, 0, 100, 100);
         let text = WholeText::from(&attributed_string, frame, 1.0);
 
-        assert_eq!(text.lines_total_height(), 48);
+        assert_eq!(text.lines_total_height(), 57);
     }
 
     #[test]
@@ -797,8 +809,8 @@ mod tests {
         let line1_position = &text.line_positions[0];
         let line2_position = &text.line_positions[1];
 
-        assert_eq!(line1_position.y, 0);
-        assert_eq!(line2_position.y, 16);
+        assert_eq!(line1_position.y, 2);
+        assert_eq!(line2_position.y, 20);
     }
 
     #[test]
@@ -812,8 +824,8 @@ mod tests {
         let line1_position = &text.line_positions[0];
         let line2_position = &text.line_positions[1];
 
-        assert_eq!(line1_position.y, 26);
-        assert_eq!(line2_position.y, 42);
+        assert_eq!(line1_position.y, 22);
+        assert_eq!(line2_position.y, 41);
     }
 
     #[test]
@@ -827,8 +839,8 @@ mod tests {
         let line1_position = &text.line_positions[0];
         let line2_position = &text.line_positions[1];
 
-        assert_eq!(line1_position.y, 52);
-        assert_eq!(line2_position.y, 68);
+        assert_eq!(line1_position.y, 43);
+        assert_eq!(line2_position.y, 62);
     }
 
     #[test]
@@ -957,9 +969,9 @@ mod tests {
         let result = text.calculate_character_render_positions();
 
         let position_for_character_at_index = result.position_for_character_at_index(0).unwrap();
-        assert_eq!(position_for_character_at_index, Point::new(0, 0));
+        assert_eq!(position_for_character_at_index, Point::new(0, 2));
 
         let position_for_character_at_index = result.position_for_character_at_index(1).unwrap();
-        assert_eq!(position_for_character_at_index, Point::new(12, 0));
+        assert_eq!(position_for_character_at_index, Point::new(12, 2));
     }
 }

@@ -588,7 +588,7 @@ mod tests {
         view.set_frame(new_frame.clone());
 
         assert_eq!(view.frame(), new_frame);
-        assert_eq!(view.bounds().size(), &Size::new(100, 100));
+        assert_eq!(view.bounds().size(), &Size::new(1000, 1000));
     }
 
     #[test]
