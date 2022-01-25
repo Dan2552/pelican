@@ -49,7 +49,7 @@ custom_view!(
 
             // The frame doesn't matter here, it will be updated later when the
             // view draws.
-            let carat_view = View::new(Rectangle::new(0, 0, 0, 0));
+            let carat_view = View::new(Rectangle::new(0, 0, 1, 1));
 
             carat_view.set_background_color(Color::red());
             carat_view.set_hidden(true);
@@ -85,34 +85,44 @@ custom_view!(
         /// window. Or the line of text that the cursor is sized on have have
         /// changed size.
         fn position_cursors(&self) {
-            let behavior = self.view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<TextFieldBehavior>().unwrap();
-            let carats = behavior.carats.borrow();
+            let label = self.label();
+            let label_behavior = label.behavior();
 
+            let behavior = self.behavior();
+            let carats = behavior.carats.borrow();
             let layer = self.view.layer().unwrap();
             let render_scale = layer.context().render_scale;
+
+            let rendering = label_behavior.rendering();
+
+            if rendering.is_none() {
+                for carat in carats.iter() {
+                    let carat_view = carat.view.upgrade().unwrap();
+                    carat_view.set_hidden(true);
+                }
+                return;
+            }
+
+            let rendering = rendering.as_ref().unwrap();
 
             for carat in carats.iter() {
                 let character_index = carat.character_index;
                 let label_origin = &self.label().view.frame().origin;
+                let carat_view = carat.view.upgrade().unwrap();
+                let cursor_rectangle = rendering.cursor_rectangle_for_character_at_index(character_index);
 
-                let origin: Point<i32>;
-                if let Some(character_origin) = self.label().position_for_character_at_index(character_index) {
-                    origin = Point {
-                        x: (character_origin.x as f32 / render_scale).round() as i32 + label_origin.x - 1,
-                        y: (character_origin.y as f32 / render_scale).round() as i32 + label_origin.y
-                    };
-                } else {
-                    origin = Point {
-                        x: label_origin.x - 1,
-                        y: label_origin.y
-                    };
-                }
+                let cursor_rectangle = Rectangle {
+                    origin: Point {
+                        x: (cursor_rectangle.origin.x as f32 / render_scale).round() as i32 + label_origin.x,
+                        y: (cursor_rectangle.origin.y as f32 / render_scale).round() as i32 + label_origin.y
+                    },
+                    size: Size {
+                        width: (cursor_rectangle.size.width as f32 / render_scale).round() as u32,
+                        height: (cursor_rectangle.size.height as f32 / render_scale).round() as u32
+                    }
+                };
 
-                // TODO: line height
-                let size = Size::new(2, 14);
-                let frame = Rectangle { origin, size };
-                carat.view.upgrade().unwrap().set_frame(frame);
+                carat_view.set_frame(cursor_rectangle);
             }
         }
     }

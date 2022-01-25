@@ -33,6 +33,8 @@ macro_rules! custom_view {
             $($key: $value),*
         }
         impl $view {
+            #![allow(dead_code)]
+
             pub(crate) fn new_all(frame: crate::graphics::Rectangle<i32, u32>, $($key: $value),*) -> Self {
                 let super_behavior = $super {
                     view: crate::ui::WeakView::none()
@@ -55,11 +57,18 @@ macro_rules! custom_view {
                 Self { view }
             }
 
+            pub fn behavior(&self) -> std::cell::Ref<'_, $behavior> {
+                std::cell::Ref::map(self.view.behavior.borrow(), |behavior| {
+                    behavior.as_any().downcast_ref::<$behavior>().unwrap()
+                })
+            }
+
             $($($custom_view_impl)*)?
         }
 
         impl $behavior {
             #![allow(dead_code)]
+
             fn view_type(&self) -> $view {
                 $view::from_view(self.view.upgrade().unwrap())
             }

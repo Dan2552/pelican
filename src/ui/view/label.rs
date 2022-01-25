@@ -1,7 +1,7 @@
-use crate::graphics::{Point, Rectangle, Font, Size};
+use crate::graphics::{Rectangle, Font, Size};
 use crate::ui::Color;
 use crate::ui::view::{Behavior, DefaultBehavior};
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, RefCell, Ref};
 use crate::text::attributed_string::{AttributedString, Key, Attribute};
 use crate::text::rendering;
 use crate::macros::*;
@@ -127,36 +127,6 @@ custom_view!(
 
             self.view.set_frame(frame);
         }
-
-        /// Find the position for a given character.
-        ///
-        /// Returns `None` if the character is not found.
-        pub fn position_for_character_at_index(&self, index: usize) -> Option<Point<i32>> {
-            let behavior = &self.view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
-            let rendering_result = behavior.rendering_result.borrow();
-
-            if let Some(rendering_result) = rendering_result.as_ref() {
-                rendering_result.position_for_character_at_index(index)
-            } else {
-                None
-            }
-        }
-
-        /// Returns the character index for a given position.
-        ///
-        /// Returns `None` if the character is not found.
-        pub fn character_at_position(&self, position: Point<i32>) -> Option<usize> {
-            let behavior = &self.view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
-            let rendering_result = behavior.rendering_result.borrow();
-
-            if let Some(rendering_result) = rendering_result.as_ref() {
-                rendering_result.character_at_position(position)
-            } else {
-                None
-            }
-        }
     }
 
     impl Behavior {
@@ -226,6 +196,12 @@ custom_view!(
         }
     }
 );
+
+impl LabelBehavior {
+    pub fn rendering(&self) -> Ref<'_, Option<rendering::Result>> {
+        Ref::map(self.rendering_result.borrow(), |rendering_result| rendering_result)
+    }
+}
 
 #[cfg(test)]
 mod tests {

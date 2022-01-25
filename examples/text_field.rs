@@ -2,7 +2,6 @@ use pelican::graphics::Rectangle;
 use pelican::ui::{View, Window, Color};
 use pelican::ui::{ApplicationMain, ApplicationDelegate};
 use pelican::ui::{ViewController, ViewControllerBehavior};
-use pelican::ui::ScrollView;
 use pelican::ui::button::Button;
 use pelican::ui::TextField;
 

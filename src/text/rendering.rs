@@ -85,7 +85,8 @@ pub struct WholeText<'a> {
 
 pub struct Result {
     positions: Vec<Point<i32>>,
-    sizes: Vec<Size<u32>>
+    sizes: Vec<Size<u32>>,
+    line_heights: Vec<u32>
 }
 
 impl Character {
@@ -402,9 +403,11 @@ impl WholeText<'_> {
     pub fn calculate_character_render_positions(&self) -> Result {
         let mut positions: Vec<Point<i32>> = Vec::new();
         let mut sizes: Vec<Size<u32>> = Vec::new();
+        let mut line_heights: Vec<u32> = Vec::new();
 
         for (line_index, line) in self.lines.iter().enumerate() {
             let line_relative_position = &self.line_positions[line_index];
+            let line_height = line.visual_size().height;
 
             let mut word_x = 0;
             for word in line.words.iter() {
@@ -431,13 +434,15 @@ impl WholeText<'_> {
 
                     positions.push(absolute_position.clone());
                     sizes.push(character.size.clone());
+                    line_heights.push(line_height);
                 }
             }
         }
 
         Result {
             positions,
-            sizes
+            sizes,
+            line_heights
         }
     }
 }
@@ -470,6 +475,37 @@ impl Result {
         }
 
         None
+    }
+
+    /// Returns the line height for a given character.
+    ///
+    /// Returns `None` if the character is not found.
+    pub fn line_height_for_character_at_index(&self, index: usize) -> Option<u32> {
+        self.line_heights.get(index).cloned()
+    }
+
+    /// Returns the cursor rectangle for a given character.
+    ///
+    /// Returns the same as the last character if no character at the index is
+    /// found.
+    pub fn cursor_rectangle_for_character_at_index(&self, index: usize) -> Rectangle<i32, u32> {
+        let position = self.positions.get(index).unwrap_or(&self.positions.last().unwrap());
+        let line_height = self.line_heights.get(index).unwrap_or(&self.line_heights.last().unwrap());
+        let character_size = self.sizes.get(index).unwrap();
+        let around_line_height = ((line_height - character_size.height) as f32 * 0.5).round() as i32;
+
+        let height = line_height - around_line_height as u32;
+
+        Rectangle {
+            origin: Point {
+                x: position.x,
+                y: position.y - around_line_height
+            },
+            size: Size {
+                width: 2,
+                height: height
+            }
+        }
     }
 }
 
@@ -973,5 +1009,41 @@ mod tests {
 
         let position_for_character_at_index = result.position_for_character_at_index(1).unwrap();
         assert_eq!(position_for_character_at_index, Point::new(12, 2));
+    }
+
+    #[test]
+    fn test_line_height_for_character_at_index() {
+        let attributed_string = AttributedString::new(String::from("Hello, world!"));
+
+        let frame = Rectangle::new(0, 0, 50, 100);
+        let text = WholeText::from(&attributed_string, frame, 1.0);
+
+        assert_eq!(text.lines.len(), 2);
+
+        let result = text.calculate_character_render_positions();
+
+        let line_height_for_character_at_index = result.line_height_for_character_at_index(0).unwrap();
+        assert_eq!(line_height_for_character_at_index, 19);
+
+        let line_height_for_character_at_index = result.line_height_for_character_at_index(1).unwrap();
+        assert_eq!(line_height_for_character_at_index, 19);
+    }
+
+    #[test]
+    fn test_cursor_rectangle_for_character_at_index() {
+        let attributed_string = AttributedString::new(String::from("Hello, world!"));
+
+        let frame = Rectangle::new(0, 0, 50, 100);
+        let text = WholeText::from(&attributed_string, frame, 1.0);
+
+        assert_eq!(text.lines.len(), 2);
+
+        let result = text.calculate_character_render_positions();
+
+        let cursor_rectangle_for_character_at_index = result.cursor_rectangle_for_character_at_index(0);
+        assert_eq!(cursor_rectangle_for_character_at_index, Rectangle::new(0, 0, 2, 17));
+
+        let cursor_rectangle_for_character_at_index = result.cursor_rectangle_for_character_at_index(1);
+        assert_eq!(cursor_rectangle_for_character_at_index, Rectangle::new(12, 0, 2, 17));
     }
 }
