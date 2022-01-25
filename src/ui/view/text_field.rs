@@ -42,8 +42,7 @@ custom_view!(
         }
 
         pub fn spawn_carat(&self, character_index: usize) {
-            let behavior = self.view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<TextFieldBehavior>().unwrap();
+            let behavior = self.behavior();
             let mut carats = behavior.carats.borrow_mut();
 
 

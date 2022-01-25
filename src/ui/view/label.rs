@@ -43,80 +43,69 @@ custom_view!(
         }
 
         pub fn text(&self) -> String {
-            let behavior = &self.view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
+            let behavior = self.behavior();
             let text = behavior.text.borrow();
             text.clone()
         }
 
         pub fn set_text(&self, text: String) {
-            let behavior = &self.view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
+            let behavior = self.behavior();
             behavior.attributed_text.replace(None);
             behavior.text.replace(text);
             behavior.set_needs_display();
         }
 
         pub fn set_attributed_text(&self, attributed_text: AttributedString) {
-            let behavior = &self.view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
+            let behavior = self.behavior();
             behavior.text.replace(String::from(attributed_text.text()));
             behavior.attributed_text.replace(Some(attributed_text));
             behavior.set_needs_display();
         }
 
         pub fn set_text_color(&self, text_color: Color) {
-            let behavior = &self.view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
+            let behavior = self.behavior();
             behavior.text_color.replace(text_color);
             behavior.set_needs_display();
         }
 
         pub fn text_color(&self) -> Color {
-            let behavior = &self.view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
+            let behavior = self.behavior();
             let text_color = behavior.text_color.borrow();
             text_color.clone()
         }
 
         pub fn set_font(&self, font: Font) {
-            let behavior = &self.view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
+            let behavior = self.behavior();
             behavior.font.replace(font);
             behavior.set_needs_display();
         }
 
         pub fn font(&self) -> Font {
-            let behavior = &self.view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
+            let behavior = self.behavior();
             let font = behavior.font.borrow();
             font.clone()
         }
 
         pub fn set_text_alignment(&self, text_alignment: HorizontalAlignment) {
-            let behavior = &self.view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
+            let behavior = self.behavior();
             behavior.text_alignment.set(text_alignment);
             behavior.set_needs_display();
         }
 
         pub fn text_alignment(&self) -> HorizontalAlignment {
-            let behavior = &self.view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
+            let behavior = self.behavior();
             behavior.text_alignment.get()
         }
 
         pub fn set_vertical_alignment(&self, text_vertical_alignment: VerticalAlignment) {
-            let behavior = &self.view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
+            let behavior = self.behavior();
             behavior.text_vertical_alignment.set(text_vertical_alignment);
             behavior.set_needs_display();
         }
 
         /// Resizes the view's frame to fit the size of the text.
         pub fn fit_to_text(&self) {
-            let behavior = &self.view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
+            let behavior = self.behavior();
             let text = behavior.text.borrow().clone();
             let font = behavior.font.borrow();
 

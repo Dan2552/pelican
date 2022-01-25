@@ -180,14 +180,12 @@ custom_view!(
         }
 
         fn percent(&self) -> u8 {
-            let behavior = self.view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<ScrollBarViewBehavior>().unwrap();
+            let behavior = self.behavior();
             behavior.percent.get()
         }
 
         fn set_percent(&self, percent: u8) {
-            let behavior = self.view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<ScrollBarViewBehavior>().unwrap();
+            let behavior = self.behavior();
             behavior.percent.set(percent);
             self.update_scroll_handle();
         }
@@ -197,8 +195,7 @@ custom_view!(
         }
 
         fn direction(&self) -> ScrollBarDirection {
-            let behavior = self.view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<ScrollBarViewBehavior>().unwrap();
+            let behavior = self.behavior();
             behavior.direction
         }
 

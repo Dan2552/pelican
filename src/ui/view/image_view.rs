@@ -4,11 +4,11 @@ use std::cell::RefCell;
 use crate::macros::*;
 
 custom_view!(
-    ImageView subclasses DefaultBehavior 
-    
+    ImageView subclasses DefaultBehavior
+
     struct ImageViewBehavior {
         image: RefCell<Image<'static>>
-    } 
+    }
 
     impl Self {
         pub fn new(image: Image<'static>, origin: Point<i32>) -> ImageView {
@@ -17,7 +17,7 @@ custom_view!(
             Self::new_all(frame, RefCell::new(image))
         }
     }
-    
+
     impl Behavior {
         fn draw(&self) {
             // TODO: if image is @2x, scale differently

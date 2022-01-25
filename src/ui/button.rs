@@ -55,8 +55,7 @@ custom_view!(
         }
 
         pub fn set_pressed_text_color(&self, color: Color) {
-            let behavior = self.view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<ButtonBehavior>().unwrap();
+            let behavior = self.behavior();
 
             behavior.pressed_text_color.replace(color);
         }
