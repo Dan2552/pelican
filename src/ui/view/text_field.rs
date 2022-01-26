@@ -11,7 +11,14 @@ use std::time::Duration;
 
 pub(crate) struct Carat {
     view: WeakView,
-    character_index: usize
+    character_index: usize,
+    selection: Option<Selection>
+}
+
+pub(crate) struct Selection {
+    start: usize,
+    end: usize,
+    views: Vec<WeakView>
 }
 
 custom_view!(
@@ -57,7 +64,8 @@ custom_view!(
 
             let carat = Carat {
                 view: carat_view.downgrade(),
-                character_index
+                character_index,
+                selection: None
             };
 
             carats.push(carat);
