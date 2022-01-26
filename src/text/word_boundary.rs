@@ -1,19 +1,13 @@
 /// Finds a word boundary in a string.
 pub fn find_word_boundary(text: &str, index: usize, rightwards: bool) -> usize {
-    // let boundaries = vec![" ", "\t", "\n", "\"", "'", "`", "@", "$", ">", "<", "=", ";", ":", "|", "&", "{", "(", ")", "}", ",", "."];
-    // let whitespace = vec![" ", "\t"];
-
     let mut index = index;
     let mut has_seen_at_least_one_non_boundary = false;
     let mut only_whitespace_boundaries = true;
 
     if rightwards {
         while index < text.len() {
-            println!("!!!!!");
-            println!("{:?} vs {:?}", text.chars().nth(index), &text[index..index + 1]);
             let character = text.chars().nth(index).unwrap();
             if !(character.is_alphanumeric() || character == '_') {
-            // if boundaries.contains(&&text[index..index + 1]) {
                 let whitespace = character.is_whitespace();
 
                 if !whitespace { only_whitespace_boundaries = false; }
