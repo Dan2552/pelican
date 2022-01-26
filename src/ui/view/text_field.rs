@@ -234,7 +234,6 @@ custom_view!(
         }
 
         fn touches_ended(&self, touches: &Vec<Touch>) {
-            println!("touches ended");
             let view = self.view.upgrade().unwrap();
             let text_field = TextField::from_view(view.clone());
 

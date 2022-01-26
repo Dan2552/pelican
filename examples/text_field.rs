@@ -5,8 +5,6 @@ use pelican::ui::{ViewController, ViewControllerBehavior};
 use pelican::ui::button::Button;
 use pelican::ui::TextField;
 
-static mut n: usize = 0;
-
 struct ExampleViewController {}
 impl ViewControllerBehavior for ExampleViewController {
     fn view_did_load(&self, view: View) {
@@ -17,9 +15,6 @@ impl ViewControllerBehavior for ExampleViewController {
 
         let frame = Rectangle::new(10, 50, 180, 32);
         let button = Button::new(frame, "Carat", move || {
-            // unsafe { text_field_clone.spawn_carat(n) };
-            // println!("spawned carat");
-            // unsafe { n = n + 1 };
             text_field_clone.select(0, 0, 5);
         });
         view.add_subview(button.view);
