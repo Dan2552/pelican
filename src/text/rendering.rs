@@ -455,22 +455,40 @@ impl Result {
         self.positions.get(index).cloned()
     }
 
-    /// Returns the character index for a given position.
+    /// Returns the character index for a given position. Intended to be used
+    /// for determining where to place the carat from a tap or click.
+    ///
+    /// If the position is over halfway for a given character, the following
+    /// character index is returned.
     ///
     /// Returns `None` if the character is not found.
     pub fn character_at_position(&self, position: Point<i32>) -> Option<usize> {
         for (index, character_position) in self.positions.iter().enumerate() {
             let size = self.sizes.get(index).unwrap();
 
-            let character_rectangle = Rectangle {
+            let character_rectangle_lhs = Rectangle {
                 origin: character_position.clone(),
-                size: size.clone()
+                size: Size {
+                    width: size.width / 2,
+                    height: size.height
+                }
             };
 
-            // println!("char: {:?} - {:?} in {:?}, {:?}" , character, position, character_position, character.size);
+            let character_rectangle_rhs = Rectangle {
+                origin: Point {
+                    x: character_position.x + (size.width as f32 / 2.0).round() as i32,
+                    y: character_position.y
+                },
+                size: Size {
+                    width: size.width / 2,
+                    height: size.height
+                }
+            };
 
-            if character_rectangle.contains(&position) {
+            if character_rectangle_lhs.contains(&position) {
                 return Some(index);
+            } else if character_rectangle_rhs.contains(&position) {
+                return Some(index + 1);
             }
         }
 
@@ -900,8 +918,11 @@ mod tests {
 
         let result = text.calculate_character_render_positions();
 
-        let index = result.character_at_position(Point::new(10, 5));
+        let index = result.character_at_position(Point::new(4, 5));
         assert_eq!(index.unwrap(), 0);
+
+        let index = result.character_at_position(Point::new(10, 5));
+        assert_eq!(index.unwrap(), 1);
 
         let index = result.character_at_position(Point::new(15, 5));
         assert_eq!(index.unwrap(), 1);
@@ -909,16 +930,16 @@ mod tests {
         let index = result.character_at_position(Point::new(22, 5));
         assert_eq!(index.unwrap(), 2);
 
-        let index = result.character_at_position(Point::new(28, 5));
+        let index = result.character_at_position(Point::new(26, 5));
         assert_eq!(index.unwrap(), 3);
 
-        let index = result.character_at_position(Point::new(34, 5));
+        let index = result.character_at_position(Point::new(32, 5));
         assert_eq!(index.unwrap(), 4);
 
         let index = result.character_at_position(Point::new(40, 5));
         assert_eq!(index.unwrap(), 5);
 
-        let index = result.character_at_position(Point::new(45, 5));
+        let index = result.character_at_position(Point::new(42, 5));
         assert_eq!(index.unwrap(), 6);
 
         let index = result.character_at_position(Point::new(50, 5));
@@ -954,7 +975,7 @@ mod tests {
 
         let result = text.calculate_character_render_positions();
 
-        let index = result.character_at_position(Point::new(10, 5));
+        let index = result.character_at_position(Point::new(4, 5));
         assert_eq!(index.unwrap(), 0);
 
         let index = result.character_at_position(Point::new(15, 5));
@@ -963,16 +984,16 @@ mod tests {
         let index = result.character_at_position(Point::new(22, 5));
         assert_eq!(index.unwrap(), 2);
 
-        let index = result.character_at_position(Point::new(28, 5));
+        let index = result.character_at_position(Point::new(24, 5));
         assert_eq!(index.unwrap(), 3);
 
-        let index = result.character_at_position(Point::new(34, 5));
+        let index = result.character_at_position(Point::new(32, 5));
         assert_eq!(index.unwrap(), 4);
 
         let index = result.character_at_position(Point::new(40, 5));
         assert_eq!(index.unwrap(), 5);
 
-        let index = result.character_at_position(Point::new(45, 5));
+        let index = result.character_at_position(Point::new(42, 5));
         assert_eq!(index.unwrap(), 6);
 
         let index = result.character_at_position(Point::new(0, 26));
@@ -981,7 +1002,7 @@ mod tests {
         let index = result.character_at_position(Point::new(16, 26));
         assert_eq!(index.unwrap(), 8);
 
-        let index = result.character_at_position(Point::new(25, 26));
+        let index = result.character_at_position(Point::new(22, 26));
         assert_eq!(index.unwrap(), 9);
 
         let index = result.character_at_position(Point::new(28, 26));
