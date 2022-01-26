@@ -507,6 +507,10 @@ impl Result {
             }
         }
     }
+
+    pub fn character_size_for_character_at_index(&self, index: usize) -> Size<u32> {
+        self.sizes.get(index).unwrap().clone()
+    }
 }
 
 #[cfg(test)]
@@ -1045,5 +1049,23 @@ mod tests {
 
         let cursor_rectangle_for_character_at_index = result.cursor_rectangle_for_character_at_index(1);
         assert_eq!(cursor_rectangle_for_character_at_index, Rectangle::new(12, 0, 2, 17));
+    }
+
+    #[test]
+    fn test_character_size_for_character_at_index() {
+        let attributed_string = AttributedString::new(String::from("Hello, world!"));
+
+        let frame = Rectangle::new(0, 0, 50, 100);
+        let text = WholeText::from(&attributed_string, frame, 1.0);
+
+        assert_eq!(text.lines.len(), 2);
+
+        let result = text.calculate_character_render_positions();
+
+        let character_size_for_character_at_index = result.character_size_for_character_at_index(0);
+        assert_eq!(character_size_for_character_at_index, Size::new(12, 16));
+
+        let character_size_for_character_at_index = result.character_size_for_character_at_index(1);
+        assert_eq!(character_size_for_character_at_index, Size::new(9, 16));
     }
 }
