@@ -7,6 +7,8 @@ use std::cell::RefCell;
 use std::cell::Ref;
 use crate::ui::gesture::recognizer::Recognizer;
 use crate::ui::event::TouchEvent;
+use crate::ui::application::Application;
+use crate::ui::window::Window;
 
 pub struct View {
     /// Some way to compare `View`s (`==`) and `WeakView`s
@@ -393,6 +395,45 @@ impl View {
 
     pub fn subviews(&self) -> Ref<'_, Vec<View>> {
         Ref::map(self.inner_self.borrow(), |inner_self| &inner_self.subviews)
+    }
+
+    /// Request for this view to be the first responder. A first responder
+    /// view will be the first to receive keyboard events. See
+    /// `Behavior::text_input_did_receive`, `Behavior::presses_began`, etc.
+    ///
+    /// Returns `true` if this view was successfully made the first responder.
+    ///
+    /// If this returns `false`, the existing first responder has denied the
+    /// request to switch. That is, the already existing first responder
+    /// returned `false` when `resign_first_responder` was called.
+    ///
+    /// Note: This requires the view to be within the view hierarchy belonging
+    /// to a `Window`. If the view is not in a window, this will return `false`.
+    pub fn become_first_responder(&self) -> bool {
+        let mut current_view = self.clone();
+        loop {
+            if current_view.is_window() {
+                let window = Window::from_view(current_view.clone());
+                window.replace_first_responder(self.clone());
+                return true;
+            }
+
+            if let Some(superview) = current_view.superview().upgrade() {
+                current_view = superview;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    pub fn can_resign_first_responder(&self) -> bool {
+        let behavior = self.behavior.borrow();
+        behavior.can_resign_first_responder()
+    }
+
+    pub fn text_input_did_receive(&self, text: &str) {
+        let behavior = self.behavior.borrow();
+        behavior.text_input_did_receive(text);
     }
 }
 

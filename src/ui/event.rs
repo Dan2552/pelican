@@ -4,6 +4,7 @@ use std::rc::Rc;
 use std::cell::{Ref, RefCell};
 use crate::ui::touch::TouchPhase;
 use crate::graphics::Point;
+use crate::ui::key::Key;
 
 struct TouchEventInner {
     touches: Vec<Touch>
@@ -77,6 +78,36 @@ impl Clone for ScrollEvent {
     }
 }
 
+pub struct PressEvent {
+    inner: Rc<RefCell<PressEventInner>>
+}
+
+struct PressEventInner {
+    key: Key
+}
+
+impl PressEvent {
+    pub(crate) fn new(key: Key) -> PressEvent {
+        PressEvent {
+            inner: Rc::new(RefCell::new(PressEventInner {
+                key
+            }))
+        }
+    }
+
+    pub fn key(&self) -> Ref<'_, Key> {
+        Ref::map(self.inner.borrow(), |inner| &inner.key)
+    }
+}
+
+impl Clone for PressEvent {
+    fn clone(&self) -> Self {
+        PressEvent {
+            inner: self.inner.clone()
+        }
+    }
+}
+
 singleton!(EventArena, touch_event: None, scroll_event: None);
 
 pub(crate) struct EventArena {
@@ -99,6 +130,14 @@ impl EventArena {
         }
 
         self.scroll_event.as_ref().unwrap().clone()
+    }
+
+    pub(crate) fn key_began(&mut self, key: Key) -> PressEvent {
+        PressEvent {
+            inner: Rc::new(RefCell::new(PressEventInner {
+                key
+            }))
+        }
     }
 
     pub(crate) fn touch_began(&mut self, touch: Touch) -> TouchEvent {

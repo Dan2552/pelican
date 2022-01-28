@@ -9,10 +9,11 @@ use crate::ui::timer::Timer;
 use crate::ui::touch::Touch;
 use std::cell::RefCell;
 use std::time::Duration;
+use std::cell::Cell;
 
 pub(crate) struct Carat {
     view: WeakView,
-    character_index: usize,
+    character_index: Cell<usize>,
     selection: Option<Selection>
 }
 
@@ -95,7 +96,7 @@ custom_view!(
 
             let carat = Carat {
                 view: carat_view.downgrade(),
-                character_index,
+                character_index: Cell::new(character_index),
                 selection: None
             };
 
@@ -144,7 +145,7 @@ custom_view!(
             let rendering = rendering.as_ref().unwrap();
 
             for carat in carats.iter() {
-                let character_index = carat.character_index;
+                let character_index = carat.character_index.get();
                 let label_origin = &self.label().view.frame().origin;
                 let carat_view = carat.view.upgrade().unwrap();
                 let cursor_rectangle = rendering.cursor_rectangle_for_character_at_index(character_index);
@@ -259,6 +260,22 @@ custom_view!(
 
             text_field.remove_carats();
             text_field.spawn_carat(character_index);
+        }
+
+        fn text_input_did_receive(&self, text: &str) {
+            println!("text field received text: {}", text);
+            let view = self.view.upgrade().unwrap();
+            let text_field = TextField::from_view(view.clone());
+            let label = text_field.label();
+            let text_field_behavior = text_field.behavior();
+
+            let carats = text_field_behavior.carats.borrow();
+
+            for carat in carats.iter() {
+                let index = carat.character_index.get();
+                label.insert_text_at_index(index, text);
+                carat.character_index.set(index + text.len());
+            }
         }
     }
 );

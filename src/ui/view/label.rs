@@ -42,10 +42,23 @@ custom_view!(
             label
         }
 
+        /// Returns a _copy_ of the text contained in the label.
+        ///
+        /// If the label contains an attributed string, the text is extracted
+        /// from the attributed string.
         pub fn text(&self) -> String {
             let behavior = self.behavior();
-            let text = behavior.text.borrow();
-            text.clone()
+            let attributed_text = behavior.attributed_text.borrow();
+
+            if let Some(attributed_text) = attributed_text.as_ref() {
+                println!("using attributed text");
+                let text = attributed_text.text();
+                String::from(text)
+            } else {
+                println!("using non-attributed text");
+                let text = behavior.text.borrow();
+                text.clone()
+            }
         }
 
         pub fn set_text(&self, text: String) {
@@ -57,8 +70,23 @@ custom_view!(
 
         pub fn set_attributed_text(&self, attributed_text: AttributedString) {
             let behavior = self.behavior();
-            behavior.text.replace(String::from(attributed_text.text()));
+            behavior.text.replace("".to_string());
             behavior.attributed_text.replace(Some(attributed_text));
+            behavior.set_needs_display();
+        }
+
+        pub fn insert_text_at_index(&self, index: usize, text_to_insert: &str) {
+            let behavior = self.behavior();
+
+            if behavior.attributed_text.borrow().is_some() {
+                let mut attributed_text = behavior.attributed_text.borrow_mut();
+                let attributed_text = attributed_text.as_mut().unwrap();
+                attributed_text.insert_str(index, text_to_insert);
+            } else {
+                let mut text = behavior.text.borrow_mut();
+                text.insert_str(index, text_to_insert);
+            }
+
             behavior.set_needs_display();
         }
 
@@ -224,6 +252,32 @@ mod tests {
         );
         label.set_attributed_text(attributed_text);
         assert_eq!(label.text(), String::from("Hello World"));
+    }
+
+    #[test]
+    fn test_label_insert_text() {
+        // When using plain text
+        {
+            let frame = Rectangle::new(0, 0, 100, 100);
+            let label = Label::new(frame, String::from("two"));
+
+            label.insert_text_at_index(0, &String::from("one "));
+
+            assert_eq!(label.text(), String::from("one two"));
+        }
+
+        // When using attributed string
+        {
+            let frame = Rectangle::new(0, 0, 100, 100);
+            let label = Label::new(frame, String::from("two"));
+
+            let attributed_text = AttributedString::new(String::from("two"));
+            label.set_attributed_text(attributed_text);
+
+            label.insert_text_at_index(0, &String::from("one "));
+
+            assert_eq!(label.text(), String::from("one two"));
+        }
     }
 
     #[test]

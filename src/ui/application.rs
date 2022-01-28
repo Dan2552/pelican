@@ -38,7 +38,7 @@ impl<'a> Application {
         self.key_window_index = Some(position);
     }
 
-    fn get_window(&self, context_id: u32) -> Option<&Window> {
+    pub(crate) fn get_window(&self, context_id: u32) -> Option<&Window> {
         for window in self.windows.iter() {
             if window.context_id() == context_id {
                 return Some(window);

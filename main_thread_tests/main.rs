@@ -96,7 +96,7 @@ fn parent_child_relationship() {
 
     assert_eq!(view_parent.view, childs_parent.upgrade().unwrap());
 
-    let childs_parent_as_window = Window::from_window_view(childs_parent.upgrade().unwrap());
+    let childs_parent_as_window = Window::from_view(childs_parent.upgrade().unwrap());
     assert_eq!(view_parent, childs_parent_as_window);
 
     let contains_child = view_parent.subviews().contains(&view_child);

@@ -8,12 +8,17 @@ use crate::ui::timer::Timer;
 use crate::ui::run_loop::RunLoop;
 use std::rc::Rc;
 use std::option::Option;
+use std::cell::RefCell;
 
 pub struct WindowBehavior {
     view: WeakView,
     super_behavior: Box<dyn Behavior>,
     pub(crate) graphics_context: Rc<Context>,
     pub(crate) view_controller: ViewController<'static>,
+
+    /// The window's first responder. Default to the window itself. Overriden
+    /// by a view calling `become_first_responder`.
+    first_responder: RefCell<WeakView>,
 }
 
 pub struct Window {
@@ -45,7 +50,8 @@ impl Window {
             view: WeakView::none(),
             super_behavior: Box::new(default_behavior),
             graphics_context: Rc::new(graphics_context),
-            view_controller: view_controller
+            view_controller: view_controller,
+            first_responder: RefCell::new(WeakView::none())
         };
 
         let view = View::new_with_behavior(Box::new(window_behavior), frame, "window");
@@ -60,6 +66,7 @@ impl Window {
         {
             let behavior = window.view.behavior.borrow();
             let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().unwrap();
+            behavior.first_responder.replace(window.view.downgrade());
             let view_controller = &behavior.view_controller;
             view_controller.window_loaded(view);
         }
@@ -70,7 +77,7 @@ impl Window {
         window
     }
 
-    pub fn from_window_view(view: View) -> Window {
+    pub fn from_view(view: View) -> Window {
         // Downcast the behavior to essentially verify the view is a window.
         let _ = view.behavior.borrow().as_any().downcast_ref::<WindowBehavior>().unwrap();
 
@@ -87,6 +94,34 @@ impl Window {
         let behavior = self.view.behavior.borrow();
         let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().unwrap();
         behavior.graphics_context.id
+    }
+
+    /// Returns the window's first responder.
+    ///
+    /// If there is no first responder, the window itself is returned.
+    pub(crate) fn first_responder(&self) -> View {
+        let behavior = self.view.behavior.borrow();
+        let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().unwrap();
+        let first_responder = behavior.first_responder.borrow();
+
+        if let Some(first_responder) = first_responder.upgrade() {
+            first_responder
+        } else {
+            self.view.clone()
+        }
+    }
+
+    pub(crate) fn replace_first_responder(&self, view: View) -> bool {
+        // If there is a first responder, ask whether it wants to resign. If it
+        // doesn't, then we can't replace it.
+        if !self.first_responder().can_resign_first_responder() {
+            return false;
+        }
+
+        let behavior = self.view.behavior.borrow();
+        let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().unwrap();
+        behavior.first_responder.replace(view.downgrade());
+        return true;
     }
 }
 

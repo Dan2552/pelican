@@ -20,6 +20,19 @@ impl Behavior for DefaultBehavior {
         None
     }
 
+    fn super_behavior(&self) -> Option<&Box<dyn Behavior>> {
+        None
+    }
+
+    fn next_responder(&self) -> WeakView {
+        let view = self.get_view();
+        if let Some(view) = view.upgrade() {
+            return view.superview();
+        }
+
+        WeakView::none()
+    }
+
     /// Request for this view to be redrawn soon.
     ///
     /// See `#draw`, which includes the instructions on what would actually be

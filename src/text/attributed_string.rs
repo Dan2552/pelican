@@ -86,6 +86,15 @@ impl AttributedString {
         &self.text
     }
 
+    pub fn insert_str(&mut self, idx: usize, string: &str) {
+        self.text.insert_str(idx, string);
+
+        let mut attributes = self.attributes.borrow_mut();
+        for _ in 0..string.chars().count() {
+            attributes.insert(idx, AttributeContainer::new())
+        }
+    }
+
     pub fn lines(&self) -> Vec<AttributedSubstring> {
         let mut lines = Vec::new();
         let mut start = 0;
@@ -323,5 +332,34 @@ mod tests {
         let substring = lines[1].substring_for_char(0);
         assert_eq!(substring.get_attribute_for(0, Key::Color).color(), &Color::BLACK);
         assert_eq!(substring.text(), "d");
+    }
+
+    #[test]
+    fn test_insert_str() {
+        let text = "three";
+        let mut attributed_string = AttributedString::new(text.to_string());
+
+        // Set "three" to red
+        for i in 0..text.len() {
+            attributed_string.set_attribute_for(i, Key::Color, Attribute::Color { color: Color::RED });
+        };
+
+        attributed_string.insert_str(0, "one ");
+        assert_eq!(attributed_string.text(), "one three");
+        attributed_string.insert_str(4, "two ");
+        assert_eq!(attributed_string.text(), "one two three");
+
+        assert_eq!(attributed_string.get_attribute_for(0, Key::Color).color(), &Color::BLACK);
+        assert_eq!(attributed_string.get_attribute_for(1, Key::Color).color(), &Color::BLACK);
+        assert_eq!(attributed_string.get_attribute_for(3, Key::Color).color(), &Color::BLACK);
+        assert_eq!(attributed_string.get_attribute_for(4, Key::Color).color(), &Color::BLACK);
+        assert_eq!(attributed_string.get_attribute_for(5, Key::Color).color(), &Color::BLACK);
+        assert_eq!(attributed_string.get_attribute_for(6, Key::Color).color(), &Color::BLACK);
+        assert_eq!(attributed_string.get_attribute_for(7, Key::Color).color(), &Color::BLACK);
+        assert_eq!(attributed_string.get_attribute_for(8, Key::Color).color(), &Color::RED);
+        assert_eq!(attributed_string.get_attribute_for(9, Key::Color).color(), &Color::RED);
+        assert_eq!(attributed_string.get_attribute_for(10, Key::Color).color(), &Color::RED);
+        assert_eq!(attributed_string.get_attribute_for(11, Key::Color).color(), &Color::RED);
+        assert_eq!(attributed_string.get_attribute_for(12, Key::Color).color(), &Color::RED);
     }
 }

@@ -69,7 +69,9 @@ pub(crate) fn update(sdl: &sdl2::Sdl) {
                     }
                 }
             },
-            sdl2::event::Event::MultiGesture { .. } => println!("SDL_MultiGestureEvent"),
+            sdl2::event::Event::MultiGesture { .. } => {
+                println!("SDL_MultiGestureEvent")
+            },
 
             // https://stackoverflow.com/a/47597200/869367
             sdl2::event::Event::MouseWheel { window_id, x, y, .. } => {
@@ -87,7 +89,32 @@ pub(crate) fn update(sdl: &sdl2::Sdl) {
                     }
                 }
             },
-            _ => (),
+
+            sdl2::event::Event::TextInput { window_id, text, .. } => {
+                let application = Application::borrow();
+                let window = application.get_window(window_id);
+                if let Some(window) = window {
+                    let first_responder = window.first_responder();
+                    first_responder.text_input_did_receive(&text);
+                }
+            },
+
+            sdl2::event::Event::TextEditing { text, start, length, .. } => {
+                println!("SDL_TextEditingEvent text: {:?} start: {:?} length: {:?}", text, start, length);
+            },
+
+            // sdl2::event::Event::KeyDown { window_id, keycode, keymod, repeat, scancode, .. } => {
+            //     // let event = event_arena.key_down_event();
+            //     if let Some(keycode) = keycode {
+            //         println!("SDL_KeyDownEvent: {:?}", keycode.name());
+            //         println!("scan code: {:?}", scancode);
+            //         println!("keymod: {:?}", keymod);
+            //         println!("{:?}", std::char::from_u32(keycode as u32));
+
+            //     }
+            // },
+
+            _ => ()
         }
     }
 }
