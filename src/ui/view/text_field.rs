@@ -359,23 +359,23 @@ custom_view!(
 
                     for carat in carats.iter_mut() {
                         let index = carat.character_index.get();
-                        if index > 0 {
-                            let mut new_index = index as i32 - distance;
-                            if new_index < 0 {
-                                new_index = 0;
-                            }
-                            let new_index = new_index as usize;
-                            carat.character_index.set(new_index as usize);
-                            if highlight {
-                                let mut rhs_select = index;
-                                if let Some(existing_selection) = &carat.selection {
-                                    rhs_select = existing_selection.end;
-                                }
-                                text_field.select_range(carat, new_index..rhs_select);
-                            } else {
-                                text_field.select_range(carat, 0..0);
-                            }
+
+                        let mut new_index = index as i32 - distance;
+                        if new_index < 0 {
+                            new_index = 0;
                         }
+                        let new_index = new_index as usize;
+                        carat.character_index.set(new_index as usize);
+                        if highlight {
+                            let mut rhs_select = index;
+                            if let Some(existing_selection) = &carat.selection {
+                                rhs_select = existing_selection.end;
+                            }
+                            text_field.select_range(carat, new_index..rhs_select);
+                        } else {
+                            text_field.select_range(carat, 0..0);
+                            }
+
                         if let Some(carat_view) = carat.view.upgrade() {
                             carat_view.set_hidden(false);
                             carat_view.set_needs_display();
@@ -393,22 +393,22 @@ custom_view!(
 
                     for carat in carats.iter_mut() {
                         let index = carat.character_index.get();
-                        if index < label.text().len() {
-                            let mut new_index = index + distance;
-                            if new_index > label.text().len() {
-                                new_index = label.text().len();
-                            }
-                            carat.character_index.set(new_index as usize);
-                            if highlight {
-                                let mut lhs_select = index;
-                                if let Some(existing_selection) = &carat.selection {
-                                    lhs_select = existing_selection.start;
-                                }
-                                text_field.select_range(carat, lhs_select..new_index);
-                            } else {
-                                text_field.select_range(carat, 0..0);
-                            }
+
+                        let mut new_index = index + distance;
+                        if new_index > label.text().len() {
+                            new_index = label.text().len();
                         }
+                        carat.character_index.set(new_index as usize);
+                        if highlight {
+                            let mut lhs_select = index;
+                            if let Some(existing_selection) = &carat.selection {
+                                lhs_select = existing_selection.start;
+                            }
+                            text_field.select_range(carat, lhs_select..new_index);
+                        } else {
+                            text_field.select_range(carat, 0..0);
+                        }
+
                         if let Some(carat_view) = carat.view.upgrade() {
                             carat_view.set_hidden(false);
                             carat_view.set_needs_display();
