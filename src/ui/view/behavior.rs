@@ -56,15 +56,15 @@ pub trait Behavior {
         true
     }
 
-    fn press_began(&self, presses: &Press) {
+    fn press_began(&self, press: &Press) {
         if let Some(next) = self.next_responder() {
-            next.borrow().press_began(presses);
+            next.borrow().press_began(press);
         }
     }
 
-    fn presses_ended(&self, presses: &Press) {
+    fn press_ended(&self, press: &Press) {
         if let Some(next) = self.next_responder() {
-            next.borrow().presses_ended(presses);
+            next.borrow().press_ended(press);
         }
     }
 

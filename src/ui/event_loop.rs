@@ -162,7 +162,19 @@ pub(crate) fn update(sdl: &sdl2::Sdl) {
                     let press = event.press();
                     if let Some(window) = window {
                         let first_responder = window.first_responder();
+                        press.set_first_responder(first_responder.downgrade());
                         first_responder.press_began(press, &event);
+                    }
+                }
+            },
+
+            sdl2::event::Event::KeyUp { window_id, keycode, .. } => {
+                if let Some(keycode) = keycode {
+                    let key = Key::new(keycode, Vec::new());
+                    let event = event_arena.press_ended(key);
+                    let press = event.press();
+                    if let Some(first_responder) = press.first_responder().upgrade() {
+                        first_responder.press_ended(press, &event);
                     }
                 }
             },

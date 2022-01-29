@@ -237,9 +237,9 @@ impl View {
         behavior.press_began(press);
     }
 
-    pub fn presses_ended(&self, press: &Press, _event: &PressEvent) {
+    pub fn press_ended(&self, press: &Press, _event: &PressEvent) {
         let behavior = self.behavior.borrow();
-        behavior.presses_ended(press);
+        behavior.press_ended(press);
     }
 
     /// Returns the location of this view in the highest superview coordinate

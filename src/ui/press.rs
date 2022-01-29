@@ -2,11 +2,13 @@ use crate::ui::key::Key;
 use std::time::Instant;
 use std::rc::Rc;
 use std::cell::{Ref, RefCell};
+use crate::ui::view::WeakView;
 
 struct PressInner {
     key: Key,
     phase: PressPhase,
-    timestamp: Instant
+    timestamp: Instant,
+    first_responder: WeakView
 }
 
 pub struct Press {
@@ -19,7 +21,8 @@ impl Press {
             inner: Rc::new(RefCell::new(PressInner {
                 key,
                 phase: PressPhase::Began,
-                timestamp: Instant::now()
+                timestamp: Instant::now(),
+                first_responder: WeakView::none()
             }))
         }
     }
@@ -34,6 +37,14 @@ impl Press {
 
     pub fn timestamp(&self) -> Ref<'_, Instant> {
         Ref::map(self.inner.borrow(), |inner| &inner.timestamp)
+    }
+
+    pub fn first_responder(&self) -> Ref<'_, WeakView> {
+        Ref::map(self.inner.borrow(), |inner| &inner.first_responder)
+    }
+
+    pub(crate) fn set_first_responder(&self, first_responder: WeakView) {
+        self.inner.borrow_mut().first_responder = first_responder;
     }
 }
 

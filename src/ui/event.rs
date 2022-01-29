@@ -142,6 +142,10 @@ impl EventArena {
         event
     }
 
+    pub(crate) fn press_ended(&mut self, key: Key) -> &PressEvent {
+        &self.press_events.iter().find(|event| event.press().key().key_code() == key.key_code()).unwrap()
+    }
+
     pub(crate) fn touch_began(&mut self, touch: Touch) -> TouchEvent {
         let event = self.touch_event();
         if event.touches().contains(&touch) {

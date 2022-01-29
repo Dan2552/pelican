@@ -32,7 +32,17 @@ custom_view!(
     TextField subclasses DefaultBehavior
 
     struct TextFieldBehavior {
-        carats: RefCell<Vec<Carat>>
+        carats: RefCell<Vec<Carat>>,
+
+        // A count of how many times the user is holding shift. This is a
+        // count rather than a boolean because left and right shift are
+        // handled as different key codes.
+        holding_shift: Cell<u8>,
+
+        // A count of how many times the user is holding control. This is a
+        // count rather than a boolean because left and right alt keys are
+        // handled as different key codes.
+        holding_alternative: Cell<u8>
     }
 
     impl Self {
@@ -41,7 +51,12 @@ custom_view!(
             label.view.set_tag(1);
             label.view.set_user_interaction_enabled(false);
             let carats = RefCell::new(Vec::new());
-            let text_field = TextField::new_all(frame, carats);
+            let text_field = TextField::new_all(
+                frame,
+                carats,
+                Cell::new(0),
+                Cell::new(0)
+            );
 
             text_field.view.add_subview(label.view);
 
@@ -249,7 +264,7 @@ custom_view!(
             text_field.position_cursors();
         }
 
-        fn touches_ended(&self, touches: &Vec<Touch>) {
+        fn touches_began(&self, touches: &Vec<Touch>) {
             let view = self.view.upgrade().unwrap();
             let text_field = TextField::from_view(view.clone());
 
@@ -296,6 +311,23 @@ custom_view!(
             }
         }
 
+        fn press_ended(&self, press: &Press) {
+            let view = self.view.upgrade().unwrap();
+            let text_field = TextField::from_view(view.clone());
+            let text_field_behavior = text_field.behavior();
+            let key = press.key();
+
+            if key.key_code() == KeyCode::LAlt || key.key_code() == KeyCode::RAlt {
+                let count = text_field_behavior.holding_alternative.get();
+                text_field_behavior.holding_alternative.set(count - 1);
+            }
+
+            if key.key_code() == KeyCode::LShift || key.key_code() == KeyCode::RShift {
+                let count = text_field_behavior.holding_shift.get();
+                text_field_behavior.holding_shift.set(count - 1);
+            }
+        }
+
         fn press_began(&self, press: &Press) {
             let view = self.view.upgrade().unwrap();
             let text_field = TextField::from_view(view.clone());
@@ -305,6 +337,16 @@ custom_view!(
             let mut carats = text_field_behavior.carats.borrow_mut();
 
             let key = press.key();
+
+            if key.key_code() == KeyCode::LAlt || key.key_code() == KeyCode::RAlt {
+                let count = text_field_behavior.holding_alternative.get();
+                text_field_behavior.holding_alternative.set(count + 1);
+            }
+
+            if key.key_code() == KeyCode::LShift || key.key_code() == KeyCode::RShift {
+                let count = text_field_behavior.holding_shift.get();
+                text_field_behavior.holding_shift.set(count + 1);
+            }
 
             match key.key_code() {
                 KeyCode::Left => {
