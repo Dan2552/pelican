@@ -42,7 +42,11 @@ custom_view!(
         // A count of how many times the user is holding control. This is a
         // count rather than a boolean because left and right alt keys are
         // handled as different key codes.
-        holding_alternative: Cell<u8>
+        holding_alternative: Cell<u8>,
+
+        // When holding down touch, as the user moves their finger, a highlight
+        // is made from where the touch started to where the finger is now.
+        touch_began_at_index: Cell<usize>
     }
 
     impl Self {
@@ -54,6 +58,7 @@ custom_view!(
             let text_field = TextField::new_all(
                 frame,
                 carats,
+                Cell::new(0),
                 Cell::new(0),
                 Cell::new(0)
             );
@@ -68,6 +73,38 @@ custom_view!(
         fn label(&self) -> Label {
             let view = self.view.view_with_tag(1).unwrap();
             Label::from_view(view)
+        }
+
+        fn touch_to_index(&self, touch: &Touch) -> usize {
+            let window = touch.window().unwrap();
+            let label = self.label();
+            let position = window.view.convert_point_to(&touch.position(), &label.view);
+            let label_behavior = label.behavior();
+            let rendering = label_behavior.rendering();
+            let rendering = rendering.as_ref().unwrap();
+            let render_scale = rendering.render_scale();
+
+            let position = Point {
+                x: (position.x as f32 * render_scale).round() as i32,
+                y: (position.y as f32 * render_scale).round() as i32
+            };
+
+            rendering.character_at_position(position).unwrap_or(label.text().len())
+        }
+
+        fn select(&self, carat: &mut Carat, index_one: usize, index_two: usize) {
+            let lhs: usize;
+            let rhs: usize;
+
+            if index_one < index_two {
+                lhs = index_one;
+                rhs = index_two;
+            } else {
+                lhs = index_two;
+                rhs = index_one;
+            }
+
+            self.select_range(carat, lhs..rhs);
         }
 
         fn select_range(&self, carat: &mut Carat, range: Range<usize>) {
@@ -271,46 +308,33 @@ custom_view!(
             text_field.position_cursors();
         }
 
+        fn touches_moved(&self, touches: &Vec<Touch>) {
+            let view = self.view.upgrade().unwrap();
+            let text_field = TextField::from_view(view.clone());
+
+            if let Some(last_cursor) = self.carats.borrow_mut().last_mut() {
+                let start = self.touch_began_at_index.get();
+                let touched_character_index = text_field.touch_to_index(touches.first().unwrap());
+
+                text_field.select(last_cursor, start, touched_character_index);
+                last_cursor.character_index.set(touched_character_index);
+            }
+        }
+
         fn touches_began(&self, touches: &Vec<Touch>) {
             let view = self.view.upgrade().unwrap();
             let text_field = TextField::from_view(view.clone());
 
-            let touched_character_index: usize;
-            {
-                let touch = touches.first().unwrap();
-                let window = touch.window().unwrap();
-                let label = text_field.label();
-                let position = window.view.convert_point_to(&touch.position(), &label.view);
-                let label_behavior = label.behavior();
-                let rendering = label_behavior.rendering();
-                let rendering = rendering.as_ref().unwrap();
-                let render_scale = rendering.render_scale();
+            let touched_character_index = text_field.touch_to_index(touches.first().unwrap());
 
-                let position = Point {
-                    x: (position.x as f32 * render_scale).round() as i32,
-                    y: (position.y as f32 * render_scale).round() as i32
-                };
-
-                touched_character_index = rendering.character_at_position(position).unwrap_or(label.text().len());
-            }
-
+            self.touch_began_at_index.set(touched_character_index);
 
             if self.holding_shift.get() > 0 {
                 let behavior = text_field.behavior();
                 for cursor in behavior.carats.borrow_mut().iter_mut() {
                     let cursor_index = cursor.character_index.get();
 
-                    let lhs: usize;
-                    let rhs: usize;
-                    if cursor_index < touched_character_index {
-                        lhs = cursor_index;
-                        rhs = touched_character_index;
-                    } else {
-                        lhs = touched_character_index;
-                        rhs = cursor_index;
-                    }
-
-                    text_field.select_range(cursor, lhs..rhs);
+                    text_field.select(cursor, cursor_index, touched_character_index);
 
                     cursor.character_index.set(touched_character_index);
 
