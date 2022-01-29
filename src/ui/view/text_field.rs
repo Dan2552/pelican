@@ -12,7 +12,7 @@ use crate::ui::key::{KeyCode, ModifierFlag};
 use std::cell::RefCell;
 use std::time::Duration;
 use std::cell::Cell;
-use std::rc::{Rc, Weak};
+use std::rc::Rc;
 use std::ops::Range;
 
 pub(crate) struct Carat {
