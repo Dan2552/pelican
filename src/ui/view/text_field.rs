@@ -8,11 +8,12 @@ use crate::ui::run_loop::RunLoop;
 use crate::ui::timer::Timer;
 use crate::ui::touch::Touch;
 use crate::ui::press::Press;
-use crate::ui::key::KeyCode;
+use crate::ui::key::{KeyCode, ModifierFlag};
 use std::cell::RefCell;
 use std::time::Duration;
 use std::cell::Cell;
 use std::rc::{Rc, Weak};
+use std::ops::Range;
 
 pub(crate) struct Carat {
     view: WeakView,
@@ -54,20 +55,27 @@ custom_view!(
             Label::from_view(view)
         }
 
-        pub fn select(&self, cursor: usize, start: usize, end: usize) {
+        fn select_range(&self, carat: &mut Carat, range: Range<usize>) {
             {
-                let behavior = self.behavior();
-                let mut carats = behavior.carats.borrow_mut();
-                let carat = carats.get_mut(cursor).unwrap();
-                carat.selection = Some(Selection {
-                    start,
-                    end,
-                    views: RefCell::new(Vec::new())
-                });
+                if let Some(existing_selection) = &carat.selection {
+                    for view in existing_selection.views.borrow().iter() {
+                        let view = view.upgrade().unwrap();
+                        view.remove_from_superview();
+                    }
+                }
             }
-            let behavior = self.behavior();
-            let carats = behavior.carats.borrow();
-            let carat = carats.get(cursor).unwrap();
+
+            if range.is_empty() {
+                carat.selection = None;
+                return;
+            }
+
+            carat.selection = Some(Selection {
+                start: range.start,
+                end: range.end,
+                views: RefCell::new(Vec::new())
+            });
+
             self.position_selection(&carat.selection.as_ref().unwrap());
         }
 
@@ -227,6 +235,8 @@ custom_view!(
                     current_frame.size.height
                 ));
 
+                selection.views.borrow_mut().push(current_view.downgrade());
+
                 character_index += 1;
             }
         }
@@ -287,24 +297,42 @@ custom_view!(
         }
 
         fn press_began(&self, press: &Press) {
-            println!("press began {:?}", press.key());
-
             let view = self.view.upgrade().unwrap();
             let text_field = TextField::from_view(view.clone());
             let label = text_field.label();
             let text_field_behavior = text_field.behavior();
 
-            let carats = text_field_behavior.carats.borrow();
+            let mut carats = text_field_behavior.carats.borrow_mut();
 
-            // case statement to go over keys
             let key = press.key();
 
             match key.key_code() {
                 KeyCode::Left => {
-                    for carat in carats.iter() {
+                    let mut distance = 1;
+                    if key.modifier_flags().contains(&ModifierFlag::Alternate) {
+                        distance = 2;
+                    }
+
+                    let highlight = key.modifier_flags().contains(&ModifierFlag::Shift);
+
+                    for carat in carats.iter_mut() {
                         let index = carat.character_index.get();
                         if index > 0 {
-                            carat.character_index.set(index - 1);
+                            let mut new_index = index as i32 - distance;
+                            if new_index < 0 {
+                                new_index = 0;
+                            }
+                            let new_index = new_index as usize;
+                            carat.character_index.set(new_index as usize);
+                            if highlight {
+                                let mut rhs_select = index;
+                                if let Some(existing_selection) = &carat.selection {
+                                    rhs_select = existing_selection.end;
+                                }
+                                text_field.select_range(carat, new_index..rhs_select);
+                            } else {
+                                text_field.select_range(carat, 0..0);
+                            }
                         }
                         if let Some(carat_view) = carat.view.upgrade() {
                             carat_view.set_hidden(false);
@@ -314,10 +342,30 @@ custom_view!(
                     }
                 },
                 KeyCode::Right => {
-                    for carat in carats.iter() {
+                    let mut distance = 1;
+                    if key.modifier_flags().contains(&ModifierFlag::Alternate) {
+                        distance = 2;
+                    }
+
+                    let highlight = key.modifier_flags().contains(&ModifierFlag::Shift);
+
+                    for carat in carats.iter_mut() {
                         let index = carat.character_index.get();
                         if index < label.text().len() {
-                            carat.character_index.set(index + 1);
+                            let mut new_index = index + distance;
+                            if new_index > label.text().len() {
+                                new_index = label.text().len();
+                            }
+                            carat.character_index.set(new_index as usize);
+                            if highlight {
+                                let mut lhs_select = index;
+                                if let Some(existing_selection) = &carat.selection {
+                                    lhs_select = existing_selection.start;
+                                }
+                                text_field.select_range(carat, lhs_select..new_index);
+                            } else {
+                                text_field.select_range(carat, 0..0);
+                            }
                         }
                         if let Some(carat_view) = carat.view.upgrade() {
                             carat_view.set_hidden(false);
@@ -327,15 +375,21 @@ custom_view!(
                     }
                 },
                 KeyCode::Backspace => {
+                    let mut distance = 1;
+                    if key.modifier_flags().contains(&ModifierFlag::Alternate) {
+                        distance = 2;
+                    }
                     for carat in carats.iter() {
                         let index = carat.character_index.get();
-                        // if index > 0 {
-                        //     label.delete_text_in_range(Range {
-                        //         location: index - 1,
-                        //         length: 1
-                        //     });
-                        //     carat.character_index.set(index - 1);
-                        // }
+                        if index > 0 {
+                            let mut new_index = index as i32 - distance;
+                            if new_index < 0 {
+                                new_index = 0;
+                            }
+                            let new_index = new_index as usize;
+                            carat.character_index.set(new_index);
+                            label.replace_text_in_range(new_index..index, "");
+                        }
                         if let Some(carat_view) = carat.view.upgrade() {
                             carat_view.set_hidden(false);
                             carat_view.set_needs_display();

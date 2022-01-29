@@ -179,6 +179,27 @@ impl AttributedString {
             Ref::map(default_attributes, |attrs| attrs.get(&key).unwrap())
         }
     }
+
+    pub fn replace_range(&mut self, range: std::ops::Range<usize>, string: &str) {
+        let mut attributes = self.attributes.borrow_mut();
+        let start = range.start;
+        let end = range.end;
+
+        self.text.replace_range(range, string);
+
+        for _ in start..end {
+            attributes.remove(start);
+        }
+
+        let mut new_attributes = Vec::new();
+        for _ in 0..string.chars().count() {
+            new_attributes.push(AttributeContainer::new());
+        }
+
+        for i in start..start + string.chars().count() {
+            attributes.insert(i, new_attributes.remove(0));
+        }
+    }
 }
 
 impl AttributedSubstring<'_> {
@@ -382,5 +403,52 @@ mod tests {
         assert_eq!(attributed_string.get_attribute_for(10, Key::Color).color(), &Color::RED);
         assert_eq!(attributed_string.get_attribute_for(11, Key::Color).color(), &Color::RED);
         assert_eq!(attributed_string.get_attribute_for(12, Key::Color).color(), &Color::RED);
+    }
+
+    #[test]
+    fn test_replace_range() {
+        let text = "Hello, world!";
+        let mut attributed_string = AttributedString::new(text.to_string());
+
+        // Set "Hello" to red
+        for i in 0..5 {
+            attributed_string.set_attribute_for(i, Key::Color, Attribute::Color { color: Color::RED });
+        };
+
+        // Set "world" to blue
+        for i in 7..12 {
+            attributed_string.set_attribute_for(i, Key::Color, Attribute::Color { color: Color::BLUE });
+        };
+
+        assert_eq!(attributed_string.get_attribute_for(0, Key::Color).color(), &Color::RED); // H
+        assert_eq!(attributed_string.get_attribute_for(0, Key::Color).color(), &Color::RED); // e
+        assert_eq!(attributed_string.get_attribute_for(0, Key::Color).color(), &Color::RED); // l
+        assert_eq!(attributed_string.get_attribute_for(0, Key::Color).color(), &Color::RED); // l
+        assert_eq!(attributed_string.get_attribute_for(0, Key::Color).color(), &Color::RED); // o
+        assert_eq!(attributed_string.get_attribute_for(6, Key::Color).color(), &Color::BLACK); // ,
+        assert_eq!(attributed_string.get_attribute_for(6, Key::Color).color(), &Color::BLACK); // " "
+        assert_eq!(attributed_string.get_attribute_for(7, Key::Color).color(), &Color::BLUE); // w
+        assert_eq!(attributed_string.get_attribute_for(8, Key::Color).color(), &Color::BLUE); // o
+        assert_eq!(attributed_string.get_attribute_for(9, Key::Color).color(), &Color::BLUE); // r
+        assert_eq!(attributed_string.get_attribute_for(10, Key::Color).color(), &Color::BLUE); // l
+        assert_eq!(attributed_string.get_attribute_for(11, Key::Color).color(), &Color::BLUE); // d
+
+        attributed_string.replace_range(0..5, "Goodbye");
+        assert_eq!(attributed_string.text(), "Goodbye, world!");
+
+        assert_eq!(attributed_string.get_attribute_for(0, Key::Color).color(), &Color::BLACK); // G
+        assert_eq!(attributed_string.get_attribute_for(1, Key::Color).color(), &Color::BLACK); // o
+        assert_eq!(attributed_string.get_attribute_for(2, Key::Color).color(), &Color::BLACK); // o
+        assert_eq!(attributed_string.get_attribute_for(3, Key::Color).color(), &Color::BLACK); // d
+        assert_eq!(attributed_string.get_attribute_for(4, Key::Color).color(), &Color::BLACK); // b
+        assert_eq!(attributed_string.get_attribute_for(5, Key::Color).color(), &Color::BLACK); // y
+        assert_eq!(attributed_string.get_attribute_for(6, Key::Color).color(), &Color::BLACK); // e
+        assert_eq!(attributed_string.get_attribute_for(7, Key::Color).color(), &Color::BLACK); // ,
+        assert_eq!(attributed_string.get_attribute_for(8, Key::Color).color(), &Color::BLACK); // " "
+        assert_eq!(attributed_string.get_attribute_for(9, Key::Color).color(), &Color::BLUE);  // w
+        assert_eq!(attributed_string.get_attribute_for(10, Key::Color).color(), &Color::BLUE); // o
+        assert_eq!(attributed_string.get_attribute_for(11, Key::Color).color(), &Color::BLUE); // r
+        assert_eq!(attributed_string.get_attribute_for(12, Key::Color).color(), &Color::BLUE); // l
+        assert_eq!(attributed_string.get_attribute_for(13, Key::Color).color(), &Color::BLUE); // d
     }
 }

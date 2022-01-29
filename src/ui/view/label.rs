@@ -6,6 +6,7 @@ use crate::text::attributed_string::{AttributedString, Key, Attribute};
 use crate::text::rendering;
 use crate::macros::*;
 use crate::text::{VerticalAlignment, HorizontalAlignment};
+use std::ops::Range;
 
 custom_view!(
     Label subclasses DefaultBehavior
@@ -51,11 +52,9 @@ custom_view!(
             let attributed_text = behavior.attributed_text.borrow();
 
             if let Some(attributed_text) = attributed_text.as_ref() {
-                println!("using attributed text");
                 let text = attributed_text.text();
                 String::from(text)
             } else {
-                println!("using non-attributed text");
                 let text = behavior.text.borrow();
                 text.clone()
             }
@@ -85,6 +84,21 @@ custom_view!(
             } else {
                 let mut text = behavior.text.borrow_mut();
                 text.insert_str(index, text_to_insert);
+            }
+
+            behavior.set_needs_display();
+        }
+
+        pub fn replace_text_in_range(&self, range: Range<usize>, text_to_replace: &str) {
+            let behavior = self.behavior();
+
+            if behavior.attributed_text.borrow().is_some() {
+                let mut attributed_text = behavior.attributed_text.borrow_mut();
+                let attributed_text = attributed_text.as_mut().unwrap();
+                attributed_text.replace_range(range, text_to_replace);
+            } else {
+                let mut text = behavior.text.borrow_mut();
+                text.replace_range(range, text_to_replace);
             }
 
             behavior.set_needs_display();
@@ -277,6 +291,32 @@ mod tests {
             label.insert_text_at_index(0, &String::from("one "));
 
             assert_eq!(label.text(), String::from("one two"));
+        }
+    }
+
+    #[test]
+    fn test_replace_text_in_range() {
+        // When using plain text
+        {
+            let frame = Rectangle::new(0, 0, 100, 100);
+            let label = Label::new(frame, String::from("one two three"));
+
+            label.replace_text_in_range(4..7, &String::from("four"));
+
+            assert_eq!(label.text(), String::from("one four three"));
+        }
+
+        // When using attributed string
+        {
+            let frame = Rectangle::new(0, 0, 100, 100);
+            let label = Label::new(frame, String::from(""));
+
+            let attributed_text = AttributedString::new(String::from("one two three"));
+            label.set_attributed_text(attributed_text);
+
+            label.replace_text_in_range(4..7, &String::from("four"));
+
+            assert_eq!(label.text(), String::from("one four three"));
         }
     }
 
