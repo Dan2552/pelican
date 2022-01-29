@@ -161,10 +161,6 @@ custom_view!(
             let view = self.view.upgrade().unwrap().clone();
             let inner_self = view.inner_self.borrow();
 
-            let behavior = view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
-
-
             let attributed_string = self.attributed_text.borrow();
 
 
