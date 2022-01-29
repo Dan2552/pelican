@@ -168,7 +168,7 @@ pub(crate) fn update(sdl: &sdl2::Sdl) {
                 }
             },
 
-            sdl2::event::Event::KeyUp { window_id, keycode, .. } => {
+            sdl2::event::Event::KeyUp { keycode, .. } => {
                 if let Some(keycode) = keycode {
                     let key = Key::new(keycode, Vec::new());
                     let event = event_arena.press_ended(key);
