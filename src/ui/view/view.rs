@@ -6,9 +6,9 @@ use std::rc::{Rc, Weak};
 use std::cell::RefCell;
 use std::cell::Ref;
 use crate::ui::gesture::recognizer::Recognizer;
-use crate::ui::event::TouchEvent;
-use crate::ui::application::Application;
+use crate::ui::event::{TouchEvent, PressEvent};
 use crate::ui::window::Window;
+use crate::ui::press::Press;
 
 pub struct View {
     /// Some way to compare `View`s (`==`) and `WeakView`s
@@ -232,6 +232,16 @@ impl View {
         behavior.touches_moved(touches);
     }
 
+    pub fn press_began(&self, press: &Press, _event: &PressEvent) {
+        let behavior = self.behavior.borrow();
+        behavior.press_began(press);
+    }
+
+    pub fn presses_ended(&self, press: &Press, _event: &PressEvent) {
+        let behavior = self.behavior.borrow();
+        behavior.presses_ended(press);
+    }
+
     /// Returns the location of this view in the highest superview coordinate
     /// space (usually the window).
     pub fn get_location_in_window(&self) -> Point<i32> {
@@ -399,7 +409,7 @@ impl View {
 
     /// Request for this view to be the first responder. A first responder
     /// view will be the first to receive keyboard events. See
-    /// `Behavior::text_input_did_receive`, `Behavior::presses_began`, etc.
+    /// `Behavior::text_input_did_receive`, `Behavior::press_began`, etc.
     ///
     /// Returns `true` if this view was successfully made the first responder.
     ///

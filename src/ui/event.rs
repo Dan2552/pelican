@@ -5,6 +5,7 @@ use std::cell::{Ref, RefCell};
 use crate::ui::touch::TouchPhase;
 use crate::graphics::Point;
 use crate::ui::key::Key;
+use crate::ui::press::Press;
 
 struct TouchEventInner {
     touches: Vec<Touch>
@@ -79,24 +80,26 @@ impl Clone for ScrollEvent {
 }
 
 pub struct PressEvent {
-    inner: Rc<RefCell<PressEventInner>>
+    inner: Rc<PressEventInner>
 }
 
 struct PressEventInner {
-    key: Key
+    press: Press
 }
 
 impl PressEvent {
-    pub(crate) fn new(key: Key) -> PressEvent {
+    fn new(key: Key) -> PressEvent {
+        let press = Press::new(key);
+
         PressEvent {
-            inner: Rc::new(RefCell::new(PressEventInner {
-                key
-            }))
+            inner: Rc::new(PressEventInner {
+                press
+            })
         }
     }
 
-    pub fn key(&self) -> Ref<'_, Key> {
-        Ref::map(self.inner.borrow(), |inner| &inner.key)
+    pub fn press(&self) -> &Press {
+        &self.inner.press
     }
 }
 
@@ -108,11 +111,12 @@ impl Clone for PressEvent {
     }
 }
 
-singleton!(EventArena, touch_event: None, scroll_event: None);
+singleton!(EventArena, touch_event: None, scroll_event: None, press_events: Vec::new());
 
 pub(crate) struct EventArena {
     touch_event: Option<TouchEvent>,
     scroll_event: Option<ScrollEvent>,
+    press_events: Vec<PressEvent>
 }
 
 impl EventArena {
@@ -132,12 +136,10 @@ impl EventArena {
         self.scroll_event.as_ref().unwrap().clone()
     }
 
-    pub(crate) fn key_began(&mut self, key: Key) -> PressEvent {
-        PressEvent {
-            inner: Rc::new(RefCell::new(PressEventInner {
-                key
-            }))
-        }
+    pub(crate) fn press_began(&mut self, key: Key) -> PressEvent {
+        let event = PressEvent::new(key);
+        self.press_events.push(event.clone());
+        event
     }
 
     pub(crate) fn touch_began(&mut self, touch: Touch) -> TouchEvent {
@@ -217,14 +219,14 @@ mod tests {
 
     #[test]
     fn test_event_arena_touch_event() {
-        let mut arena = EventArena { touch_event: None, scroll_event: None };
+        let mut arena = EventArena { touch_event: None, scroll_event: None, press_events: Vec::new() };
         let touch_event = arena.touch_event();
         assert_eq!(touch_event.touches().len(), 0);
     }
 
     #[test]
     fn test_event_arena_touch_began() {
-        let mut arena = EventArena { touch_event: None, scroll_event: None };
+        let mut arena = EventArena { touch_event: None, scroll_event: None, press_events: Vec::new() };
         let touch = Touch::new(0, Point::new(0, 0));
         arena.touch_began(touch);
         let touch_event = arena.touch_event();
@@ -234,7 +236,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_event_arena_touch_began_twice() {
-        let mut arena = EventArena { touch_event: None, scroll_event: None };
+        let mut arena = EventArena { touch_event: None, scroll_event: None, press_events: Vec::new() };
         let touch = Touch::new(0, Point::new(0, 0));
         arena.touch_began(touch);
         let touch = Touch::new(0, Point::new(0, 0));
@@ -243,7 +245,7 @@ mod tests {
 
     #[test]
     fn test_event_arena_touch_moved() {
-        let mut arena = EventArena { touch_event: None, scroll_event: None };
+        let mut arena = EventArena { touch_event: None, scroll_event: None, press_events: Vec::new() };
         let touch = Touch::new(0, Point::new(0, 0));
         arena.touch_began(touch);
         arena.touch_moved(0, Point::new(10, 50));
@@ -254,7 +256,7 @@ mod tests {
 
     #[test]
     fn test_event_arena_touch_ended() {
-        let mut arena = EventArena { touch_event: None, scroll_event: None };
+        let mut arena = EventArena { touch_event: None, scroll_event: None, press_events: Vec::new() };
         let touch = Touch::new(0, Point::new(0, 0));
         arena.touch_began(touch);
         arena.touch_ended(0, Point::new(10, 50));
@@ -267,13 +269,13 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_event_arena_touch_ended_but_didnt_exist() {
-        let mut arena = EventArena { touch_event: None, scroll_event: None };
+        let mut arena = EventArena { touch_event: None, scroll_event: None, press_events: Vec::new() };
         arena.touch_ended(0, Point::new(10, 50));
     }
 
     #[test]
     fn test_event_arena_cleanup_ended_touches() {
-        let mut arena = EventArena { touch_event: None, scroll_event: None };
+        let mut arena = EventArena { touch_event: None, scroll_event: None, press_events: Vec::new() };
         let touch = Touch::new(0, Point::new(0, 0));
         arena.touch_began(touch);
         let touch = Touch::new(1, Point::new(0, 0));

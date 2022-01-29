@@ -1,4 +1,6 @@
 use crate::ui::view::{WeakView, Behavior};
+use std::rc::Rc;
+use std::cell::RefCell;
 
 pub struct DefaultBehavior {
     pub(crate) view: WeakView
@@ -24,13 +26,15 @@ impl Behavior for DefaultBehavior {
         None
     }
 
-    fn next_responder(&self) -> WeakView {
+    fn next_responder(&self) -> Option<Rc<RefCell<Box<dyn Behavior>>>> {
         let view = self.get_view();
         if let Some(view) = view.upgrade() {
-            return view.superview();
+            if let Some(superview) = view.superview().upgrade() {
+                return Some(superview.behavior);
+            }
         }
 
-        WeakView::none()
+        None
     }
 
     /// Request for this view to be redrawn soon.

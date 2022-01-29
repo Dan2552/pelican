@@ -79,14 +79,18 @@ pub struct WholeText<'a> {
 
     /// The attributed string that was used to create this `WholeText`.
     /// Contains the styles and sizes of each character.
-    attributed_string: &'a AttributedString
+    attributed_string: &'a AttributedString,
+
+    render_scale: f32
 }
 
 
 pub struct Result {
     positions: Vec<Point<i32>>,
     sizes: Vec<Size<u32>>,
-    line_heights: Vec<u32>
+    line_heights: Vec<u32>,
+    render_scale: f32,
+    fallback_cursor_rectangle: Rectangle<i32, u32>
 }
 
 impl Character {
@@ -322,7 +326,8 @@ impl WholeText<'_> {
             lines,
             line_positions,
             frame,
-            attributed_string
+            attributed_string,
+            render_scale
         };
 
         whole_text.align_horizontally(HorizontalAlignment::Left);
@@ -396,6 +401,25 @@ impl WholeText<'_> {
         }
     }
 
+    /// When there is no text, we still need to render a cursor. This method
+    /// uses a space character to calculate the cursor rectangle.
+    fn fallback_cursor_rectangle(&self) -> Rectangle<i32, u32> {
+        let space = AttributedString::new_matching_default_style(
+            " ".to_string(),
+            &self.attributed_string
+        );
+
+        let whole_text_of_just_space = WholeText::from(
+            &space,
+            self.frame.clone(),
+            self.render_scale
+        );
+
+        let result = whole_text_of_just_space.calculate_character_render_positions();
+
+        result.cursor_rectangle_for_character_at_index(0)
+    }
+
     /// Iterate characters of the text with their positions to render.
     ///
     /// Positions of characters are calculated during this iteration.
@@ -439,10 +463,21 @@ impl WholeText<'_> {
             }
         }
 
+        let render_scale = self.render_scale;
+
+        let fallback_cursor_rectangle: Rectangle<i32, u32>;
+        if positions.is_empty() {
+            fallback_cursor_rectangle = self.fallback_cursor_rectangle();
+        } else {
+            fallback_cursor_rectangle = Rectangle::new(0, 0, 0, 0);
+        }
+
         Result {
             positions,
             sizes,
-            line_heights
+            line_heights,
+            render_scale,
+            fallback_cursor_rectangle
         }
     }
 }
@@ -507,12 +542,26 @@ impl Result {
     /// Returns the same as the last character if no character at the index is
     /// found.
     pub fn cursor_rectangle_for_character_at_index(&self, index: usize) -> Rectangle<i32, u32> {
-        let position = self.positions.get(index).unwrap_or(&self.positions.last().unwrap());
+        if self.positions.len() == 0 {
+            return self.fallback_cursor_rectangle.clone();
+        }
+
+        let mut position = self.positions.get(index).unwrap_or(&self.positions.last().unwrap());
         let line_height = self.line_heights.get(index).unwrap_or(&self.line_heights.last().unwrap());
-        let character_size = self.sizes.get(index).unwrap();
+        let character_size = self.sizes.get(index).unwrap_or(self.sizes.last().unwrap());
+
         let around_line_height = ((line_height - character_size.height) as f32 * 0.5).round() as i32;
 
         let height = line_height - around_line_height as u32;
+
+        let last = Point {
+            x: position.x + character_size.width as i32,
+            y: position.y
+        };
+
+        if index > self.positions.len() - 1 {
+            position = &last;
+        }
 
         Rectangle {
             origin: Point {
@@ -528,6 +577,10 @@ impl Result {
 
     pub fn character_size_for_character_at_index(&self, index: usize) -> Size<u32> {
         self.sizes.get(index).unwrap().clone()
+    }
+
+    pub fn render_scale(&self) -> f32 {
+        self.render_scale
     }
 }
 
@@ -1056,20 +1109,53 @@ mod tests {
 
     #[test]
     fn test_cursor_rectangle_for_character_at_index() {
-        let attributed_string = AttributedString::new(String::from("Hello, world!"));
+        // basic tests
+        {
+            let attributed_string = AttributedString::new(String::from("Hello, world!"));
 
-        let frame = Rectangle::new(0, 0, 50, 100);
-        let text = WholeText::from(&attributed_string, frame, 1.0);
+            let frame = Rectangle::new(0, 0, 50, 100);
+            let text = WholeText::from(&attributed_string, frame, 1.0);
 
-        assert_eq!(text.lines.len(), 2);
+            assert_eq!(text.lines.len(), 2);
 
-        let result = text.calculate_character_render_positions();
+            let result = text.calculate_character_render_positions();
 
-        let cursor_rectangle_for_character_at_index = result.cursor_rectangle_for_character_at_index(0);
-        assert_eq!(cursor_rectangle_for_character_at_index, Rectangle::new(0, 0, 2, 17));
+            let cursor_rectangle_for_character_at_index = result.cursor_rectangle_for_character_at_index(0);
+            assert_eq!(cursor_rectangle_for_character_at_index, Rectangle::new(0, 0, 2, 17));
 
-        let cursor_rectangle_for_character_at_index = result.cursor_rectangle_for_character_at_index(1);
-        assert_eq!(cursor_rectangle_for_character_at_index, Rectangle::new(12, 0, 2, 17));
+            let cursor_rectangle_for_character_at_index = result.cursor_rectangle_for_character_at_index(1);
+            assert_eq!(cursor_rectangle_for_character_at_index, Rectangle::new(12, 0, 2, 17));
+        }
+
+        // test empty string
+        {
+            let attributed_string = AttributedString::new(String::from(""));
+
+            let frame = Rectangle::new(0, 0, 50, 100);
+            let text = WholeText::from(&attributed_string, frame, 1.0);
+
+            assert_eq!(text.lines.len(), 0);
+
+            let result = text.calculate_character_render_positions();
+
+            let cursor_rectangle_for_character_at_index = result.cursor_rectangle_for_character_at_index(0);
+            assert_eq!(cursor_rectangle_for_character_at_index, Rectangle::new(0, 0, 2, 17));
+        }
+
+        // test after last character
+        {
+            let attributed_string = AttributedString::new(String::from("a"));
+
+            let frame = Rectangle::new(0, 0, 50, 100);
+            let text = WholeText::from(&attributed_string, frame, 1.0);
+
+            assert_eq!(text.lines.len(), 1);
+
+            let result = text.calculate_character_render_positions();
+
+            assert_eq!(result.cursor_rectangle_for_character_at_index(0), Rectangle::new(0, 0, 2, 17));
+            assert_eq!(result.cursor_rectangle_for_character_at_index(1), Rectangle::new(9, 0, 2, 17));
+        }
     }
 
     #[test]
@@ -1088,5 +1174,26 @@ mod tests {
 
         let character_size_for_character_at_index = result.character_size_for_character_at_index(1);
         assert_eq!(character_size_for_character_at_index, Size::new(9, 16));
+    }
+
+    #[test]
+    fn test_result_render_scale() {
+        {
+            let attributed_string = AttributedString::new(String::from("Hello, world!"));
+            let frame = Rectangle::new(0, 0, 50, 100);
+            let text = WholeText::from(&attributed_string, frame, 1.0);
+            let result = text.calculate_character_render_positions();
+
+            assert_eq!(result.render_scale, 1.0);
+        }
+
+        {
+            let attributed_string = AttributedString::new(String::from("Hello, world!"));
+            let frame = Rectangle::new(0, 0, 50, 100);
+            let text = WholeText::from(&attributed_string, frame, 2.0);
+            let result = text.calculate_character_render_positions();
+
+            assert_eq!(result.render_scale, 2.0);
+        }
     }
 }

@@ -1,4 +1,7 @@
 use crate::ui::{View, WeakView, Touch};
+use crate::ui::press::Press;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 pub trait Behavior {
     fn name(&self) -> String {
@@ -53,11 +56,17 @@ pub trait Behavior {
         true
     }
 
-    // TODO: default should propagate to next_responder
-    // fn presses_began(&self, _presses: &Vec<Press>) {}
+    fn press_began(&self, presses: &Press) {
+        if let Some(next) = self.next_responder() {
+            next.borrow().press_began(presses);
+        }
+    }
 
-    // TODO: default should propagate to next_responder
-    // fn presses_ended(&self, _presses: &Vec<Press>) {}
+    fn presses_ended(&self, presses: &Press) {
+        if let Some(next) = self.next_responder() {
+            next.borrow().presses_ended(presses);
+        }
+    }
 
     /// Override this behavior if the view should accept text typing input. E.g.
     /// if the view is a text field. `TextField` utilizes this function.
@@ -66,18 +75,20 @@ pub trait Behavior {
     /// processing on the text input e.g. for different keyboard layouts and
     /// internationalization.
     ///
-    /// For picking up individual key presses instead, use `presses_began`, etc.
+    /// For picking up individual key presses instead, use `press_began`, etc.
     ///
     /// In order for a view to recieve this call, it must be a responder. In
     /// most cases, realistically a first responder. This can be requested by
     /// calling `become_first_responder` on the view.
     fn text_input_did_receive(&self, text: &str) {
-        if let Some(next) = self.next_responder().upgrade() {
-            next.text_input_did_receive(text);
+        if let Some(next) = self.next_responder() {
+            if let Some(next) = next.borrow().get_view().upgrade() {
+                next.text_input_did_receive(text);
+            }
         }
     }
 
-    fn next_responder(&self) -> WeakView {
+    fn next_responder(&self) -> Option<Rc<RefCell<Box<dyn Behavior>>>> {
         if let Some(super_behavior) = self.super_behavior() {
             super_behavior.next_responder()
         } else {

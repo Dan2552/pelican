@@ -7,14 +7,18 @@ use crate::ui::Label;
 use crate::ui::run_loop::RunLoop;
 use crate::ui::timer::Timer;
 use crate::ui::touch::Touch;
+use crate::ui::press::Press;
+use crate::ui::key::KeyCode;
 use std::cell::RefCell;
 use std::time::Duration;
 use std::cell::Cell;
+use std::rc::{Rc, Weak};
 
 pub(crate) struct Carat {
     view: WeakView,
     character_index: Cell<usize>,
-    selection: Option<Selection>
+    selection: Option<Selection>,
+    delay_animation: Rc<Cell<bool>>
 }
 
 pub(crate) struct Selection {
@@ -51,7 +55,6 @@ custom_view!(
         }
 
         pub fn select(&self, cursor: usize, start: usize, end: usize) {
-            let render_scale: f32;
             {
                 let behavior = self.behavior();
                 let mut carats = behavior.carats.borrow_mut();
@@ -61,14 +64,11 @@ custom_view!(
                     end,
                     views: RefCell::new(Vec::new())
                 });
-
-                let layer = self.view.layer().unwrap();
-                render_scale = layer.context().render_scale;
             }
             let behavior = self.behavior();
             let carats = behavior.carats.borrow();
             let carat = carats.get(cursor).unwrap();
-            self.position_selection(&carat.selection.as_ref().unwrap(), render_scale);
+            self.position_selection(&carat.selection.as_ref().unwrap());
         }
 
         pub fn remove_carats(&self) {
@@ -97,9 +97,10 @@ custom_view!(
             let carat = Carat {
                 view: carat_view.downgrade(),
                 character_index: Cell::new(character_index),
-                selection: None
+                selection: None,
+                delay_animation: Rc::new(Cell::new(false))
             };
-
+            let delay_animation = Rc::downgrade(&carat.delay_animation);
             carats.push(carat);
 
             self.view.set_needs_display();
@@ -108,7 +109,14 @@ custom_view!(
 
             let timer = Timer::new_repeating(Duration::from_millis(500), move || {
                 if let Some(view) = weak_view.upgrade() {
-                    view.set_hidden(!view.is_hidden());
+                    if let Some(delay_animation) = delay_animation.upgrade() {
+                        if delay_animation.get() {
+                            view.set_hidden(false);
+                            delay_animation.set(false);
+                        } else {
+                            view.set_hidden(!view.is_hidden());
+                        }
+                    }
                 } else {
                     // TODO: end this timer when the view is destroyed
                     panic!("view was destroyed");
@@ -118,6 +126,7 @@ custom_view!(
             run_loop.add_timer(timer);
         }
 
+        // TODO: is this still correct?
         /// The cursors need repositioning when the view draws. This is because
         /// certain aspects rely on the rendering layer, of which will not be
         /// present yet until this view is in the view hierarchy belonging to a
@@ -129,9 +138,6 @@ custom_view!(
 
             let behavior = self.behavior();
             let carats = behavior.carats.borrow();
-            let layer = self.view.layer().unwrap();
-            let render_scale = layer.context().render_scale;
-
             let rendering = label_behavior.rendering();
 
             if rendering.is_none() {
@@ -143,6 +149,8 @@ custom_view!(
             }
 
             let rendering = rendering.as_ref().unwrap();
+
+            let render_scale = rendering.render_scale();
 
             for carat in carats.iter() {
                 let character_index = carat.character_index.get();
@@ -165,15 +173,12 @@ custom_view!(
             }
         }
 
-        fn position_selection(&self, selection: &Selection, render_scale: f32) {
-            // start: usize,
-            // end: usize,
-            // views: Vec<WeakView>
-
+        fn position_selection(&self, selection: &Selection) {
             let label = self.label();
             let label_behavior = label.behavior();
             let rendering = label_behavior.rendering();
             let rendering = rendering.as_ref().unwrap();
+            let render_scale = rendering.render_scale();
 
             for view in selection.views.borrow().iter() {
                 let view = view.upgrade().unwrap();
@@ -247,8 +252,7 @@ custom_view!(
                 let label_behavior = label.behavior();
                 let rendering = label_behavior.rendering();
                 let rendering = rendering.as_ref().unwrap();
-                let layer = view.layer().unwrap();
-                let render_scale = layer.context().render_scale;
+                let render_scale = rendering.render_scale();
 
                 let position = Point {
                     x: (position.x as f32 * render_scale).round() as i32,
@@ -263,7 +267,6 @@ custom_view!(
         }
 
         fn text_input_did_receive(&self, text: &str) {
-            println!("text field received text: {}", text);
             let view = self.view.upgrade().unwrap();
             let text_field = TextField::from_view(view.clone());
             let label = text_field.label();
@@ -275,6 +278,72 @@ custom_view!(
                 let index = carat.character_index.get();
                 label.insert_text_at_index(index, text);
                 carat.character_index.set(index + text.len());
+                if let Some(carat_view) = carat.view.upgrade() {
+                    carat_view.set_hidden(false);
+                    carat_view.set_needs_display();
+                }
+                carat.delay_animation.set(true);
+            }
+        }
+
+        fn press_began(&self, press: &Press) {
+            println!("press began {:?}", press.key());
+
+            let view = self.view.upgrade().unwrap();
+            let text_field = TextField::from_view(view.clone());
+            let label = text_field.label();
+            let text_field_behavior = text_field.behavior();
+
+            let carats = text_field_behavior.carats.borrow();
+
+            // case statement to go over keys
+            let key = press.key();
+
+            match key.key_code() {
+                KeyCode::Left => {
+                    for carat in carats.iter() {
+                        let index = carat.character_index.get();
+                        if index > 0 {
+                            carat.character_index.set(index - 1);
+                        }
+                        if let Some(carat_view) = carat.view.upgrade() {
+                            carat_view.set_hidden(false);
+                            carat_view.set_needs_display();
+                        }
+                        carat.delay_animation.set(true);
+                    }
+                },
+                KeyCode::Right => {
+                    for carat in carats.iter() {
+                        let index = carat.character_index.get();
+                        if index < label.text().len() {
+                            carat.character_index.set(index + 1);
+                        }
+                        if let Some(carat_view) = carat.view.upgrade() {
+                            carat_view.set_hidden(false);
+                            carat_view.set_needs_display();
+                        }
+                        carat.delay_animation.set(true);
+                    }
+                },
+                KeyCode::Backspace => {
+                    for carat in carats.iter() {
+                        let index = carat.character_index.get();
+                        // if index > 0 {
+                        //     label.delete_text_in_range(Range {
+                        //         location: index - 1,
+                        //         length: 1
+                        //     });
+                        //     carat.character_index.set(index - 1);
+                        // }
+                        if let Some(carat_view) = carat.view.upgrade() {
+                            carat_view.set_hidden(false);
+                            carat_view.set_needs_display();
+                        }
+                        carat.delay_animation.set(true);
+                    }
+                },
+                _ => ()
             }
         }
     }

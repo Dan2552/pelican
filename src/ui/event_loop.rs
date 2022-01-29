@@ -2,6 +2,7 @@ use crate::ui::application::Application;
 use crate::ui::touch::Touch;
 use crate::graphics::Point;
 use crate::ui::event::EventArena;
+use crate::ui::key::{Key, ModifierFlag};
 
 pub(crate) fn update(sdl: &sdl2::Sdl) {
     let mut event_pump = sdl.event_pump().unwrap();
@@ -103,16 +104,68 @@ pub(crate) fn update(sdl: &sdl2::Sdl) {
                 println!("SDL_TextEditingEvent text: {:?} start: {:?} length: {:?}", text, start, length);
             },
 
-            // sdl2::event::Event::KeyDown { window_id, keycode, keymod, repeat, scancode, .. } => {
-            //     // let event = event_arena.key_down_event();
-            //     if let Some(keycode) = keycode {
-            //         println!("SDL_KeyDownEvent: {:?}", keycode.name());
-            //         println!("scan code: {:?}", scancode);
-            //         println!("keymod: {:?}", keymod);
-            //         println!("{:?}", std::char::from_u32(keycode as u32));
+            sdl2::event::Event::KeyDown { window_id, keycode, keymod, .. } => {
+                let application = Application::borrow();
+                let window = application.get_window(window_id);
 
-            //     }
-            // },
+                // let event = event_arena.key_down_event();
+                if let Some(keycode) = keycode {
+                    let mut modifier_flags = Vec::new();
+
+                    if keymod.contains(sdl2::keyboard::Mod::LSHIFTMOD) {
+                        modifier_flags.push(ModifierFlag::Shift);
+                    }
+
+                    if keymod.contains(sdl2::keyboard::Mod::RSHIFTMOD) {
+                        modifier_flags.push(ModifierFlag::Shift);
+                    }
+
+                    if keymod.contains(sdl2::keyboard::Mod::LCTRLMOD) {
+                        modifier_flags.push(ModifierFlag::Control);
+                    }
+
+                    if keymod.contains(sdl2::keyboard::Mod::RCTRLMOD) {
+                        modifier_flags.push(ModifierFlag::Control);
+                    }
+
+                    if keymod.contains(sdl2::keyboard::Mod::LALTMOD) {
+                        modifier_flags.push(ModifierFlag::Alternate);
+                    }
+
+                    if keymod.contains(sdl2::keyboard::Mod::RALTMOD) {
+                        modifier_flags.push(ModifierFlag::Alternate);
+                    }
+
+                    if keymod.contains(sdl2::keyboard::Mod::LGUIMOD) {
+                        modifier_flags.push(ModifierFlag::Command);
+                    }
+
+                    if keymod.contains(sdl2::keyboard::Mod::RGUIMOD) {
+                        modifier_flags.push(ModifierFlag::Command);
+                    }
+
+                    if keymod.contains(sdl2::keyboard::Mod::NUMMOD) {
+                        modifier_flags.push(ModifierFlag::NumericPad);
+                    }
+
+                    if keymod.contains(sdl2::keyboard::Mod::CAPSMOD) {
+                        modifier_flags.push(ModifierFlag::CapsLock);
+                    }
+
+                    if keymod.contains(sdl2::keyboard::Mod::MODEMOD) {
+                        modifier_flags.push(ModifierFlag::Alternate);
+                    }
+
+                    let key = Key::new(keycode, modifier_flags);
+
+                    let event = event_arena.press_began(key);
+                    let press = event.press();
+                    if let Some(window) = window {
+                        let first_responder = window.first_responder();
+                        first_responder.press_began(press, &event);
+                    }
+                }
+            },
 
             _ => ()
         }

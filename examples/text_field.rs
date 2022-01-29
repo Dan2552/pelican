@@ -8,7 +8,7 @@ use pelican::ui::TextField;
 struct ExampleViewController {}
 impl ViewControllerBehavior for ExampleViewController {
     fn view_did_load(&self, view: View) {
-        let text_field = TextField::new(Rectangle::new(10, 10, 180, 36), " world".to_string());
+        let text_field = TextField::new(Rectangle::new(10, 10, 180, 36), "".to_string());
         // let text_field_clone = text_field.clone();
         text_field.view.set_background_color(Color::gray());
         view.add_subview(text_field.clone().view);

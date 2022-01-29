@@ -30,6 +30,15 @@ impl Attribute {
     }
 }
 
+impl Clone for Attribute {
+    fn clone(&self) -> Attribute {
+        match self {
+            Attribute::Color { color } => Attribute::Color { color: color.clone() },
+            Attribute::Font { font } => Attribute::Font { font: font.clone() }
+        }
+    }
+}
+
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub enum Key {
     Color,
@@ -80,6 +89,18 @@ impl AttributedString {
             attributes: RefCell::new(attributes),
             default_attributes: RefCell::new(default_attributes)
         }
+    }
+
+    pub fn new_matching_default_style(text: String, existing_attributed_string: &AttributedString) -> AttributedString {
+        let attributed_string = AttributedString::new(text);
+
+        let existing_color = existing_attributed_string.default_attributes.borrow().get(&Key::Color).unwrap().clone();
+        attributed_string.set_default_attribute(Key::Color, existing_color);
+
+        let existing_font = existing_attributed_string.default_attributes.borrow().get(&Key::Font).unwrap().clone();
+        attributed_string.set_default_attribute(Key::Font, existing_font);
+
+        attributed_string
     }
 
     pub fn text(&self) -> &str {
