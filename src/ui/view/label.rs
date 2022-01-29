@@ -12,10 +12,7 @@ custom_view!(
     Label subclasses DefaultBehavior
 
     struct LabelBehavior {
-        font: RefCell<Font>,
-        text_color: RefCell<Color>,
-        text: RefCell<String>,
-        attributed_text: RefCell<Option<AttributedString>>,
+        attributed_text: RefCell<AttributedString>,
         text_alignment: Cell<HorizontalAlignment>,
         text_vertical_alignment: Cell<VerticalAlignment>,
         rendering_result: RefCell<Option<rendering::Result>>
@@ -23,18 +20,13 @@ custom_view!(
 
     impl Self {
         pub fn new(frame: Rectangle<i32, u32>, text: String) -> Label {
-            let font = RefCell::new(Font::default());
-            let text_color = RefCell::new(Color::black());
-            let text = RefCell::new(text);
+            let text = RefCell::new(AttributedString::new(text));
             let text_alignment = Cell::new(HorizontalAlignment::Left);
             let text_vertical_alignment = Cell::new(VerticalAlignment::Top);
 
             let label = Self::new_all(
                 frame,
-                font,
-                text_color,
                 text,
-                RefCell::new(None),
                 text_alignment,
                 text_vertical_alignment,
                 RefCell::new(None)
@@ -50,41 +42,29 @@ custom_view!(
         pub fn text(&self) -> String {
             let behavior = self.behavior();
             let attributed_text = behavior.attributed_text.borrow();
-
-            if let Some(attributed_text) = attributed_text.as_ref() {
-                let text = attributed_text.text();
-                String::from(text)
-            } else {
-                let text = behavior.text.borrow();
-                text.clone()
-            }
+            String::from(attributed_text.text())
         }
 
+        /// Sets the text and removes any styling currently set via
+        /// `AttributedString`.
         pub fn set_text(&self, text: String) {
             let behavior = self.behavior();
-            behavior.attributed_text.replace(None);
-            behavior.text.replace(text);
+            let attributed_text = AttributedString::new(text);
+            behavior.attributed_text.replace(attributed_text);
             behavior.set_needs_display();
         }
 
         pub fn set_attributed_text(&self, attributed_text: AttributedString) {
             let behavior = self.behavior();
-            behavior.text.replace("".to_string());
-            behavior.attributed_text.replace(Some(attributed_text));
+            behavior.attributed_text.replace(attributed_text);
             behavior.set_needs_display();
         }
 
         pub fn insert_text_at_index(&self, index: usize, text_to_insert: &str) {
             let behavior = self.behavior();
 
-            if behavior.attributed_text.borrow().is_some() {
-                let mut attributed_text = behavior.attributed_text.borrow_mut();
-                let attributed_text = attributed_text.as_mut().unwrap();
-                attributed_text.insert_str(index, text_to_insert);
-            } else {
-                let mut text = behavior.text.borrow_mut();
-                text.insert_str(index, text_to_insert);
-            }
+            let mut attributed_text = behavior.attributed_text.borrow_mut();
+            attributed_text.insert_str(index, text_to_insert);
 
             behavior.set_needs_display();
         }
@@ -92,40 +72,52 @@ custom_view!(
         pub fn replace_text_in_range(&self, range: Range<usize>, text_to_replace: &str) {
             let behavior = self.behavior();
 
-            if behavior.attributed_text.borrow().is_some() {
-                let mut attributed_text = behavior.attributed_text.borrow_mut();
-                let attributed_text = attributed_text.as_mut().unwrap();
-                attributed_text.replace_range(range, text_to_replace);
-            } else {
-                let mut text = behavior.text.borrow_mut();
-                text.replace_range(range, text_to_replace);
-            }
+            let mut attributed_text = behavior.attributed_text.borrow_mut();
+            attributed_text.replace_range(range, text_to_replace);
 
             behavior.set_needs_display();
         }
 
         pub fn set_text_color(&self, text_color: Color) {
             let behavior = self.behavior();
-            behavior.text_color.replace(text_color);
+
+            let attributed_text = behavior.attributed_text.borrow();
+            attributed_text.set_default_attribute(
+                Key::Color,
+                Attribute::Color { color: text_color.to_graphics_color() }
+            );
+
             behavior.set_needs_display();
         }
 
         pub fn text_color(&self) -> Color {
             let behavior = self.behavior();
-            let text_color = behavior.text_color.borrow();
-            text_color.clone()
+
+            let attributed_text = behavior.attributed_text.borrow();
+            let attribute = attributed_text.default_attribute(Key::Color);
+            let graphics_color = attribute.color();
+
+            Color::from_graphics_color(graphics_color)
         }
 
         pub fn set_font(&self, font: Font) {
             let behavior = self.behavior();
-            behavior.font.replace(font);
+
+            let attributed_text = behavior.attributed_text.borrow();
+            attributed_text.set_default_attribute(
+                Key::Font,
+                Attribute::Font { font }
+            );
+
             behavior.set_needs_display();
         }
 
         pub fn font(&self) -> Font {
             let behavior = self.behavior();
-            let font = behavior.font.borrow();
-            font.clone()
+
+            let attributed_text = behavior.attributed_text.borrow();
+            let attribute = attributed_text.default_attribute(Key::Font);
+            attribute.font().clone()
         }
 
         pub fn set_text_alignment(&self, text_alignment: HorizontalAlignment) {
@@ -147,16 +139,18 @@ custom_view!(
 
         /// Resizes the view's frame to fit the size of the text.
         pub fn fit_to_text(&self) {
-            let behavior = self.behavior();
-            let text = behavior.text.borrow().clone();
-            let font = behavior.font.borrow();
+            // TODO: add size to rendering_result
 
-            let size = font.size_for(&text);
+            // let behavior = self.behavior();
+            // let text = behavior.text.borrow().clone();
+            // let font = behavior.font.borrow();
 
-            let origin = self.view.frame().origin;
-            let frame = Rectangle { origin, size };
+            // let size = font.size_for(&text);
 
-            self.view.set_frame(frame);
+            // let origin = self.view.frame().origin;
+            // let frame = Rectangle { origin, size };
+
+            // self.view.set_frame(frame);
         }
     }
 
@@ -170,34 +164,21 @@ custom_view!(
             let behavior = view.behavior.borrow();
             let behavior = behavior.as_any().downcast_ref::<LabelBehavior>().unwrap();
 
-            let text = self.text.borrow();
-            let attributed_text = AttributedString::new(text.clone());
-            attributed_text.set_default_attribute(
-                Key::Font,
-                Attribute::Font { font: behavior.font.borrow().clone() }
-            );
-            attributed_text.set_default_attribute(
-                Key::Color,
-                Attribute::Color { color: behavior.text_color.borrow().to_graphics_color() }
-            );
 
-            let mut attributed_text_ref = &attributed_text;
-            let existing = self.attributed_text.borrow();
-            if let Some(existing) = existing.as_ref() {
-                attributed_text_ref = existing;
-            }
+            let attributed_string = self.attributed_text.borrow();
+
 
             if let Some(parent_layer) = &inner_self.layer {
                 let context = parent_layer.context();
-                let mut whole_text = rendering::WholeText::from(attributed_text_ref, view.frame(), context.render_scale);
+                let mut whole_text = rendering::WholeText::from(&attributed_string, view.frame(), context.render_scale);
                 whole_text.align_horizontally(self.text_alignment.get());
                 whole_text.align_vertically(self.text_vertical_alignment.get());
 
                 let rendering_result = whole_text.calculate_character_render_positions();
 
-                for (index, character) in attributed_text.chars().enumerate() {
-                    let font_attribute = attributed_text_ref.get_attribute_for(index, Key::Font);
-                    let color_attribute = attributed_text_ref.get_attribute_for(index, Key::Color);
+                for (index, character) in attributed_string.chars().enumerate() {
+                    let font_attribute = &attributed_string.get_attribute_for(index, Key::Font);
+                    let color_attribute = &attributed_string.get_attribute_for(index, Key::Color);
                     let font = font_attribute.font();
                     let color = color_attribute.color();
                     let position = rendering_result.position_for_character_at_index(index).unwrap();

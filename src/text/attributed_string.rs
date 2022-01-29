@@ -175,9 +175,13 @@ impl AttributedString {
         if attributes[index].get(&key).is_some() {
             Ref::map(attributes, |attrs| attrs[index].get(&key).unwrap())
         } else {
-            let default_attributes = self.default_attributes.borrow();
-            Ref::map(default_attributes, |attrs| attrs.get(&key).unwrap())
+            self.default_attribute(key)
         }
+    }
+
+    pub fn default_attribute(&self, key: Key) -> Ref<'_, Attribute> {
+        let default_attributes = self.default_attributes.borrow();
+        Ref::map(default_attributes, |attrs| attrs.get(&key).unwrap())
     }
 
     pub fn replace_range(&mut self, range: std::ops::Range<usize>, string: &str) {

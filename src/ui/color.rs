@@ -83,6 +83,15 @@ impl Color {
             a: self.alpha
         }
     }
+
+    pub fn from_graphics_color(color: &graphics::Color) -> Color {
+        Color {
+            red: color.r,
+            green: color.g,
+            blue: color.b,
+            alpha: color.a
+        }
+    }
 }
 
 impl std::fmt::Debug for Color {
