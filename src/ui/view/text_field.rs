@@ -99,6 +99,13 @@ custom_view!(
             let mut carats = behavior.carats.borrow_mut();
             for carat in carats.iter() {
                 carat.view.upgrade().unwrap().remove_from_superview();
+                if let Some(selection) = &carat.selection {
+                    for view in selection.views.borrow().iter() {
+                        if let Some(view) = view.upgrade() {
+                            view.remove_from_superview();
+                        }
+                    }
+                }
             }
             carats.clear();
         }
@@ -268,7 +275,7 @@ custom_view!(
             let view = self.view.upgrade().unwrap();
             let text_field = TextField::from_view(view.clone());
 
-            let character_index: usize;
+            let touched_character_index: usize;
             {
                 let touch = touches.first().unwrap();
                 let window = touch.window().unwrap();
@@ -284,11 +291,38 @@ custom_view!(
                     y: (position.y as f32 * render_scale).round() as i32
                 };
 
-                character_index = rendering.character_at_position(position).unwrap_or(label.text().len());
+                touched_character_index = rendering.character_at_position(position).unwrap_or(label.text().len());
+            }
+
+
+            if self.holding_shift.get() > 0 {
+                let behavior = text_field.behavior();
+                for cursor in behavior.carats.borrow_mut().iter_mut() {
+                    let cursor_index = cursor.character_index.get();
+
+                    let lhs: usize;
+                    let rhs: usize;
+                    if cursor_index < touched_character_index {
+                        lhs = cursor_index;
+                        rhs = touched_character_index;
+                    } else {
+                        lhs = touched_character_index;
+                        rhs = cursor_index;
+                    }
+
+                    text_field.select_range(cursor, lhs..rhs);
+
+                    cursor.character_index.set(touched_character_index);
+
+                    // We only actually care to do this for one cursor; it's an
+                    // edge case that we don't want to handle if there's more
+                    // than one.
+                    return;
+                }
             }
 
             text_field.remove_carats();
-            text_field.spawn_carat(character_index);
+            text_field.spawn_carat(touched_character_index);
         }
 
         fn text_input_did_receive(&self, text: &str) {
