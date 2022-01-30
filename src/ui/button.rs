@@ -134,6 +134,6 @@ mod tests {
         );
 
         assert_eq!(button.view.frame(), Rectangle::new(0, 0, 100, 100));
-        assert_eq!(button.label().text(), String::from("Test"));
+        assert_eq!(button.label().copy_text(), String::from("Test"));
     }
 }

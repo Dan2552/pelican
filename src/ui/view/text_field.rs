@@ -14,6 +14,7 @@ use std::time::Duration;
 use std::cell::Cell;
 use std::rc::Rc;
 use std::ops::Range;
+use crate::text::word_boundary;
 
 pub(crate) struct Carat {
     view: WeakView,
@@ -89,7 +90,7 @@ custom_view!(
                 y: (position.y as f32 * render_scale).round() as i32
             };
 
-            rendering.character_at_position(position).unwrap_or(label.text().len())
+            rendering.character_at_position(position).unwrap_or(label.text_len())
         }
 
         fn select(&self, carat: &mut Carat, index_one: usize, index_two: usize) {
@@ -408,15 +409,20 @@ custom_view!(
 
             match key.key_code() {
                 KeyCode::Left => {
-                    let mut distance = 1;
-                    if key.modifier_flags().contains(&ModifierFlag::Alternate) {
-                        distance = 2;
-                    }
-
                     let highlight = key.modifier_flags().contains(&ModifierFlag::Shift);
 
                     for carat in carats.iter_mut() {
                         let index = carat.character_index.get();
+
+                        let mut distance = 1;
+                        if key.modifier_flags().contains(&ModifierFlag::Alternate) {
+                            let text_field = TextField::from_view(self.view.upgrade().unwrap());
+                            let attributed_string = text_field.label().attributed_text();
+                            let attributed_string = attributed_string.borrow();
+                            let text = attributed_string.text();
+                            let boundary = word_boundary::find_word_boundary(text, index, false);
+                            distance = index as i32 - boundary as i32;
+                        }
 
                         let mut new_index = index as i32 - distance;
                         if new_index < 0 {
@@ -442,19 +448,24 @@ custom_view!(
                     }
                 },
                 KeyCode::Right => {
-                    let mut distance = 1;
-                    if key.modifier_flags().contains(&ModifierFlag::Alternate) {
-                        distance = 2;
-                    }
-
                     let highlight = key.modifier_flags().contains(&ModifierFlag::Shift);
 
                     for carat in carats.iter_mut() {
                         let index = carat.character_index.get();
 
+                        let mut distance = 1;
+                        if key.modifier_flags().contains(&ModifierFlag::Alternate) {
+                            let text_field = TextField::from_view(self.view.upgrade().unwrap());
+                            let attributed_string = text_field.label().attributed_text();
+                            let attributed_string = attributed_string.borrow();
+                            let text = attributed_string.text();
+                            let boundary = word_boundary::find_word_boundary(text, index, true);
+                            distance = index + boundary;
+                        }
+
                         let mut new_index = index + distance;
-                        if new_index > label.text().len() {
-                            new_index = label.text().len();
+                        if new_index > label.text_len() {
+                            new_index = label.text_len();
                         }
                         carat.character_index.set(new_index as usize);
                         if highlight {

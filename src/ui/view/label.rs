@@ -7,12 +7,13 @@ use crate::text::rendering;
 use crate::macros::*;
 use crate::text::{VerticalAlignment, HorizontalAlignment};
 use std::ops::Range;
+use std::rc::Rc;
 
 custom_view!(
     Label subclasses DefaultBehavior
 
     struct LabelBehavior {
-        attributed_text: RefCell<AttributedString>,
+        attributed_text: Rc<RefCell<AttributedString>>,
         text_alignment: Cell<HorizontalAlignment>,
         text_vertical_alignment: Cell<VerticalAlignment>,
         rendering_result: RefCell<Option<rendering::Result>>
@@ -20,7 +21,7 @@ custom_view!(
 
     impl Self {
         pub fn new(frame: Rectangle<i32, u32>, text: String) -> Label {
-            let text = RefCell::new(AttributedString::new(text));
+            let text = Rc::new(RefCell::new(AttributedString::new(text)));
             let text_alignment = Cell::new(HorizontalAlignment::Left);
             let text_vertical_alignment = Cell::new(VerticalAlignment::Top);
 
@@ -39,24 +40,44 @@ custom_view!(
         ///
         /// If the label contains an attributed string, the text is extracted
         /// from the attributed string.
-        pub fn text(&self) -> String {
+        pub fn copy_text(&self) -> String {
             let behavior = self.behavior();
             let attributed_text = behavior.attributed_text.borrow();
             String::from(attributed_text.text())
+        }
+
+        /// Returns an `Rc` copy of the attributed string contained in the
+        /// label.
+        ///
+        /// Important: For internal complications, this couldn't have been a
+        /// reference. Do not mutate this directly, you should mutate through
+        /// the `Label` methods instead or set another `AttributedString`.
+        pub fn attributed_text(&self) -> Rc<RefCell<AttributedString>> {
+            let behavior = self.behavior();
+            behavior.attributed_text.clone()
+        }
+
+        pub fn text_len(&self) -> usize {
+            self.behavior().attributed_text.borrow().text().len()
         }
 
         /// Sets the text and removes any styling currently set via
         /// `AttributedString`.
         pub fn set_text(&self, text: String) {
             let behavior = self.behavior();
-            let attributed_text = AttributedString::new(text);
-            behavior.attributed_text.replace(attributed_text);
+            let attributed_text: AttributedString;
+            {
+                let existing = behavior.attributed_text.borrow();
+                // TODO: spec
+                attributed_text = AttributedString::new_matching_default_style(text, &existing);
+            }
+            (*behavior.attributed_text).replace(attributed_text);
             behavior.set_needs_display();
         }
 
         pub fn set_attributed_text(&self, attributed_text: AttributedString) {
             let behavior = self.behavior();
-            behavior.attributed_text.replace(attributed_text);
+            (*behavior.attributed_text).replace(attributed_text);
             behavior.set_needs_display();
         }
 
@@ -220,11 +241,11 @@ mod tests {
         let frame = Rectangle::new(0, 0, 100, 100);
         let label = Label::new(frame, String::from("Hello World"));
 
-        assert_eq!(label.text(), String::from("Hello World"));
+        assert_eq!(label.copy_text(), String::from("Hello World"));
 
         label.set_text(String::from("Hello World 1"));
 
-        assert_eq!(label.text(), String::from("Hello World 1"));
+        assert_eq!(label.copy_text(), String::from("Hello World 1"));
     }
 
     #[test]
@@ -242,7 +263,7 @@ mod tests {
             Attribute::Color { color: sdl2::pixels::Color::BLACK }
         );
         label.set_attributed_text(attributed_text);
-        assert_eq!(label.text(), String::from("Hello World"));
+        assert_eq!(label.copy_text(), String::from("Hello World"));
     }
 
     #[test]
@@ -254,7 +275,7 @@ mod tests {
 
             label.insert_text_at_index(0, &String::from("one "));
 
-            assert_eq!(label.text(), String::from("one two"));
+            assert_eq!(label.copy_text(), String::from("one two"));
         }
 
         // When using attributed string
@@ -267,7 +288,7 @@ mod tests {
 
             label.insert_text_at_index(0, &String::from("one "));
 
-            assert_eq!(label.text(), String::from("one two"));
+            assert_eq!(label.copy_text(), String::from("one two"));
         }
     }
 
@@ -280,7 +301,7 @@ mod tests {
 
             label.replace_text_in_range(4..7, &String::from("four"));
 
-            assert_eq!(label.text(), String::from("one four three"));
+            assert_eq!(label.copy_text(), String::from("one four three"));
         }
 
         // When using attributed string
@@ -293,7 +314,7 @@ mod tests {
 
             label.replace_text_in_range(4..7, &String::from("four"));
 
-            assert_eq!(label.text(), String::from("one four three"));
+            assert_eq!(label.copy_text(), String::from("one four three"));
         }
     }
 
