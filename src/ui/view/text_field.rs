@@ -152,7 +152,6 @@ custom_view!(
             let behavior = self.behavior();
             let mut carats = behavior.carats.borrow_mut();
 
-
             // The frame doesn't matter here, it will be updated later when the
             // view draws.
             let carat_view = View::new(Rectangle::new(0, 0, 1, 1));
@@ -344,6 +343,9 @@ custom_view!(
                     // than one.
                     return;
                 }
+            } else if self.holding_alternative.get() > 0 {
+                text_field.spawn_carat(touched_character_index);
+                return;
             }
 
             text_field.remove_carats();
@@ -358,7 +360,9 @@ custom_view!(
 
             let carats = text_field_behavior.carats.borrow();
 
-            for carat in carats.iter() {
+            for (carat_index, carat) in carats.iter().enumerate() {
+                let index = carat.character_index.get();
+                carat.character_index.set(index + (carat_index * text.len()));
                 let index = carat.character_index.get();
                 label.insert_text_at_index(index, text);
                 carat.character_index.set(index + text.len());
@@ -486,21 +490,46 @@ custom_view!(
                     }
                 },
                 KeyCode::Backspace => {
-                    let mut distance = 1;
-                    if key.modifier_flags().contains(&ModifierFlag::Alternate) {
-                        distance = 2;
-                    }
+                    let mut extra_movement_for_following_carat: i32 = 0;
                     for carat in carats.iter() {
-                        let index = carat.character_index.get();
-                        if index > 0 {
+                        // First move the cursor if other cursors have caused
+                        // this one to move.
+                        {
+                            let index = carat.character_index.get();
+                            let mut new_index: i32 = index as i32 - extra_movement_for_following_carat;
+                            if new_index < 0 {
+                                new_index = 0;
+                            }
+                            carat.character_index.set(new_index as usize);
+
+                        }
+
+                        // And then move again for this deletion
+                        {
+                            let index = carat.character_index.get();
+
+                            let mut distance = 1;
+                            if key.modifier_flags().contains(&ModifierFlag::Alternate) {
+                                let text_field = TextField::from_view(self.view.upgrade().unwrap());
+                                let attributed_string = text_field.label().attributed_text();
+                                let attributed_string = attributed_string.borrow();
+                                let text = attributed_string.text();
+                                let boundary = word_boundary::find_word_boundary(text, index, false);
+                                distance = index as i32 - boundary as i32;
+                            }
+
                             let mut new_index = index as i32 - distance;
                             if new_index < 0 {
                                 new_index = 0;
                             }
                             let new_index = new_index as usize;
-                            carat.character_index.set(new_index);
+                            carat.character_index.set(new_index as usize);
+
                             label.replace_text_in_range(new_index..index, "");
+                            let distance = index as i32 - new_index as i32;
+                            extra_movement_for_following_carat += distance;
                         }
+
                         if let Some(carat_view) = carat.view.upgrade() {
                             carat_view.set_hidden(false);
                             carat_view.set_needs_display();
