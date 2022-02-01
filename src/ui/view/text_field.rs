@@ -420,7 +420,6 @@ custom_view!(
                 carat.character_index.set(index + text.len());
                 if let Some(carat_view) = carat.view.upgrade() {
                     carat_view.set_hidden(false);
-                    carat_view.set_needs_display();
                 }
             }
 
