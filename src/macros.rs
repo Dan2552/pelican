@@ -22,43 +22,44 @@ macro_rules! singleton {
     };
 }
 
+#[macro_export]
 macro_rules! custom_view {
     ($view:ident subclasses $super:ident struct $behavior:ident { $($key:ident: $value:path),* } $(impl Self { $($custom_view_impl:item)* })? $(impl Behavior { $($custom_behavior_impl:item)* })?) => {
         pub struct $view {
-            pub view: crate::ui::View,
+            pub view: $crate::ui::View,
         }
         pub struct $behavior {
-            view: crate::ui::WeakView,
-            super_behavior: Box<dyn crate::ui::view::Behavior>,
+            view: $crate::ui::WeakView,
+            super_behavior: Box<dyn $crate::ui::view::Behavior>,
             $($key: $value),*
         }
         impl $view {
             #![allow(dead_code)]
 
-            pub(crate) fn new_all(frame: crate::graphics::Rectangle<i32, u32>, $($key: $value),*) -> Self {
+            pub(crate) fn new_all(frame: $crate::graphics::Rectangle<i32, u32>, $($key: $value),*) -> Self {
                 let super_behavior = $super {
-                    view: crate::ui::WeakView::none()
+                    view: $crate::ui::WeakView::none()
                 };
 
                 let behavior = $behavior {
-                    view: crate::ui::WeakView::none(),
+                    view: $crate::ui::WeakView::none(),
                     super_behavior: Box::new(super_behavior),
                     $($key),*
                 };
 
-                let view = crate::ui::View::new_with_behavior(Box::new(behavior), frame, "test");
+                let view = $crate::ui::View::new_with_behavior(Box::new(behavior), frame, "test");
                 Self { view }
             }
 
-            pub fn from_view(view: crate::ui::View) -> Self {
+            pub fn from_view(view: $crate::ui::View) -> Self {
                 // Downcast the behavior to essentially verify the view is a window.
-                let _ = view.behavior.borrow().as_any().downcast_ref::<$behavior>().unwrap();
+                let _ = view.behavior().as_any().downcast_ref::<$behavior>().unwrap();
 
                 Self { view }
             }
 
             pub fn behavior(&self) -> std::cell::Ref<'_, $behavior> {
-                std::cell::Ref::map(self.view.behavior.borrow(), |behavior| {
+                std::cell::Ref::map(self.view.behavior(), |behavior| {
                     behavior.as_any().downcast_ref::<$behavior>().unwrap()
                 })
             }
@@ -74,20 +75,20 @@ macro_rules! custom_view {
             }
         }
 
-        impl crate::ui::view::Behavior for $behavior {
-            fn super_behavior(&self) -> Option<&Box<dyn crate::ui::view::Behavior>> {
+        impl $crate::ui::view::Behavior for $behavior {
+            fn super_behavior(&self) -> Option<&Box<dyn $crate::ui::view::Behavior>> {
                 Some(&self.super_behavior)
             }
 
-            fn mut_super_behavior(&mut self) -> Option<&mut dyn crate::ui::view::Behavior> {
+            fn mut_super_behavior(&mut self) -> Option<&mut dyn $crate::ui::view::Behavior> {
                 Some(self.super_behavior.as_mut())
             }
 
-            fn set_view(&mut self, view: crate::ui::WeakView) {
+            fn set_view(&mut self, view: $crate::ui::WeakView) {
                 self.view = view;
             }
 
-            fn get_view(&self) -> &crate::ui::WeakView {
+            fn get_view(&self) -> &$crate::ui::WeakView {
                 &self.view
             }
 
@@ -107,7 +108,7 @@ macro_rules! custom_view {
 }
 
 pub(crate) use singleton;
-pub(crate) use custom_view;
+pub use custom_view;
 
 #[cfg(test)]
 mod tests {

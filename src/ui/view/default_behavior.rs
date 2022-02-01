@@ -3,7 +3,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 
 pub struct DefaultBehavior {
-    pub(crate) view: WeakView
+    pub view: WeakView
 }
 impl Behavior for DefaultBehavior {
     fn set_view(&mut self, view: WeakView) {

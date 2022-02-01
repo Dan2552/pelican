@@ -77,6 +77,9 @@ impl View {
         view
     }
 
+    pub fn behavior(&self) -> Ref<'_, Box<dyn Behavior>> {
+        self.behavior.borrow()
+    }
 
     /// An optional identifier for the view. Can be used to find the view in
     /// the view hierarchy.
