@@ -15,6 +15,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 use std::ops::Range;
 use crate::text::word_boundary;
+use std::collections::HashMap;
 
 pub(crate) struct Carat {
     view: WeakView,
@@ -23,10 +24,26 @@ pub(crate) struct Carat {
     delay_animation: Rc<Cell<bool>>
 }
 
+impl Drop for Carat {
+    fn drop(&mut self) {
+        self.view.upgrade().unwrap().remove_from_superview();
+    }
+}
+
 pub(crate) struct Selection {
     start: usize,
     end: usize,
     views: RefCell<Vec<WeakView>>
+}
+
+impl Drop for Selection {
+    fn drop(&mut self) {
+        for view in self.views.borrow().iter() {
+            if let Some(view) = view.upgrade() {
+                view.remove_from_superview();
+            }
+        }
+    }
 }
 
 custom_view!(
@@ -109,15 +126,6 @@ custom_view!(
         }
 
         fn select_range(&self, carat: &mut Carat, range: Range<usize>) {
-            {
-                if let Some(existing_selection) = &carat.selection {
-                    for view in existing_selection.views.borrow().iter() {
-                        let view = view.upgrade().unwrap();
-                        view.remove_from_superview();
-                    }
-                }
-            }
-
             if range.is_empty() {
                 carat.selection = None;
                 return;
@@ -135,16 +143,6 @@ custom_view!(
         pub fn remove_carats(&self) {
             let behavior = self.behavior();
             let mut carats = behavior.carats.borrow_mut();
-            for carat in carats.iter() {
-                carat.view.upgrade().unwrap().remove_from_superview();
-                if let Some(selection) = &carat.selection {
-                    for view in selection.views.borrow().iter() {
-                        if let Some(view) = view.upgrade() {
-                            view.remove_from_superview();
-                        }
-                    }
-                }
-            }
             carats.clear();
         }
 
@@ -191,6 +189,15 @@ custom_view!(
             });
             let run_loop = RunLoop::borrow();
             run_loop.add_timer(timer);
+        }
+
+        fn select_all(&self) {
+            self.remove_carats();
+            let behavior = self.behavior();
+            let text_len = self.label().text_len();
+            self.spawn_carat(text_len);
+            let mut carats = behavior.carats.borrow_mut();
+            self.select(carats.last_mut().unwrap(), 0, text_len);
         }
 
         // TODO: is this still correct?
@@ -299,6 +306,26 @@ custom_view!(
                 character_index += 1;
             }
         }
+
+        /// If more than one cursor is in the same spot, only one should
+        /// survive.
+        fn consume_and_sort_cursors(&self) {
+            let behavior = self.behavior();
+            let mut carats = behavior.carats.borrow_mut();
+
+            let mut indexes = HashMap::new();
+            carats.retain(|carat| {
+                let character_index = carat.character_index.get();
+                if indexes.contains_key(&character_index) {
+                    return false;
+                } else {
+                    indexes.insert(character_index, true);
+                    return true;
+                }
+            });
+
+            carats.sort_by(|a, b| a.character_index.get().cmp(&b.character_index.get()));
+        }
     }
 
     impl Behavior {
@@ -355,6 +382,7 @@ custom_view!(
         fn text_input_did_receive(&self, text: &str) {
             let view = self.view.upgrade().unwrap();
             let text_field = TextField::from_view(view.clone());
+            text_field.consume_and_sort_cursors();
             let label = text_field.label();
             let text_field_behavior = text_field.behavior();
 
@@ -394,10 +422,9 @@ custom_view!(
         fn press_began(&self, press: &Press) {
             let view = self.view.upgrade().unwrap();
             let text_field = TextField::from_view(view.clone());
+            text_field.consume_and_sort_cursors();
             let label = text_field.label();
             let text_field_behavior = text_field.behavior();
-
-            let mut carats = text_field_behavior.carats.borrow_mut();
 
             let key = press.key();
 
@@ -414,17 +441,23 @@ custom_view!(
             match key.key_code() {
                 KeyCode::Left => {
                     let highlight = key.modifier_flags().contains(&ModifierFlag::Shift);
-
+                    let mut carats = text_field_behavior.carats.borrow_mut();
                     for carat in carats.iter_mut() {
                         let index = carat.character_index.get();
 
                         let mut distance = 1;
-                        if key.modifier_flags().contains(&ModifierFlag::Alternate) {
+                        if key.modifier_flags().contains(&ModifierFlag::Alternate) || key.modifier_flags().contains(&ModifierFlag::Command) {
                             let text_field = TextField::from_view(self.view.upgrade().unwrap());
                             let attributed_string = text_field.label().attributed_text();
                             let attributed_string = attributed_string.borrow();
                             let text = attributed_string.text();
-                            let boundary = word_boundary::find_word_boundary(text, index, false);
+                            let boundary: usize;
+                            if key.modifier_flags().contains(&ModifierFlag::Alternate) {
+                                boundary = word_boundary::find_word_boundary(text, index, false);
+                            } else {
+                                boundary = word_boundary::find_line_boundary(text, index, false);
+                            }
+
                             distance = index as i32 - boundary as i32;
                         }
 
@@ -453,17 +486,23 @@ custom_view!(
                 },
                 KeyCode::Right => {
                     let highlight = key.modifier_flags().contains(&ModifierFlag::Shift);
-
+                    let mut carats = text_field_behavior.carats.borrow_mut();
                     for carat in carats.iter_mut() {
                         let index = carat.character_index.get();
 
                         let mut distance = 1;
-                        if key.modifier_flags().contains(&ModifierFlag::Alternate) {
+                        if key.modifier_flags().contains(&ModifierFlag::Alternate) || key.modifier_flags().contains(&ModifierFlag::Command) {
                             let text_field = TextField::from_view(self.view.upgrade().unwrap());
                             let attributed_string = text_field.label().attributed_text();
                             let attributed_string = attributed_string.borrow();
                             let text = attributed_string.text();
-                            let boundary = word_boundary::find_word_boundary(text, index, true);
+                            let boundary: usize;
+                            if key.modifier_flags().contains(&ModifierFlag::Alternate) {
+                                boundary = word_boundary::find_word_boundary(text, index, true);
+                            } else {
+                                boundary = word_boundary::find_line_boundary(text, index, true);
+                            }
+
                             distance = index + boundary;
                         }
 
@@ -491,7 +530,8 @@ custom_view!(
                 },
                 KeyCode::Backspace => {
                     let mut extra_movement_for_following_carat: i32 = 0;
-                    for carat in carats.iter() {
+                    let mut carats = text_field_behavior.carats.borrow_mut();
+                    for carat in carats.iter_mut() {
                         // First move the cursor if other cursors have caused
                         // this one to move.
                         {
@@ -502,22 +542,41 @@ custom_view!(
                             }
                             carat.character_index.set(new_index as usize);
 
+                            if let Some(selection) = &carat.selection {
+                                let start = selection.start as i32 - extra_movement_for_following_carat;
+                                let end = selection.end as i32 - extra_movement_for_following_carat;
+                                let start = start as usize;
+                                let end = end as usize;
+                                text_field.select_range(carat, start..end);
+                            }
                         }
 
                         // And then move again for this deletion
                         {
-                            let index = carat.character_index.get();
-
                             let mut distance = 1;
-                            if key.modifier_flags().contains(&ModifierFlag::Alternate) {
+                            if let Some(selection) = &carat.selection {
+                                distance = selection.end as i32 - selection.start as i32;
+                                if carat.character_index.get() != selection.end {
+                                    carat.character_index.set(selection.end);
+                                }
+                                text_field.select_range(carat, 0..0);
+                            } else if key.modifier_flags().contains(&ModifierFlag::Alternate) || key.modifier_flags().contains(&ModifierFlag::Command) {
+                                let index = carat.character_index.get();
                                 let text_field = TextField::from_view(self.view.upgrade().unwrap());
                                 let attributed_string = text_field.label().attributed_text();
                                 let attributed_string = attributed_string.borrow();
                                 let text = attributed_string.text();
-                                let boundary = word_boundary::find_word_boundary(text, index, false);
+                                let boundary: usize;
+                                if key.modifier_flags().contains(&ModifierFlag::Alternate) {
+                                    boundary = word_boundary::find_word_boundary(text, index, false);
+                                } else {
+                                    boundary = word_boundary::find_line_boundary(text, index, false);
+                                }
+
                                 distance = index as i32 - boundary as i32;
                             }
 
+                            let index = carat.character_index.get();
                             let mut new_index = index as i32 - distance;
                             if new_index < 0 {
                                 new_index = 0;
@@ -535,6 +594,11 @@ custom_view!(
                             carat_view.set_needs_display();
                         }
                         carat.delay_animation.set(true);
+                    }
+                },
+                KeyCode::A => {
+                    if key.modifier_flags().contains(&ModifierFlag::Command) {
+                        text_field.select_all();
                     }
                 },
                 _ => ()

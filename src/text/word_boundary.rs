@@ -61,6 +61,41 @@ pub fn find_word_boundary(text: &str, index: usize, rightwards: bool) -> usize {
     index
 }
 
+/// Finds a line boundary in a string.
+pub fn find_line_boundary(text: &str, start_index: usize, rightwards: bool) -> usize {
+    let mut index = start_index as i32;
+    let mut vector = -1 as i32;
+    if rightwards == true { vector = 1; }
+
+    loop {
+        let character = text.chars().nth(index as usize);
+
+        if rightwards {
+            if index >= text.len() as i32 {
+                break;
+            }
+
+            if character.is_some() && character.unwrap() == '\n' {
+                break;
+            }
+        } else {
+            if index <= 0 {
+                break;
+            }
+
+            if let Some(character) = text.chars().nth((index - 1) as usize) {
+                if character == '\n' {
+                    break;
+                }
+            }
+        }
+
+        index = index + vector;
+    }
+
+    index as usize
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -97,5 +132,52 @@ mod tests {
         assert_eq!(find_word_boundary("fn find_word_boundary(text: &str,", 26, true), 27);
         assert_eq!(find_word_boundary("fn find_word_boundary(text: &str,", 27, true), 32);
         assert_eq!(find_word_boundary("fn find_word_boundary(text: &str,", 32, true), 33);
+    }
+
+    #[test]
+    fn test_find_line_boundary() {
+        let single_line = "a b c";
+
+        assert_eq!(find_line_boundary(single_line, 0, true), 5);
+        assert_eq!(find_line_boundary(single_line, 1, true), 5);
+        assert_eq!(find_line_boundary(single_line, 2, true), 5);
+        assert_eq!(find_line_boundary(single_line, 3, true), 5);
+        assert_eq!(find_line_boundary(single_line, 4, true), 5);
+        assert_eq!(find_line_boundary(single_line, 5, true), 5);
+
+        assert_eq!(find_line_boundary(single_line, 0, false), 0);
+        assert_eq!(find_line_boundary(single_line, 1, false), 0);
+        assert_eq!(find_line_boundary(single_line, 2, false), 0);
+        assert_eq!(find_line_boundary(single_line, 3, false), 0);
+        assert_eq!(find_line_boundary(single_line, 4, false), 0);
+        assert_eq!(find_line_boundary(single_line, 5, false), 0);
+
+        let multiline = "a b\nc d\ne f";
+
+        assert_eq!(find_line_boundary(multiline, 0, true), 3);
+        assert_eq!(find_line_boundary(multiline, 1, true), 3);
+        assert_eq!(find_line_boundary(multiline, 2, true), 3);
+        assert_eq!(find_line_boundary(multiline, 3, true), 3);
+        assert_eq!(find_line_boundary(multiline, 4, true), 7);
+        assert_eq!(find_line_boundary(multiline, 5, true), 7);
+        assert_eq!(find_line_boundary(multiline, 6, true), 7);
+        assert_eq!(find_line_boundary(multiline, 7, true), 7);
+        assert_eq!(find_line_boundary(multiline, 8, true), 11);
+        assert_eq!(find_line_boundary(multiline, 9, true), 11);
+        assert_eq!(find_line_boundary(multiline, 10, true), 11);
+        assert_eq!(find_line_boundary(multiline, 11, true), 11);
+
+        assert_eq!(find_line_boundary(multiline, 0, false), 0);
+        assert_eq!(find_line_boundary(multiline, 1, false), 0);
+        assert_eq!(find_line_boundary(multiline, 2, false), 0);
+        assert_eq!(find_line_boundary(multiline, 3, false), 0);
+        assert_eq!(find_line_boundary(multiline, 4, false), 4);
+        assert_eq!(find_line_boundary(multiline, 5, false), 4);
+        assert_eq!(find_line_boundary(multiline, 6, false), 4);
+        assert_eq!(find_line_boundary(multiline, 7, false), 4);
+        assert_eq!(find_line_boundary(multiline, 8, false), 8);
+        assert_eq!(find_line_boundary(multiline, 9, false), 8);
+        assert_eq!(find_line_boundary(multiline, 10, false), 8);
+        assert_eq!(find_line_boundary(multiline, 11, false), 8);
     }
 }
