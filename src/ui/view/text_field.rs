@@ -12,7 +12,6 @@ use crate::ui::key::{KeyCode, ModifierFlag};
 use std::cell::RefCell;
 use std::time::Duration;
 use std::cell::Cell;
-use std::rc::Rc;
 use std::ops::Range;
 use crate::text::word_boundary;
 use std::collections::HashMap;
@@ -20,8 +19,7 @@ use std::collections::HashMap;
 pub(crate) struct Carat {
     view: WeakView,
     character_index: Cell<usize>,
-    selection: Option<Selection>,
-    delay_animation: Rc<Cell<bool>>
+    selection: Option<Selection>
 }
 
 impl Drop for Carat {
@@ -46,6 +44,14 @@ impl Drop for Selection {
     }
 }
 
+impl Drop for TextFieldBehavior {
+    fn drop(&mut self) {
+        if let Some(timer) = &self.carat_animation_timer {
+            timer.invalidate();
+        }
+    }
+}
+
 custom_view!(
     TextField subclasses DefaultBehavior
 
@@ -64,7 +70,12 @@ custom_view!(
 
         // When holding down touch, as the user moves their finger, a highlight
         // is made from where the touch started to where the finger is now.
-        touch_began_at_index: Cell<usize>
+        touch_began_at_index: Cell<usize>,
+
+        // A timer responsible for animating the carats.
+        carat_animation_timer: Option<Timer>,
+
+        delay_animation: Cell<bool>
     }
 
     impl Self {
@@ -72,18 +83,30 @@ custom_view!(
             let label = Label::new(frame.clone(), text);
             label.view.set_tag(1);
             label.view.set_user_interaction_enabled(false);
+
             let carats = RefCell::new(Vec::new());
             let text_field = TextField::new_all(
                 frame,
                 carats,
                 Cell::new(0),
                 Cell::new(0),
-                Cell::new(0)
+                Cell::new(0),
+                None,
+                Cell::new(false),
             );
 
             text_field.view.add_subview(label.view);
-
             text_field.spawn_carat(0);
+
+            let weak_text_field = text_field.view.downgrade();
+            let carat_animation_timer = Timer::new_repeating(Duration::from_millis(500), move || {
+                if let Some(view) = weak_text_field.upgrade() {
+                    let text_field = TextField::from_view(view);
+                    text_field.animate_carats();
+                }
+            });
+            let run_loop = RunLoop::borrow();
+            run_loop.add_timer(carat_animation_timer);
 
             text_field
         }
@@ -162,33 +185,34 @@ custom_view!(
             let carat = Carat {
                 view: carat_view.downgrade(),
                 character_index: Cell::new(character_index),
-                selection: None,
-                delay_animation: Rc::new(Cell::new(false))
+                selection: None
             };
-            let delay_animation = Rc::downgrade(&carat.delay_animation);
+
             carats.push(carat);
 
             self.view.set_needs_display();
+        }
 
-            let weak_view = carat_view.downgrade();
+        fn animate_carats(&self) {
+            let behavior = self.behavior();
 
-            let timer = Timer::new_repeating(Duration::from_millis(500), move || {
-                if let Some(view) = weak_view.upgrade() {
-                    if let Some(delay_animation) = delay_animation.upgrade() {
-                        if delay_animation.get() {
-                            view.set_hidden(false);
-                            delay_animation.set(false);
-                        } else {
-                            view.set_hidden(!view.is_hidden());
+            let mut hidden: Option<bool> = None;
+            for carat in behavior.carats.borrow().iter() {
+                if let Some(view) = carat.view.upgrade() {
+                    if behavior.delay_animation.get() {
+                        view.set_hidden(false);
+                    } else {
+                        if hidden.is_none() {
+                            hidden = Some(!view.is_hidden());
                         }
+                        view.set_hidden(hidden.unwrap());
                     }
-                } else {
-                    // TODO: end this timer when the view is destroyed
-                    panic!("view was destroyed");
                 }
-            });
-            let run_loop = RunLoop::borrow();
-            run_loop.add_timer(timer);
+            }
+
+            if behavior.delay_animation.get() {
+                behavior.delay_animation.set(false);
+            }
         }
 
         fn select_all(&self) {
@@ -398,8 +422,9 @@ custom_view!(
                     carat_view.set_hidden(false);
                     carat_view.set_needs_display();
                 }
-                carat.delay_animation.set(true);
             }
+
+            self.delay_animation.set(true);
         }
 
         fn press_ended(&self, press: &Press) {
@@ -481,7 +506,7 @@ custom_view!(
                             carat_view.set_hidden(false);
                             carat_view.set_needs_display();
                         }
-                        carat.delay_animation.set(true);
+                        self.delay_animation.set(true);
                     }
                 },
                 KeyCode::Right => {
@@ -525,7 +550,7 @@ custom_view!(
                             carat_view.set_hidden(false);
                             carat_view.set_needs_display();
                         }
-                        carat.delay_animation.set(true);
+                        self.delay_animation.set(true);
                     }
                 },
                 KeyCode::Backspace => {
@@ -593,7 +618,7 @@ custom_view!(
                             carat_view.set_hidden(false);
                             carat_view.set_needs_display();
                         }
-                        carat.delay_animation.set(true);
+                        self.delay_animation.set(true);
                     }
                 },
                 KeyCode::A => {

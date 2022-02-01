@@ -1,9 +1,14 @@
 use std::time::Duration;
 use std::time::Instant;
 use std::cell::Cell;
+use std::rc::Rc;
 
 // A repeating or once-off Timer object, to be run by the main loop.
 pub struct Timer {
+    inner: Rc<TimerInner>
+}
+
+struct TimerInner {
     interval: Duration,
     repeats: bool,
     action: Box<dyn Fn() -> ()>,
@@ -28,12 +33,14 @@ impl Timer {
     pub fn new(interval: Duration, repeats: bool, action: impl Fn() -> () + 'static) -> Self {
         let now = Instant::now();
         Self {
-            interval,
-            repeats,
-            action: Box::new(action),
-            is_valid: Cell::new(true),
-            last_fired_at: Cell::new(now),
-            fire_at: Cell::new(now + interval)
+            inner: Rc::new(TimerInner {
+                interval,
+                repeats,
+                action: Box::new(action),
+                is_valid: Cell::new(true),
+                last_fired_at: Cell::new(now),
+                fire_at: Cell::new(now + interval)
+            })
         }
     }
 
@@ -52,30 +59,30 @@ impl Timer {
     // Run the action
     pub(crate) fn fire(&self) {
         let current_fire_at = Instant::now();
-        (self.action)();
+        (self.inner.action)();
 
-        self.fire_at.set(current_fire_at + self.interval);
-        self.last_fired_at.set(current_fire_at);
+        self.inner.fire_at.set(current_fire_at + self.inner.interval);
+        self.inner.last_fired_at.set(current_fire_at);
 
-        if !self.repeats {
-            self.is_valid.set(false)
+        if !self.inner.repeats {
+            self.inner.is_valid.set(false)
         }
     }
 
     pub fn is_valid(&self) -> bool {
-        self.is_valid.get()
+        self.inner.is_valid.get()
     }
 
     pub fn fire_at(&self) -> Instant {
-        self.fire_at.get().clone()
+        self.inner.fire_at.get().clone()
     }
 
     // Sets the timer as invalidated. Meaning the run loop will recognise this:
     // * To not fire
     // * To be removed from the run loop
     pub fn invalidate(&self) {
-        self.is_valid.set(false);
-        self.fire_at.set(self.last_fired_at.get());
+        self.inner.is_valid.set(false);
+        self.inner.fire_at.set(self.inner.last_fired_at.get());
     }
 }
 
