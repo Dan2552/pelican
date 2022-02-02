@@ -15,6 +15,7 @@ use std::cell::Cell;
 use std::ops::Range;
 use crate::text::word_boundary;
 use std::collections::HashMap;
+use std::time::Instant;
 
 pub(crate) struct Carat {
     view: WeakView,
@@ -75,7 +76,10 @@ custom_view!(
         // A timer responsible for animating the carats.
         carat_animation_timer: Option<Timer>,
 
-        delay_animation: Cell<bool>
+        delay_animation: Cell<bool>,
+
+        last_click: Cell<Instant>,
+        click_count: Cell<u8>
     }
 
     impl Self {
@@ -93,6 +97,8 @@ custom_view!(
                 Cell::new(0),
                 None,
                 Cell::new(false),
+                Cell::new(Instant::now()),
+                Cell::new(0)
             );
 
             text_field.view.add_subview(label.view);
@@ -401,6 +407,46 @@ custom_view!(
 
             text_field.remove_carats();
             text_field.spawn_carat(touched_character_index);
+
+
+            if self.last_click.get().elapsed().as_millis() < 500 {
+                self.click_count.set(self.click_count.get() + 1);
+
+                let attributed_string = text_field.label().attributed_text();
+                let attributed_string = attributed_string.borrow();
+                let text = attributed_string.text();
+
+                if self.click_count.get() == 2 {
+                    // go forward, back, and then forward again incase it
+                    // started on whitespace (otherwise multiple words would
+                    // be selected).
+                    let rhs = word_boundary::find_word_boundary(text, touched_character_index, true);
+                    let lhs = word_boundary::find_word_boundary(text, rhs, false);
+                    let rhs = word_boundary::find_word_boundary(text, touched_character_index, true);
+
+                    let mut carats = self.carats.borrow_mut();
+                    let carat = carats.first_mut().unwrap();
+                    text_field.select(carat, lhs, rhs);
+                    carat.character_index.set(rhs);
+                } else if self.click_count.get() == 3 {
+                    // go forward, back, and then forward again incase it
+                    // started on whitespace (otherwise multiple words would
+                    // be selected).
+                    let rhs = word_boundary::find_line_boundary(text, touched_character_index, true);
+                    let lhs = word_boundary::find_line_boundary(text, rhs, false);
+                    let rhs = word_boundary::find_line_boundary(text, touched_character_index, true);
+
+                    let mut carats = self.carats.borrow_mut();
+                    let carat = carats.first_mut().unwrap();
+                    text_field.select(carat, lhs, rhs);
+                    carat.character_index.set(rhs);
+                }
+
+            } else {
+                self.click_count.set(1);
+            }
+
+            self.last_click.set(Instant::now());
         }
 
         fn text_input_did_receive(&self, text: &str) {
