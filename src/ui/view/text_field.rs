@@ -410,14 +410,45 @@ custom_view!(
             let label = text_field.label();
             let text_field_behavior = text_field.behavior();
 
-            let carats = text_field_behavior.carats.borrow();
+            let mut carats = text_field_behavior.carats.borrow_mut();
 
-            for (carat_index, carat) in carats.iter().enumerate() {
-                let index = carat.character_index.get();
-                carat.character_index.set(index + (carat_index * text.len()));
-                let index = carat.character_index.get();
-                label.insert_text_at_index(index, text);
-                carat.character_index.set(index + text.len());
+            let mut extra_movement_for_following_carat: i32 = 0;
+
+            for carat in carats.iter_mut() {
+                // Adjust for extra_movement_for_following_carat
+                {
+                    let index = carat.character_index.get();
+                    let mut new_index = index as i32 + extra_movement_for_following_carat;
+                    if new_index < 0 {
+                        new_index = 0;
+                    }
+                    if new_index > label.text_len() as i32 {
+                        new_index = label.text_len() as i32;
+                    }
+                    carat.character_index.set(new_index as usize);
+
+                    if carat.selection.is_some() {
+                        let selection_start = carat.selection.as_ref().unwrap().start as i32 + extra_movement_for_following_carat;
+                        let selection_end = carat.selection.as_ref().unwrap().end as i32 + extra_movement_for_following_carat;
+
+                        text_field.select(carat, selection_start as usize, selection_end as usize);
+                    }
+                }
+
+                if let Some(selection) = &carat.selection {
+                    label.replace_text_in_range(selection.start..selection.end, &text);
+                    extra_movement_for_following_carat -= (selection.end - selection.start) as i32;
+                    carat.character_index.set(selection.start + text.len());
+                } else {
+                    let index = carat.character_index.get();
+                    label.insert_text_at_index(index, text);
+                    carat.character_index.set(index + text.len());
+                }
+
+                carat.selection = None;
+
+                extra_movement_for_following_carat += text.len() as i32;
+
                 if let Some(carat_view) = carat.view.upgrade() {
                     carat_view.set_hidden(false);
                 }
