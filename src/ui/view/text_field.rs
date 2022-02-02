@@ -558,12 +558,12 @@ custom_view!(
                                 boundary = word_boundary::find_line_boundary(text, index, true);
                             }
 
-                            distance = index + boundary;
+                            distance = boundary as i32 - index as i32;
                         }
 
-                        let mut new_index = index + distance;
-                        if new_index > label.text_len() {
-                            new_index = label.text_len();
+                        let mut new_index = index as i32 + distance;
+                        if new_index > label.text_len() as i32 {
+                            new_index = label.text_len() as i32;
                         }
                         carat.character_index.set(new_index as usize);
                         if highlight {
@@ -571,6 +571,7 @@ custom_view!(
                             if let Some(existing_selection) = &carat.selection {
                                 lhs_select = existing_selection.start;
                             }
+                            let new_index = new_index as usize;
                             text_field.select_range(carat, lhs_select..new_index);
                         } else {
                             text_field.select_range(carat, 0..0);

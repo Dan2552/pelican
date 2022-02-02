@@ -132,6 +132,8 @@ mod tests {
         assert_eq!(find_word_boundary("fn find_word_boundary(text: &str,", 26, true), 27);
         assert_eq!(find_word_boundary("fn find_word_boundary(text: &str,", 27, true), 32);
         assert_eq!(find_word_boundary("fn find_word_boundary(text: &str,", 32, true), 33);
+
+        assert_eq!(find_word_boundary("hello world hello world", 12, true), 17);
     }
 
     #[test]
