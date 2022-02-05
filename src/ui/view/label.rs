@@ -43,7 +43,7 @@ custom_view!(
         pub fn copy_text(&self) -> String {
             let behavior = self.behavior();
             let attributed_text = behavior.attributed_text.borrow();
-            String::from(attributed_text.text())
+            String::from(attributed_text.text().string())
         }
 
         /// Returns an `Rc` copy of the attributed string contained in the
@@ -58,7 +58,7 @@ custom_view!(
         }
 
         pub fn text_len(&self) -> usize {
-            self.behavior().attributed_text.borrow().text().len()
+            self.behavior().attributed_text.borrow().len()
         }
 
         /// Sets the text and removes any styling currently set via

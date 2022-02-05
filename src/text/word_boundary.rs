@@ -1,12 +1,14 @@
+use crate::text::text::Text;
+
 /// Finds a word boundary in a string.
-pub fn find_word_boundary(text: &str, index: usize, rightwards: bool) -> usize {
+pub fn find_word_boundary(text: &Text, index: usize, rightwards: bool) -> usize {
     let mut index = index;
     let mut has_seen_at_least_one_non_boundary = false;
     let mut only_whitespace_boundaries = true;
 
     if rightwards {
         while index < text.len() {
-            let character = text.chars().nth(index).unwrap();
+            let character = text[index].chars().nth(0).unwrap();
             if !(character.is_alphanumeric() || character == '_') {
                 let whitespace = character.is_whitespace();
 
@@ -32,7 +34,7 @@ pub fn find_word_boundary(text: &str, index: usize, rightwards: bool) -> usize {
         }
     } else {
         while index > 0 {
-            let character = text.chars().nth(index - 1).unwrap();
+            let character = text[index - 1].chars().nth(0).unwrap();
             if !(character.is_alphanumeric() || character == '_') {
                 let whitespace = character.is_whitespace();
 
@@ -62,20 +64,20 @@ pub fn find_word_boundary(text: &str, index: usize, rightwards: bool) -> usize {
 }
 
 /// Finds a line boundary in a string.
-pub fn find_line_boundary(text: &str, start_index: usize, rightwards: bool) -> usize {
+pub fn find_line_boundary(text: &Text, start_index: usize, rightwards: bool) -> usize {
     let mut index = start_index as i32;
     let mut vector = -1 as i32;
     if rightwards == true { vector = 1; }
 
     loop {
-        let character = text.chars().nth(index as usize);
+        let character = text.nth(index as usize);
 
         if rightwards {
             if index >= text.len() as i32 {
                 break;
             }
 
-            if character.is_some() && character.unwrap() == '\n' {
+            if character.is_some() && character.unwrap() == "\n" {
                 break;
             }
         } else {
@@ -83,8 +85,8 @@ pub fn find_line_boundary(text: &str, start_index: usize, rightwards: bool) -> u
                 break;
             }
 
-            if let Some(character) = text.chars().nth((index - 1) as usize) {
-                if character == '\n' {
+            if let Some(character) = text.nth((index - 1) as usize) {
+                if character == "\n" {
                     break;
                 }
             }
@@ -102,43 +104,43 @@ mod tests {
 
     #[test]
     fn test_find_word_boundary() {
-        assert_eq!(find_word_boundary("hello world", 0, true), 5);
-        assert_eq!(find_word_boundary("hello world", 1, true), 5);
-        assert_eq!(find_word_boundary("hello world", 2, true), 5);
-        assert_eq!(find_word_boundary("hello world", 4, true), 5);
-        assert_eq!(find_word_boundary("hello world", 5, true), 11);
-        assert_eq!(find_word_boundary("hello world", 6, true), 11);
-        assert_eq!(find_word_boundary("hello world", 7, true), 11);
-        assert_eq!(find_word_boundary("hello world", 8, true), 11);
-        assert_eq!(find_word_boundary("hello world", 9, true), 11);
-        assert_eq!(find_word_boundary("hello world", 10, true), 11);
-        assert_eq!(find_word_boundary("hello world", 11, true), 11);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 0, true), 5);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 1, true), 5);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 2, true), 5);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 4, true), 5);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 5, true), 11);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 6, true), 11);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 7, true), 11);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 8, true), 11);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 9, true), 11);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 10, true), 11);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 11, true), 11);
 
-        assert_eq!(find_word_boundary("hello world", 0, false), 0);
-        assert_eq!(find_word_boundary("hello world", 1, false), 0);
-        assert_eq!(find_word_boundary("hello world", 2, false), 0);
-        assert_eq!(find_word_boundary("hello world", 4, false), 0);
-        assert_eq!(find_word_boundary("hello world", 5, false), 0);
-        assert_eq!(find_word_boundary("hello world", 6, false), 0);
-        assert_eq!(find_word_boundary("hello world", 7, false), 6);
-        assert_eq!(find_word_boundary("hello world", 8, false), 6);
-        assert_eq!(find_word_boundary("hello world", 9, false), 6);
-        assert_eq!(find_word_boundary("hello world", 10, false), 6);
-        assert_eq!(find_word_boundary("hello world", 11, false), 6);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 0, false), 0);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 1, false), 0);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 2, false), 0);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 4, false), 0);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 5, false), 0);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 6, false), 0);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 7, false), 6);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 8, false), 6);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 9, false), 6);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 10, false), 6);
+        assert_eq!(find_word_boundary(&Text::from("hello world"), 11, false), 6);
 
-        assert_eq!(find_word_boundary("fn find_word_boundary(text: &str,", 0, true), 2);
-        assert_eq!(find_word_boundary("fn find_word_boundary(text: &str,", 2, true), 21);
-        assert_eq!(find_word_boundary("fn find_word_boundary(text: &str,", 21, true), 26);
-        assert_eq!(find_word_boundary("fn find_word_boundary(text: &str,", 26, true), 27);
-        assert_eq!(find_word_boundary("fn find_word_boundary(text: &str,", 27, true), 32);
-        assert_eq!(find_word_boundary("fn find_word_boundary(text: &str,", 32, true), 33);
+        assert_eq!(find_word_boundary(&Text::from("fn find_word_boundary(text: &str,"), 0, true), 2);
+        assert_eq!(find_word_boundary(&Text::from("fn find_word_boundary(text: &str,"), 2, true), 21);
+        assert_eq!(find_word_boundary(&Text::from("fn find_word_boundary(text: &str,"), 21, true), 26);
+        assert_eq!(find_word_boundary(&Text::from("fn find_word_boundary(text: &str,"), 26, true), 27);
+        assert_eq!(find_word_boundary(&Text::from("fn find_word_boundary(text: &str,"), 27, true), 32);
+        assert_eq!(find_word_boundary(&Text::from("fn find_word_boundary(text: &str,"), 32, true), 33);
 
-        assert_eq!(find_word_boundary("hello world hello world", 12, true), 17);
+        assert_eq!(find_word_boundary(&Text::from("hello world hello world"), 12, true), 17);
     }
 
     #[test]
     fn test_find_line_boundary() {
-        let single_line = "a b c";
+        let single_line = &Text::from("a b c");
 
         assert_eq!(find_line_boundary(single_line, 0, true), 5);
         assert_eq!(find_line_boundary(single_line, 1, true), 5);
@@ -154,7 +156,7 @@ mod tests {
         assert_eq!(find_line_boundary(single_line, 4, false), 0);
         assert_eq!(find_line_boundary(single_line, 5, false), 0);
 
-        let multiline = "a b\nc d\ne f";
+        let multiline = &Text::from("a b\nc d\ne f");
 
         assert_eq!(find_line_boundary(multiline, 0, true), 3);
         assert_eq!(find_line_boundary(multiline, 1, true), 3);

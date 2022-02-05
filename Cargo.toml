@@ -8,6 +8,7 @@ edition = "2018"
 [dependencies]
 uuid = { version = "0.8", features = ["v4"] }
 sdl2 = { version = "0.35.1", features = ["unsafe_textures", "image", "ttf"] }
+unicode-segmentation = "1.8.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc = "0.2.7"

@@ -16,6 +16,7 @@ use std::ops::Range;
 use crate::text::word_boundary;
 use std::collections::HashMap;
 use std::time::Instant;
+use crate::text::text::Text;
 
 pub(crate) struct Carat {
     view: WeakView,
@@ -488,7 +489,7 @@ custom_view!(
                 } else {
                     let index = carat.character_index.get();
                     label.insert_text_at_index(index, text);
-                    carat.character_index.set(index + text.len());
+                    carat.character_index.set(index + Text::from(text).len());
                 }
 
                 carat.selection = None;

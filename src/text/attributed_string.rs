@@ -2,7 +2,7 @@ use crate::graphics::Color;
 use crate::graphics::Font;
 use std::collections::HashMap;
 use std::cell::{Ref, RefCell};
-
+use crate::text::text::Text;
 
 #[derive(PartialEq, Debug)]
 pub enum Attribute {
@@ -51,7 +51,7 @@ pub struct AttributedString {
     id: uuid::Uuid,
 
     /// The actual text that this `AttributedString` represents.
-    text: String,
+    text: Text,
 
     /// The attributes for each character in the string. The index of the
     /// character in the string matches the index of the attribute in the
@@ -85,7 +85,7 @@ impl AttributedString {
 
         AttributedString {
             id: uuid::Uuid::new_v4(),
-            text: text,
+            text: Text::new(text),
             attributes: RefCell::new(attributes),
             default_attributes: RefCell::new(default_attributes)
         }
@@ -103,15 +103,19 @@ impl AttributedString {
         attributed_string
     }
 
-    pub fn text(&self) -> &str {
+    pub fn text(&self) -> &Text {
         &self.text
+    }
+
+    pub fn len(&self) -> usize {
+        self.text.len()
     }
 
     pub fn insert_str(&mut self, idx: usize, string: &str) {
         self.text.insert_str(idx, string);
-
+        let text = Text::from(string);
         let mut attributes = self.attributes.borrow_mut();
-        for _ in 0..string.chars().count() {
+        for _ in 0..text.len() {
             attributes.insert(idx, AttributeContainer::new())
         }
     }
@@ -120,7 +124,7 @@ impl AttributedString {
         let mut lines = Vec::new();
         let mut start = 0;
 
-        for (i, c) in self.text.chars().enumerate() {
+        for (i, c) in self.text.string().chars().enumerate() {
             if c == '\n' {
                 lines.push(AttributedSubstring {
                     attributed_string: self,
@@ -147,7 +151,7 @@ impl AttributedString {
     }
 
     pub fn chars(&self) -> std::str::Chars {
-        self.text.chars()
+        self.text.string().chars()
     }
 
     pub fn set_default_attribute(&self, key: Key, attribute: Attribute) {
@@ -169,7 +173,7 @@ impl AttributedString {
         let attributes = self.attributes.borrow();
 
         if index >= attributes.len() {
-            panic!("Index out of bounds. Attempted {}, but length is {} / {}", index, attributes.len(), self.text);
+            panic!("Index out of bounds. Attempted {}, but length is {} / {}", index, attributes.len(), self.text.string());
         }
 
         if attributes[index].get(&key).is_some() {
@@ -195,12 +199,14 @@ impl AttributedString {
             attributes.remove(start);
         }
 
+        let text = Text::from(string);
+
         let mut new_attributes = Vec::new();
-        for _ in 0..string.chars().count() {
+        for _ in 0..text.len() {
             new_attributes.push(AttributeContainer::new());
         }
 
-        for i in start..start + string.chars().count() {
+        for i in start..start + text.len() {
             attributes.insert(i, new_attributes.remove(0));
         }
     }
@@ -257,7 +263,7 @@ mod tests {
     fn test_text() {
         let text = "Hello, world!";
         let attributed_string = AttributedString::new(text.to_string());
-        assert_eq!(attributed_string.text(), text);
+        assert_eq!(attributed_string.text(), &Text::from(text));
     }
 
     #[test]
@@ -391,9 +397,9 @@ mod tests {
         };
 
         attributed_string.insert_str(0, "one ");
-        assert_eq!(attributed_string.text(), "one three");
+        assert_eq!(attributed_string.text(), &Text::from("one three"));
         attributed_string.insert_str(4, "two ");
-        assert_eq!(attributed_string.text(), "one two three");
+        assert_eq!(attributed_string.text(), &Text::from("one two three"));
 
         assert_eq!(attributed_string.get_attribute_for(0, Key::Color).color(), &Color::BLACK);
         assert_eq!(attributed_string.get_attribute_for(1, Key::Color).color(), &Color::BLACK);
@@ -438,7 +444,7 @@ mod tests {
         assert_eq!(attributed_string.get_attribute_for(11, Key::Color).color(), &Color::BLUE); // d
 
         attributed_string.replace_range(0..5, "Goodbye");
-        assert_eq!(attributed_string.text(), "Goodbye, world!");
+        assert_eq!(attributed_string.text(), &Text::from("Goodbye, world!"));
 
         assert_eq!(attributed_string.get_attribute_for(0, Key::Color).color(), &Color::BLACK); // G
         assert_eq!(attributed_string.get_attribute_for(1, Key::Color).color(), &Color::BLACK); // o
