@@ -100,10 +100,6 @@ pub(crate) fn update(sdl: &sdl2::Sdl) {
                 }
             },
 
-            sdl2::event::Event::TextEditing { text, start, length, .. } => {
-                println!("SDL_TextEditingEvent text: {:?} start: {:?} length: {:?}", text, start, length);
-            },
-
             sdl2::event::Event::KeyDown { window_id, keycode, keymod, .. } => {
                 let application = Application::borrow();
                 let window = application.get_window(window_id);
