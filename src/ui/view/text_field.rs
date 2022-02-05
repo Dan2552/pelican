@@ -17,6 +17,7 @@ use crate::text::word_boundary;
 use std::collections::HashMap;
 use std::time::Instant;
 use crate::text::text::Text;
+use crate::platform::clipboard;
 
 pub(crate) struct Carat {
     view: WeakView,
@@ -276,6 +277,26 @@ custom_view!(
 
                 carat_view.set_frame(cursor_rectangle);
             }
+        }
+
+        /// Returns the selected text, if any. Because there are multiple
+        /// carats, the text is returned as a `Vec<String>`.
+        fn selected_text(&self) -> Vec<String> {
+            let mut result = Vec::new();
+            let behavior = self.behavior();
+
+            let attributed_string = self.label().attributed_text();
+            let attributed_string = attributed_string.borrow();
+            let text = attributed_string.text();
+
+            for carat in behavior.carats.borrow().iter() {
+                if let Some(selection) = carat.selection.as_ref() {
+                    let selected_text = &text[selection.start..selection.end];
+                    result.push(String::from(selected_text));
+                }
+            }
+
+            result
         }
 
         fn position_selection(&self, selection: &Selection) {
@@ -541,6 +562,19 @@ custom_view!(
             }
 
             match key.key_code() {
+                KeyCode::C => {
+                    if key.modifier_flags().contains(&ModifierFlag::Control) || key.modifier_flags().contains(&ModifierFlag::Command) {
+                        let text_to_copy = text_field.selected_text().join("\n");
+                        clipboard::set_string(&text_to_copy);
+                    }
+                },
+                KeyCode::V => {
+                    if key.modifier_flags().contains(&ModifierFlag::Control) || key.modifier_flags().contains(&ModifierFlag::Command) {
+                        if let Some(text_to_paste) = clipboard::get_string() {
+                            self.text_input_did_receive(&text_to_paste);
+                        }
+                    }
+                },
                 KeyCode::Left => {
                     let highlight = key.modifier_flags().contains(&ModifierFlag::Shift);
                     let mut carats = text_field_behavior.carats.borrow_mut();

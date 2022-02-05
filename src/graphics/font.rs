@@ -1,4 +1,4 @@
-use crate::platform::Bundle;
+use crate::platform::bundle::Bundle;
 use std::path::Path;
 use crate::graphics::Context;
 use crate::graphics::Layer;

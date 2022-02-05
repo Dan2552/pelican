@@ -1,7 +1,7 @@
 use crate::graphics::Layer;
 use crate::graphics::Size;
 use crate::graphics::Context;
-use crate::platform::Bundle;
+use crate::platform::bundle::Bundle;
 use std::collections::HashMap;
 use std::rc::Rc;
 use sdl2::image::LoadSurface;
