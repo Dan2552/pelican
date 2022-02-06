@@ -3,7 +3,7 @@ use crate::ui::view::{View, WeakView};
 use crate::ui::view::DefaultBehavior;
 use crate::ui::Color;
 use crate::macros::*;
-use crate::ui::view::label::{Label, TextRef};
+use crate::ui::view::Label;
 use crate::ui::run_loop::RunLoop;
 use crate::ui::timer::Timer;
 use crate::ui::touch::Touch;
@@ -18,6 +18,7 @@ use std::collections::HashMap;
 use std::time::Instant;
 use crate::text::text::Text;
 use crate::platform::clipboard;
+use crate::text::attributed_string::TextRef;
 
 pub(crate) struct Carat {
     view: WeakView,

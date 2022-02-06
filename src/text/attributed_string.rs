@@ -3,6 +3,34 @@ use crate::graphics::Font;
 use std::collections::HashMap;
 use std::cell::{Ref, RefCell};
 use crate::text::text::Text;
+use std::rc::Rc;
+
+pub struct TextRef {
+    attributed_string: Rc<RefCell<AttributedString>>
+}
+
+impl TextRef {
+    pub fn new(attributed_string: Rc<RefCell<AttributedString>>) -> TextRef {
+        TextRef {
+            attributed_string
+        }
+    }
+
+    pub fn text(&self) -> Ref<'_, Text> {
+        Ref::map(self.attributed_string.borrow(), |attributed_string| {
+            attributed_string.text()
+        })
+    }
+}
+
+// Deref
+impl std::ops::Deref for TextRef {
+    type Target = Text;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.attributed_string.as_ptr().as_ref().unwrap().text() }
+    }
+}
 
 #[derive(PartialEq, Debug)]
 pub enum Attribute {

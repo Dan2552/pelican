@@ -2,34 +2,12 @@ use crate::graphics::{Rectangle, Font, Size};
 use crate::ui::Color;
 use crate::ui::view::{Behavior, DefaultBehavior};
 use std::cell::{Cell, RefCell, Ref};
-use crate::text::attributed_string::{AttributedString, Key, Attribute};
+use crate::text::attributed_string::{AttributedString, Key, Attribute, TextRef};
 use crate::text::rendering;
 use crate::macros::*;
 use crate::text::{VerticalAlignment, HorizontalAlignment};
 use std::ops::Range;
 use std::rc::Rc;
-use crate::text::Text;
-
-pub struct TextRef {
-    attributed_string: Rc<RefCell<AttributedString>>
-}
-
-impl TextRef {
-    pub fn text(&self) -> Ref<'_, Text> {
-        Ref::map(self.attributed_string.borrow(), |attributed_string| {
-            attributed_string.text()
-        })
-    }
-}
-
-// Deref
-impl std::ops::Deref for TextRef {
-    type Target = Text;
-
-    fn deref(&self) -> &Self::Target {
-        unsafe { self.attributed_string.as_ptr().as_ref().unwrap().text() }
-    }
-}
 
 custom_view!(
     Label subclasses DefaultBehavior
@@ -83,9 +61,7 @@ custom_view!(
             let behavior = self.behavior();
             let attributed_text = behavior.attributed_text.clone();
 
-            TextRef {
-                attributed_string: attributed_text
-            }
+            TextRef::new(attributed_text)
         }
 
         pub fn text_len(&self) -> usize {
