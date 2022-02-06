@@ -8,6 +8,28 @@ use crate::macros::*;
 use crate::text::{VerticalAlignment, HorizontalAlignment};
 use std::ops::Range;
 use std::rc::Rc;
+use crate::text::Text;
+
+pub struct TextRef {
+    attributed_string: Rc<RefCell<AttributedString>>
+}
+
+impl TextRef {
+    pub fn text(&self) -> Ref<'_, Text> {
+        Ref::map(self.attributed_string.borrow(), |attributed_string| {
+            attributed_string.text()
+        })
+    }
+}
+
+// Deref
+impl std::ops::Deref for TextRef {
+    type Target = Text;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.attributed_string.as_ptr().as_ref().unwrap().text() }
+    }
+}
 
 custom_view!(
     Label subclasses DefaultBehavior
@@ -55,6 +77,15 @@ custom_view!(
         pub fn attributed_text(&self) -> Rc<RefCell<AttributedString>> {
             let behavior = self.behavior();
             behavior.attributed_text.clone()
+        }
+
+        pub fn text(&self) -> TextRef {
+            let behavior = self.behavior();
+            let attributed_text = behavior.attributed_text.clone();
+
+            TextRef {
+                attributed_string: attributed_text
+            }
         }
 
         pub fn text_len(&self) -> usize {

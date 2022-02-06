@@ -3,7 +3,7 @@ use crate::ui::view::{View, WeakView};
 use crate::ui::view::DefaultBehavior;
 use crate::ui::Color;
 use crate::macros::*;
-use crate::ui::Label;
+use crate::ui::view::label::{Label, TextRef};
 use crate::ui::run_loop::RunLoop;
 use crate::ui::timer::Timer;
 use crate::ui::touch::Touch;
@@ -27,7 +27,9 @@ pub(crate) struct Carat {
 
 impl Drop for Carat {
     fn drop(&mut self) {
-        self.view.upgrade().unwrap().remove_from_superview();
+        if let Some(view) = self.view.upgrade() {
+            view.remove_from_superview();
+        }
     }
 }
 
@@ -223,6 +225,10 @@ custom_view!(
             }
         }
 
+        pub fn text(&self) -> TextRef {
+            self.label().text()
+        }
+
         fn select_all(&self) {
             self.remove_carats();
             let behavior = self.behavior();
@@ -230,6 +236,14 @@ custom_view!(
             self.spawn_carat(text_len);
             let mut carats = behavior.carats.borrow_mut();
             self.select(carats.last_mut().unwrap(), 0, text_len);
+        }
+
+        pub(crate) fn insert_str(&self, index: usize, text: &str) {
+            // TODO
+        }
+
+        pub(crate) fn replace_range(&self, range: Range<usize>, text: &str) {
+            // TODO
         }
 
         // TODO: is this still correct?
