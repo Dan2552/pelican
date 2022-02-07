@@ -51,6 +51,6 @@ mod tests {
 
         text_insertion.forward();
 
-        assert_eq!(text_field.text().string(), "Hello");
+        assert_eq!(text_field.label().text().string(), "Hello");
     }
 }

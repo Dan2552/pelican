@@ -18,7 +18,6 @@ use std::collections::HashMap;
 use std::time::Instant;
 use crate::text::text::Text;
 use crate::platform::clipboard;
-use crate::text::attributed_string::TextRef;
 
 pub(crate) struct Carat {
     view: WeakView,
@@ -122,7 +121,7 @@ custom_view!(
             text_field
         }
 
-        fn label(&self) -> Label {
+        pub fn label(&self) -> Label {
             let view = self.view.view_with_tag(1).unwrap();
             Label::from_view(view)
         }
@@ -226,10 +225,6 @@ custom_view!(
             }
         }
 
-        pub fn text(&self) -> TextRef {
-            self.label().text()
-        }
-
         fn select_all(&self) {
             self.remove_carats();
             let behavior = self.behavior();
@@ -300,9 +295,8 @@ custom_view!(
             let mut result = Vec::new();
             let behavior = self.behavior();
 
-            let attributed_string = self.label().attributed_text();
-            let attributed_string = attributed_string.borrow();
-            let text = attributed_string.text();
+            let label = self.label();
+            let text = label.text();
 
             for carat in behavior.carats.borrow().iter() {
                 if let Some(selection) = carat.selection.as_ref() {
@@ -449,9 +443,8 @@ custom_view!(
             if self.last_click.get().elapsed().as_millis() < 500 {
                 self.click_count.set(self.click_count.get() + 1);
 
-                let attributed_string = text_field.label().attributed_text();
-                let attributed_string = attributed_string.borrow();
-                let text = attributed_string.text();
+                let label = text_field.label();
+                let text = label.text();
 
                 if self.click_count.get() == 2 {
                     // go forward, back, and then forward again incase it
@@ -599,9 +592,8 @@ custom_view!(
                         let mut distance = 1;
                         if key.modifier_flags().contains(&ModifierFlag::Alternate) || key.modifier_flags().contains(&ModifierFlag::Command) {
                             let text_field = TextField::from_view(self.view.upgrade().unwrap());
-                            let attributed_string = text_field.label().attributed_text();
-                            let attributed_string = attributed_string.borrow();
-                            let text = attributed_string.text();
+                            let label = text_field.label();
+                            let text = label.text();
                             let boundary: usize;
                             if key.modifier_flags().contains(&ModifierFlag::Alternate) {
                                 boundary = word_boundary::find_word_boundary(text, index, false);
@@ -644,9 +636,8 @@ custom_view!(
                         let mut distance = 1;
                         if key.modifier_flags().contains(&ModifierFlag::Alternate) || key.modifier_flags().contains(&ModifierFlag::Command) {
                             let text_field = TextField::from_view(self.view.upgrade().unwrap());
-                            let attributed_string = text_field.label().attributed_text();
-                            let attributed_string = attributed_string.borrow();
-                            let text = attributed_string.text();
+                            let label = text_field.label();
+                            let text = label.text();
                             let boundary: usize;
                             if key.modifier_flags().contains(&ModifierFlag::Alternate) {
                                 boundary = word_boundary::find_word_boundary(text, index, true);
@@ -715,9 +706,8 @@ custom_view!(
                             } else if key.modifier_flags().contains(&ModifierFlag::Alternate) || key.modifier_flags().contains(&ModifierFlag::Command) {
                                 let index = carat.character_index.get();
                                 let text_field = TextField::from_view(self.view.upgrade().unwrap());
-                                let attributed_string = text_field.label().attributed_text();
-                                let attributed_string = attributed_string.borrow();
-                                let text = attributed_string.text();
+                                let label = text_field.label();
+                                let text = label.text();
                                 let boundary: usize;
                                 if key.modifier_flags().contains(&ModifierFlag::Alternate) {
                                     boundary = word_boundary::find_word_boundary(text, index, false);

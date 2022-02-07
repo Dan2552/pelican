@@ -2,12 +2,13 @@ use crate::graphics::{Rectangle, Font, Size};
 use crate::ui::Color;
 use crate::ui::view::{Behavior, DefaultBehavior};
 use std::cell::{Cell, RefCell, Ref};
-use crate::text::attributed_string::{AttributedString, Key, Attribute, TextRef};
+use crate::text::attributed_string::{AttributedString, Key, Attribute};
 use crate::text::rendering;
 use crate::macros::*;
 use crate::text::{VerticalAlignment, HorizontalAlignment};
 use std::ops::Range;
 use std::rc::Rc;
+use crate::text::Text;
 
 custom_view!(
     Label subclasses DefaultBehavior
@@ -46,22 +47,11 @@ custom_view!(
             String::from(attributed_text.text().string())
         }
 
-        /// Returns an `Rc` copy of the attributed string contained in the
-        /// label.
-        ///
-        /// Important: For internal complications, this couldn't have been a
-        /// reference. Do not mutate this directly, you should mutate through
-        /// the `Label` methods instead or set another `AttributedString`.
-        pub fn attributed_text(&self) -> Rc<RefCell<AttributedString>> {
-            let behavior = self.behavior();
-            behavior.attributed_text.clone()
-        }
-
-        pub fn text(&self) -> TextRef {
+        pub fn text(&self) -> &Text {
             let behavior = self.behavior();
             let attributed_text = behavior.attributed_text.clone();
 
-            TextRef::new(attributed_text)
+            unsafe { attributed_text.as_ptr().as_ref().unwrap().text() }
         }
 
         pub fn text_len(&self) -> usize {
