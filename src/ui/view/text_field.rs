@@ -234,8 +234,150 @@ custom_view!(
             self.select(carats.last_mut().unwrap(), 0, text_len);
         }
 
-        pub(crate) fn insert_str(&self, index: usize, text: &str) {
-            // TODO
+        /// Resets all of the carats to given indexes. This will also remove
+        /// any selections.
+        pub(crate) fn set_carat_indexes(&self, indexes: &Vec<usize>) {
+            self.remove_carats();
+            for index in indexes {
+                self.spawn_carat(index.clone());
+            }
+        }
+
+        /// Returns the indexes of the carats.
+        pub(crate) fn carat_indexes(&self) -> Vec<usize> {
+            let behavior = self.behavior();
+            let carats = behavior.carats.borrow();
+            carats.iter().map(|carat| carat.character_index.get()).collect()
+        }
+
+        /// Deletes a given amount of characters at each of the current carat
+        /// positions. This will move the carats to the beginning of the deleted
+        /// characters.
+        pub(crate) fn delete_characters(&self, amount: usize) {
+            let label = self.label();
+            let behavior = self.behavior();
+            let mut extra_movement_for_following_carat: i32 = 0;
+            let mut carats = behavior.carats.borrow_mut();
+            for carat in carats.iter_mut() {
+                // First move the cursor if other cursors have caused
+                // this one to move.
+                {
+                    let index = carat.character_index.get();
+                    let mut new_index: i32 = index as i32 - extra_movement_for_following_carat;
+                    if new_index < 0 {
+                        new_index = 0;
+                    }
+                    carat.character_index.set(new_index as usize);
+
+                    if let Some(selection) = &carat.selection {
+                        let start = selection.start as i32 - extra_movement_for_following_carat;
+                        let end = selection.end as i32 - extra_movement_for_following_carat;
+                        let start = start as usize;
+                        let end = end as usize;
+                        self.select_range(carat, start..end);
+                    }
+                }
+
+                // And then move again for this deletion
+                {
+                    let mut distance = 1;
+                    if let Some(selection) = &carat.selection {
+                        distance = selection.end as i32 - selection.start as i32;
+                        if carat.character_index.get() != selection.end {
+                            carat.character_index.set(selection.end);
+                        }
+                        self.select_range(carat, 0..0);
+                    } else if key.modifier_flags().contains(&ModifierFlag::Alternate) || key.modifier_flags().contains(&ModifierFlag::Command) {
+                        let index = carat.character_index.get();
+                        let text_field = TextField::from_view(self.view.upgrade().unwrap());
+                        let label = text_field.label();
+                        let text = label.text();
+                        let boundary: usize;
+                        if key.modifier_flags().contains(&ModifierFlag::Alternate) {
+                            boundary = word_boundary::find_word_boundary(text, index, false);
+                        } else {
+                            boundary = word_boundary::find_line_boundary(text, index, false);
+                        }
+
+                        distance = index as i32 - boundary as i32;
+                    }
+
+                    let index = carat.character_index.get();
+                    let mut new_index = index as i32 - distance;
+                    if new_index < 0 {
+                        new_index = 0;
+                    }
+                    let new_index = new_index as usize;
+                    carat.character_index.set(new_index as usize);
+
+                    label.replace_text_in_range(new_index..index, "");
+                    let distance = index as i32 - new_index as i32;
+                    extra_movement_for_following_carat += distance;
+                }
+
+                if let Some(carat_view) = carat.view.upgrade() {
+                    carat_view.set_hidden(false);
+                    carat_view.set_needs_display();
+                }
+                behavior.delay_animation.set(true);
+            }
+        }
+
+        /// Inserts a str at each of the current carat positions. This will move
+        /// the carats to the end of the inserted text.
+        pub(crate) fn insert_str(&self, text: &str) {
+            let view = &self.view;
+            let text_field = TextField::from_view(view.clone());
+            text_field.consume_and_sort_cursors();
+            let label = text_field.label();
+            let text_field_behavior = text_field.behavior();
+
+            let mut carats = text_field_behavior.carats.borrow_mut();
+
+            let mut extra_movement_for_following_carat: i32 = 0;
+
+            for carat in carats.iter_mut() {
+                // Adjust for extra_movement_for_following_carat
+                {
+                    let index = carat.character_index.get();
+                    let mut new_index = index as i32 + extra_movement_for_following_carat;
+                    if new_index < 0 {
+                        new_index = 0;
+                    }
+                    if new_index > label.text_len() as i32 {
+                        new_index = label.text_len() as i32;
+                    }
+                    carat.character_index.set(new_index as usize);
+
+                    if carat.selection.is_some() {
+                        let selection_start = carat.selection.as_ref().unwrap().start as i32 + extra_movement_for_following_carat;
+                        let selection_end = carat.selection.as_ref().unwrap().end as i32 + extra_movement_for_following_carat;
+
+                        text_field.select(carat, selection_start as usize, selection_end as usize);
+                    }
+                }
+
+                if let Some(selection) = &carat.selection {
+                    label.replace_text_in_range(selection.start..selection.end, &text);
+                    extra_movement_for_following_carat -= (selection.end - selection.start) as i32;
+                    carat.character_index.set(selection.start + text.len());
+                } else {
+                    let index = carat.character_index.get();
+                    label.insert_text_at_index(index, text);
+                    carat.character_index.set(index + Text::from(text).len());
+                }
+
+                carat.selection = None;
+
+                extra_movement_for_following_carat += text.len() as i32;
+
+                if let Some(carat_view) = carat.view.upgrade() {
+                    carat_view.set_hidden(false);
+                }
+            }
+
+            let behavior = self.behavior();
+            behavior.delay_animation.set(true);
         }
 
         pub(crate) fn replace_range(&self, range: Range<usize>, text: &str) {
