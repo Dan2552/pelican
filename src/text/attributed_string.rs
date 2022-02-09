@@ -3,7 +3,6 @@ use crate::graphics::Font;
 use std::collections::HashMap;
 use std::cell::{Ref, RefCell};
 use crate::text::text::Text;
-use std::rc::Rc;
 
 #[derive(PartialEq, Debug)]
 pub enum Attribute {
