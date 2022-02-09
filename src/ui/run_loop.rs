@@ -4,6 +4,7 @@ use std::thread::sleep;
 use std::cell::{Cell, RefCell};
 use std::time::Duration;
 use crate::macros::*;
+use crate::platform::thread;
 
 singleton!(
     RunLoop,
@@ -18,6 +19,10 @@ pub struct RunLoop {
 
 impl RunLoop {
     pub fn add_timer(&self, timer: Timer) {
+        if !thread::is_main() {
+            println!("Warning: attempted to add timer from non-main thread. The timer has not been added.");
+            return;
+        }
         let mut timers = self.timers.borrow_mut();
         timers.push(timer)
     }

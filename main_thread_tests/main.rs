@@ -7,12 +7,16 @@ use pelican::ui::{ViewController, ViewControllerBehavior};
 use pelican::ui::run_loop::RunLoop;
 use pelican::ui::timer::Timer;
 use pelican::ui::application::Application;
+use pelican::platform::thread;
 
 struct ExampleViewController {}
 impl ViewControllerBehavior for ExampleViewController {}
 
 pub fn main() -> Result<(), String> {
-    println!("context");
+    println!("custom test: main thread");
+    main_thread();
+
+    println!("custom test: context");
     context();
 
     println!("custom test: behavior");
@@ -23,7 +27,12 @@ pub fn main() -> Result<(), String> {
 
     println!("custom test: application");
     application();
+
     Ok(())
+}
+
+fn main_thread() {
+    assert_eq!(thread::is_main(), true);
 }
 
 fn context() {
