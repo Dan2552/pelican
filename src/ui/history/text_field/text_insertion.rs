@@ -1,12 +1,15 @@
 use crate::ui::view::WeakView;
 use crate::ui::view::TextField;
 use crate::platform::history::Action;
+use crate::ui::history::text_field::CaratSnapshot;
 
 struct TextInsertion {
     view: WeakView,
     text: String,
-    cursors_before: Vec<usize>,
-    cursors_after: Vec<usize>
+    cursors_before: Vec<CaratSnapshot>,
+    cursors_after: Vec<CaratSnapshot>
+
+    // TODO: what if a cursor had a Selection before the insertion?
 }
 
 impl TextInsertion {
@@ -23,9 +26,9 @@ impl Action for TextInsertion {
 
     fn forward(&mut self) {
         let text_field = self.text_field();
-        text_field.set_carat_indexes(&self.cursors_before);
+        text_field.restore_carat_snapshots(&self.cursors_before);
         text_field.insert_str(&self.text);
-        self.cursors_after = text_field.carat_indexes();
+        self.cursors_after = text_field.carat_snapshots();
     }
 
     fn backward(&mut self) {
@@ -34,7 +37,7 @@ impl Action for TextInsertion {
         }
 
         let text_field = self.text_field();
-        text_field.set_carat_indexes(&self.cursors_after);
+        text_field.restore_carat_snapshots(&self.cursors_after);
         text_field.delete_characters(self.text.len());
     }
 }
@@ -52,7 +55,7 @@ mod tests {
         let mut text_insertion = TextInsertion {
             view: text_field.view.downgrade(),
             text: "Hello".to_string(),
-            cursors_before: vec![0],
+            cursors_before: vec![CaratSnapshot::new(0, None)],
             cursors_after: vec![]
         };
 
@@ -70,7 +73,7 @@ mod tests {
         let mut text_insertion = TextInsertion {
             view: text_field.view.downgrade(),
             text: "Hello".to_string(),
-            cursors_before: vec![0, 1],
+            cursors_before: vec![CaratSnapshot::new(0, None), CaratSnapshot::new(1, None)],
             cursors_after: vec![]
         };
 
@@ -88,7 +91,7 @@ mod tests {
         let mut text_insertion = TextInsertion {
             view: text_field.view.downgrade(),
             text: "Hello".to_string(),
-            cursors_before: vec![0],
+            cursors_before: vec![CaratSnapshot::new(0, None)],
             cursors_after: vec![]
         };
 
@@ -107,7 +110,7 @@ mod tests {
         let mut text_insertion = TextInsertion {
             view: text_field.view.downgrade(),
             text: "Hello".to_string(),
-            cursors_before: vec![0, 1],
+            cursors_before: vec![CaratSnapshot::new(0, None), CaratSnapshot::new(1, None)],
             cursors_after: vec![]
         };
 

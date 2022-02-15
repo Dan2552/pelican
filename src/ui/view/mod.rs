@@ -4,10 +4,10 @@ mod view_inner;
 mod view;
 mod weak_view;
 mod delegate;
-mod image_view;
-mod label;
-mod scroll_view;
-mod text_field;
+pub mod image_view;
+pub mod label;
+pub mod scroll_view;
+pub mod text_field;
 
 pub use view::View;
 pub use weak_view::WeakView;

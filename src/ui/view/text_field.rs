@@ -18,6 +18,7 @@ use std::collections::HashMap;
 use std::time::Instant;
 use crate::text::text::Text;
 use crate::platform::clipboard;
+use crate::ui::history::text_field::CaratSnapshot;
 
 #[derive(Debug, Clone, PartialEq)]
 enum CursorMovement {
@@ -30,6 +31,17 @@ pub(crate) struct Carat {
     view: WeakView,
     character_index: Cell<usize>,
     selection: Option<Selection>
+}
+
+impl Carat {
+    fn snapshot(&self) -> CaratSnapshot {
+        let selection_snapshot = match &self.selection {
+            Some(selection) => Some(selection.start..selection.end),
+            None => None
+        };
+
+        CaratSnapshot::new(self.character_index.get(), selection_snapshot)
+    }
 }
 
 impl Drop for Carat {
@@ -162,10 +174,10 @@ custom_view!(
                 rhs = index_one;
             }
 
-            self.select_range(carat, lhs..rhs);
+            self.select_range(carat, &(lhs..rhs));
         }
 
-        fn select_range(&self, carat: &mut Carat, range: Range<usize>) {
+        fn select_range(&self, carat: &mut Carat, range: &Range<usize>) {
             if range.is_empty() {
                 carat.selection = None;
                 return;
@@ -243,10 +255,31 @@ custom_view!(
 
         /// Resets all of the carats to given indexes. This will also remove
         /// any selections.
-        pub(crate) fn set_carat_indexes(&self, indexes: &Vec<usize>) {
+        // pub(crate) fn set_carat_indexes(&self, indexes: &Vec<usize>) {
+        //     self.remove_carats();
+        //     for index in indexes {
+        //         self.spawn_carat(index.clone());
+        //     }
+        // }
+
+        pub(crate) fn carat_snapshots(&self) -> Vec<CaratSnapshot> {
+            let behavior = self.behavior();
+            let carats = behavior.carats.borrow();
+            carats.iter().map(|carat| carat.snapshot()).collect()
+        }
+
+        pub(crate) fn restore_carat_snapshots(&self, snapshot: &Vec<CaratSnapshot>) {
             self.remove_carats();
-            for index in indexes {
-                self.spawn_carat(index.clone());
+
+            let behavior = self.behavior();
+            let mut carats = behavior.carats.borrow_mut();
+
+            for carat_snapshot in snapshot.iter() {
+                self.spawn_carat(carat_snapshot.character_index());
+                let carat = carats.last_mut().unwrap();
+                if let Some(selection) = carat_snapshot.selection() {
+                    self.select_range(carat, selection);
+                }
             }
         }
 
@@ -287,7 +320,7 @@ custom_view!(
                         let end = selection.end as i32 - extra_movement_for_following_carat;
                         let start = start as usize;
                         let end = end as usize;
-                        self.select_range(carat, start..end);
+                        self.select_range(carat, &(start..end));
                     }
                 }
 
@@ -299,7 +332,7 @@ custom_view!(
                         if carat.character_index.get() != selection.end {
                             carat.character_index.set(selection.end);
                         }
-                        self.select_range(carat, 0..0);
+                        self.select_range(carat, &(0..0));
                     } else if movement != CursorMovement::Character {
                         let index = carat.character_index.get();
                         let text = label.text();
@@ -770,9 +803,9 @@ custom_view!(
                             if let Some(existing_selection) = &carat.selection {
                                 rhs_select = existing_selection.end;
                             }
-                            text_field.select_range(carat, new_index..rhs_select);
+                            text_field.select_range(carat, &(new_index..rhs_select));
                         } else {
-                            text_field.select_range(carat, 0..0);
+                            text_field.select_range(carat, &(0..0));
                             }
 
                         if let Some(carat_view) = carat.view.upgrade() {
@@ -814,9 +847,9 @@ custom_view!(
                                 lhs_select = existing_selection.start;
                             }
                             let new_index = new_index as usize;
-                            text_field.select_range(carat, lhs_select..new_index);
+                            text_field.select_range(carat, &(lhs_select..new_index));
                         } else {
-                            text_field.select_range(carat, 0..0);
+                            text_field.select_range(carat, &(0..0));
                         }
 
                         if let Some(carat_view) = carat.view.upgrade() {
@@ -845,7 +878,7 @@ custom_view!(
                                 let end = selection.end as i32 - extra_movement_for_following_carat;
                                 let start = start as usize;
                                 let end = end as usize;
-                                text_field.select_range(carat, start..end);
+                                text_field.select_range(carat, &(start..end));
                             }
                         }
 
@@ -857,7 +890,7 @@ custom_view!(
                                 if carat.character_index.get() != selection.end {
                                     carat.character_index.set(selection.end);
                                 }
-                                text_field.select_range(carat, 0..0);
+                                text_field.select_range(carat, &(0..0));
                             } else if key.modifier_flags().contains(&ModifierFlag::Alternate) || key.modifier_flags().contains(&ModifierFlag::Command) {
                                 let index = carat.character_index.get();
                                 let text_field = TextField::from_view(self.view.upgrade().unwrap());
