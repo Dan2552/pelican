@@ -10,10 +10,13 @@ use crate::ui::event::{TouchEvent, PressEvent};
 use crate::ui::window::Window;
 use crate::ui::press::Press;
 
-pub struct View {
-    /// Some way to compare `View`s (`==`) and `WeakView`s
-    pub id: uuid::Uuid,
+use std::sync::atomic::{AtomicUsize, Ordering};
+fn next_id() -> usize {
+    static COUNTER:AtomicUsize = AtomicUsize::new(1);
+    COUNTER.fetch_add(1, Ordering::Relaxed)
+}
 
+pub struct View {
     /// The actual view, wrapped in a reference count, so that this `View`
     /// object can easily be copied around (`clone()`).
     pub(crate) inner_self: Rc<RefCell<ViewInner>>,
@@ -48,6 +51,7 @@ impl View {
         };
 
         let inner_self = ViewInner {
+            id: next_id(),
             tag: 0,
             frame: frame,
             bounds: bounds,
@@ -61,7 +65,6 @@ impl View {
         };
 
         let view = View {
-            id: uuid::Uuid::new_v4(),
             inner_self: Rc::new(RefCell::new(inner_self)),
             behavior: Rc::new(RefCell::new(behavior)),
             debug_name: String::from(debug_name)
@@ -85,6 +88,10 @@ impl View {
     /// the view hierarchy.
     pub fn tag(&self) -> u32 {
         self.inner_self.borrow().tag
+    }
+
+    pub fn id(&self) -> usize {
+        self.inner_self.borrow().id
     }
 
     /// Set the tag for this view. See `View::view` and `View::view_with_tag`.
@@ -142,7 +149,7 @@ impl View {
         if let Some(superview) = inner_self.superview.upgrade() {
             {
                 let mut superview_inner = superview.inner_self.borrow_mut();
-                superview_inner.subviews.retain(|view| view.id != self.id);
+                superview_inner.subviews.retain(|view| view.id() != self.id());
             }
             superview.set_needs_display();
         }
@@ -389,7 +396,6 @@ impl View {
         let weak_behavior = Rc::downgrade(&self.behavior);
 
         WeakView {
-            id: self.id,
             inner_self: weak_inner,
             behavior: weak_behavior,
             debug_name: self.debug_name.clone()
@@ -463,7 +469,6 @@ impl LayerDelegate for View {
 impl Clone for View {
     fn clone(&self) -> Self {
       View {
-          id: self.id.clone(),
           inner_self: self.inner_self.clone(),
           behavior: self.behavior.clone(),
           debug_name: self.debug_name.clone()
@@ -473,7 +478,7 @@ impl Clone for View {
 
 impl PartialEq for View {
     fn eq(&self, rhs: &View) -> bool {
-        self.id == rhs.id
+        self.id() == rhs.id()
     }
 }
 

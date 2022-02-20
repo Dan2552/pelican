@@ -69,9 +69,9 @@ mod tests {
         let strong_again = weak.upgrade().unwrap();
         let strong_clone = strong.clone();
 
-        assert_eq!(strong.id, weak.id);
-        assert_eq!(weak.id, strong_again.id);
-        assert_eq!(strong.id, strong_clone.id);
+        assert_eq!(strong.id(), weak.id().unwrap());
+        assert_eq!(weak.id().unwrap(), strong_again.id());
+        assert_eq!(strong.id(), strong_clone.id());
 
         let frame = Rectangle {
             origin: Point { x: 10, y: 10 },
@@ -80,7 +80,7 @@ mod tests {
 
         let different = View::new(frame.clone());
 
-        assert_ne!(strong.id, different.id);
+        assert_ne!(strong.id(), different.id());
     }
 
     #[test]

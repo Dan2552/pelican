@@ -48,8 +48,6 @@ pub enum Key {
 type AttributeContainer = HashMap<Key, Attribute>;
 
 pub struct AttributedString {
-    id: uuid::Uuid,
-
     /// The actual text that this `AttributedString` represents.
     text: Text,
 
@@ -84,7 +82,6 @@ impl AttributedString {
         }
 
         AttributedString {
-            id: uuid::Uuid::new_v4(),
             text: Text::new(text),
             attributes: RefCell::new(attributes),
             default_attributes: RefCell::new(default_attributes)
@@ -246,12 +243,6 @@ impl std::fmt::Debug for AttributedString {
             write!(f, "{:?}", attrs)?;
         }
         write!(f, "] }}")
-    }
-}
-
-impl PartialEq for AttributedString {
-    fn eq(&self, other: &AttributedString) -> bool {
-        self.id == other.id
     }
 }
 

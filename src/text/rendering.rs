@@ -960,7 +960,7 @@ mod tests {
         let frame = Rectangle::new(50, 50, 100, 100);
         let text = WholeText::from(&attributed_string, frame, 1.0);
 
-        assert_eq!(text.attributed_string(), &attributed_string);
+        assert_eq!(text.attributed_string().text(), attributed_string.text());
     }
 
     #[test]

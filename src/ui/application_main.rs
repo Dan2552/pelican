@@ -3,11 +3,17 @@ use crate::ui::event_loop;
 use std::time::Duration;
 use crate::ui::run_loop::RunLoop;
 
+#[cfg(target_os = "macos")]
 use objc_foundation::{NSString,  INSString};
+#[cfg(target_os = "macos")]
 use objc::runtime::{Object, YES};
+#[cfg(target_os = "macos")]
 use objc::class;
+#[cfg(target_os = "macos")]
 use objc::msg_send;
+#[cfg(target_os = "macos")]
 use objc::sel;
+#[cfg(target_os = "macos")]
 use objc::sel_impl;
 
 pub trait ApplicationDelegate {
@@ -29,7 +35,8 @@ impl ApplicationMain {
     }
 
     pub fn launch(self) {
-        if cfg!(target_os = "macos") {
+        #[cfg(target_os = "macos")]
+        {
             unsafe {
                 let key = NSString::from_str("AppleMomentumScrollSupported");
                 let obj: *mut Object = msg_send![class!(NSUserDefaults), standardUserDefaults];

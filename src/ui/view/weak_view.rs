@@ -3,7 +3,6 @@ use std::rc::Weak;
 use std::cell::RefCell;
 
 pub struct WeakView {
-    pub id: uuid::Uuid,
     pub(crate) inner_self: Weak<RefCell<ViewInner>>,
     pub(crate) behavior: Weak<RefCell<Box<dyn Behavior>>>,
     pub debug_name: String
@@ -14,7 +13,6 @@ impl WeakView {
         if let Some(inner_self) = self.inner_self.upgrade() {
             if let Some(behavior) = self.behavior.upgrade() {
                 Some(View {
-                    id: self.id,
                     inner_self: inner_self,
                     behavior: behavior,
                     debug_name: self.debug_name.clone()
@@ -31,7 +29,6 @@ impl WeakView {
     /// be `None`.
     pub fn none() -> WeakView {
         WeakView {
-            id: uuid::Uuid::new_v4(),
             inner_self: Weak::new(),
             behavior: Weak::new(),
             debug_name: String::from("none")
@@ -45,12 +42,19 @@ impl WeakView {
             true
         }
     }
+
+    pub fn id(&self) -> Option<usize> {
+        if let Some(inner_self) = self.inner_self.upgrade() {
+            Some(inner_self.borrow().id)
+        } else {
+            None
+        }
+    }
 }
 
 impl Clone for WeakView {
     fn clone(&self) -> Self {
         WeakView {
-            id: self.id,
             inner_self: self.inner_self.clone(),
             behavior: self.behavior.clone(),
             debug_name: self.debug_name.clone()

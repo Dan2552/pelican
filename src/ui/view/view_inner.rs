@@ -5,6 +5,9 @@ use crate::ui::gesture::recognizer::Recognizer;
 use std::rc::Rc;
 
 pub(crate) struct ViewInner {
+    /// Some way to compare `View`s (`==`) and `WeakView`s
+    pub(crate) id: usize,
+
     /// An optional identifier for the view. Can be used to find the view in
     /// the view hierarchy.
     ///

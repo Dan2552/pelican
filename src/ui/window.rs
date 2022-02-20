@@ -172,13 +172,13 @@ impl Behavior for WindowBehavior {
 
 impl PartialEq for WindowBehavior {
     fn eq(&self, rhs: &WindowBehavior) -> bool {
-        self.view.id == rhs.view.id
+        self.view.id() == rhs.view.id()
     }
 }
 
 impl std::fmt::Debug for WindowBehavior {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let id = &self.view.id.to_string();
+        let id = &self.view.id();
 
         f.debug_tuple("")
          .field(&id)
@@ -188,13 +188,13 @@ impl std::fmt::Debug for WindowBehavior {
 
 impl PartialEq for Window {
     fn eq(&self, rhs: &Window) -> bool {
-        self.view.id == rhs.view.id
+        self.view.id() == rhs.view.id()
     }
 }
 
 impl std::fmt::Debug for Window {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let id = &self.id.to_string();
+        let id = &self.id();
 
         f.debug_tuple("")
          .field(&id)

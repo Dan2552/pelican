@@ -10,7 +10,13 @@ pub(crate) fn update(sdl: &sdl2::Sdl) {
 
     event_arena.cleanup_ended_touches();
 
-    for sdl_event in event_pump.poll_iter() {
+    let mut timeout = 0;
+    #[cfg(target_os = "emscripten")]
+    {
+        timeout = 10;
+    }
+
+    if let Some(sdl_event) = event_pump.wait_event_timeout(timeout) { //blocking wait for events
         match sdl_event {
             sdl2::event::Event::Quit { .. } => {
                 let application = Application::borrow();
