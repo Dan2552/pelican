@@ -18,9 +18,14 @@ use std::collections::HashMap;
 use std::time::Instant;
 use crate::text::text::Text;
 use crate::platform::clipboard;
+use crate::ui::history::text_field::text_insertion::TextInsertion;
+use crate::ui::history::text_field::text_backspace::TextBackspace;
+use crate::platform::history::Action;
+use crate::platform::history::History;
+use crate::ui::history::text_field::carat_snapshot::CaratSnapshot;
 
 #[derive(Debug, Clone, PartialEq)]
-enum CursorMovement {
+pub enum CursorMovement {
     Character,
     Word,
     Line
@@ -30,6 +35,17 @@ pub(crate) struct Carat {
     view: WeakView,
     character_index: Cell<usize>,
     selection: Option<Selection>
+}
+
+impl Carat {
+    fn snapshot(&self) -> CaratSnapshot {
+        let selection_snapshot = match &self.selection {
+            Some(selection) => Some(selection.start..selection.end),
+            None => None
+        };
+
+        CaratSnapshot::new(self.character_index.get(), selection_snapshot)
+    }
 }
 
 impl Drop for Carat {
@@ -90,7 +106,9 @@ custom_view!(
         delay_animation: Cell<bool>,
 
         last_click: Cell<Instant>,
-        click_count: Cell<u8>
+        click_count: Cell<u8>,
+
+        history: RefCell<History>
     }
 
     impl Self {
@@ -109,7 +127,8 @@ custom_view!(
                 None,
                 Cell::new(false),
                 Cell::new(Instant::now()),
-                Cell::new(0)
+                Cell::new(0),
+                RefCell::new(History::new())
             );
 
             text_field.view.add_subview(label.view);
@@ -162,10 +181,10 @@ custom_view!(
                 rhs = index_one;
             }
 
-            self.select_range(carat, lhs..rhs);
+            self.select_range(carat, &(lhs..rhs));
         }
 
-        fn select_range(&self, carat: &mut Carat, range: Range<usize>) {
+        fn select_range(&self, carat: &mut Carat, range: &Range<usize>) {
             if range.is_empty() {
                 carat.selection = None;
                 return;
@@ -241,13 +260,25 @@ custom_view!(
             self.select(carats.last_mut().unwrap(), 0, text_len);
         }
 
-        /// Resets all of the carats to given indexes. This will also remove
-        /// any selections.
-        pub(crate) fn set_carat_indexes(&self, indexes: &Vec<usize>) {
+        pub(crate) fn restore_carat_snapshots(&self, snapshot: &Vec<CaratSnapshot>) {
             self.remove_carats();
-            for index in indexes {
-                self.spawn_carat(index.clone());
+
+            let behavior = self.behavior();
+
+            for carat_snapshot in snapshot.iter() {
+                self.spawn_carat(carat_snapshot.character_index());
+                let mut carats = behavior.carats.borrow_mut();
+                let carat = carats.last_mut().unwrap();
+                if let Some(selection) = carat_snapshot.selection() {
+                    self.select_range(carat, selection);
+                }
             }
+        }
+
+        pub(crate) fn carat_snapshots(&self) -> Vec<CaratSnapshot> {
+            let behavior = self.behavior();
+            let carats = behavior.carats.borrow();
+            carats.iter().map(|carat| carat.snapshot()).collect()
         }
 
         /// Returns the indexes of the carats.
@@ -262,15 +293,14 @@ custom_view!(
         /// Deletes a given amount of characters at each of the current carat
         /// positions. This will move the carats to the beginning of the deleted
         /// characters.
-        pub(crate) fn delete_characters(&self, amount: usize) {
-            self.backspace(CursorMovement::Character, amount);
-        }
+        pub(crate) fn backspace(&self, movement: CursorMovement, amount: usize) -> Vec<String> {
+            let mut deleted_text = Vec::new();
 
-        fn backspace(&self, movement: CursorMovement, amount: usize) {
             let label = self.label();
             let behavior = self.behavior();
             let mut extra_movement_for_following_carat: i32 = 0;
             let mut carats = behavior.carats.borrow_mut();
+
             for carat in carats.iter_mut() {
                 // First move the cursor if other cursors have caused
                 // this one to move.
@@ -287,7 +317,7 @@ custom_view!(
                         let end = selection.end as i32 - extra_movement_for_following_carat;
                         let start = start as usize;
                         let end = end as usize;
-                        self.select_range(carat, start..end);
+                        self.select_range(carat, &(start..end));
                     }
                 }
 
@@ -299,7 +329,7 @@ custom_view!(
                         if carat.character_index.get() != selection.end {
                             carat.character_index.set(selection.end);
                         }
-                        self.select_range(carat, 0..0);
+                        self.select_range(carat, &(0..0));
                     } else if movement != CursorMovement::Character {
                         let index = carat.character_index.get();
                         let text = label.text();
@@ -321,6 +351,7 @@ custom_view!(
                     let new_index = new_index as usize;
                     carat.character_index.set(new_index as usize);
 
+                    deleted_text.push(label.text()[new_index..index].to_string());
                     label.replace_text_in_range(new_index..index, "");
                     let distance = index as i32 - new_index as i32;
                     extra_movement_for_following_carat += distance;
@@ -332,6 +363,8 @@ custom_view!(
                 }
                 behavior.delay_animation.set(true);
             }
+
+            deleted_text
         }
 
         /// Multi-carat operation.
@@ -393,10 +426,6 @@ custom_view!(
             behavior.delay_animation.set(true);
         }
 
-        pub(crate) fn replace_range(&self, range: Range<usize>, text: &str) {
-            // TODO
-        }
-
         // TODO: is this still correct?
         /// The cursors need repositioning when the view draws. This is because
         /// certain aspects rely on the rendering layer, of which will not be
@@ -442,6 +471,12 @@ custom_view!(
 
                 carat_view.set_frame(cursor_rectangle);
             }
+        }
+
+        fn carat_positions(&self) -> Vec<usize> {
+            let behavior = self.behavior();
+            let carats = behavior.carats.borrow();
+            carats.iter().map(|carat| carat.character_index.get()).collect()
         }
 
         /// Returns the selected text, if any. Because there are multiple
@@ -637,55 +672,17 @@ custom_view!(
         fn text_input_did_receive(&self, text: &str) {
             let view = self.view.upgrade().unwrap();
             let text_field = TextField::from_view(view.clone());
-            text_field.consume_and_sort_cursors();
-            let label = text_field.label();
-            let text_field_behavior = text_field.behavior();
 
-            let mut carats = text_field_behavior.carats.borrow_mut();
+            let mut text_insertion = TextInsertion::new(
+                self.view.clone(),
+                text.to_string(),
+                text_field.carat_snapshots()
+            );
 
-            let mut extra_movement_for_following_carat: i32 = 0;
+            text_insertion.forward();
 
-            for carat in carats.iter_mut() {
-                // Adjust for extra_movement_for_following_carat
-                {
-                    let index = carat.character_index.get();
-                    let mut new_index = index as i32 + extra_movement_for_following_carat;
-                    if new_index < 0 {
-                        new_index = 0;
-                    }
-                    if new_index > label.text_len() as i32 {
-                        new_index = label.text_len() as i32;
-                    }
-                    carat.character_index.set(new_index as usize);
-
-                    if carat.selection.is_some() {
-                        let selection_start = carat.selection.as_ref().unwrap().start as i32 + extra_movement_for_following_carat;
-                        let selection_end = carat.selection.as_ref().unwrap().end as i32 + extra_movement_for_following_carat;
-
-                        text_field.select(carat, selection_start as usize, selection_end as usize);
-                    }
-                }
-
-                if let Some(selection) = &carat.selection {
-                    label.replace_text_in_range(selection.start..selection.end, &text);
-                    extra_movement_for_following_carat -= (selection.end - selection.start) as i32;
-                    carat.character_index.set(selection.start + text.len());
-                } else {
-                    let index = carat.character_index.get();
-                    label.insert_text_at_index(index, text);
-                    carat.character_index.set(index + Text::from(text).len());
-                }
-
-                carat.selection = None;
-
-                extra_movement_for_following_carat += text.len() as i32;
-
-                if let Some(carat_view) = carat.view.upgrade() {
-                    carat_view.set_hidden(false);
-                }
-            }
-
-            self.delay_animation.set(true);
+            let mut history = self.history.borrow_mut();
+            history.add(Box::new(text_insertion));
         }
 
         fn press_ended(&self, press: &Press) {
@@ -738,6 +735,16 @@ custom_view!(
                         }
                     }
                 },
+                KeyCode::Z => {
+                    if key.modifier_flags().contains(&ModifierFlag::Control) || key.modifier_flags().contains(&ModifierFlag::Command) {
+                        let mut history = self.history.borrow_mut();
+                        if key.modifier_flags().contains(&ModifierFlag::Shift) {
+                            history.redo();
+                        } else {
+                            history.undo();
+                        }
+                    }
+                },
                 KeyCode::Left => {
                     let highlight = key.modifier_flags().contains(&ModifierFlag::Shift);
                     let mut carats = text_field_behavior.carats.borrow_mut();
@@ -770,9 +777,9 @@ custom_view!(
                             if let Some(existing_selection) = &carat.selection {
                                 rhs_select = existing_selection.end;
                             }
-                            text_field.select_range(carat, new_index..rhs_select);
+                            text_field.select_range(carat, &(new_index..rhs_select));
                         } else {
-                            text_field.select_range(carat, 0..0);
+                            text_field.select_range(carat, &(0..0));
                             }
 
                         if let Some(carat_view) = carat.view.upgrade() {
@@ -814,9 +821,9 @@ custom_view!(
                                 lhs_select = existing_selection.start;
                             }
                             let new_index = new_index as usize;
-                            text_field.select_range(carat, lhs_select..new_index);
+                            text_field.select_range(carat, &(lhs_select..new_index));
                         } else {
-                            text_field.select_range(carat, 0..0);
+                            text_field.select_range(carat, &(0..0));
                         }
 
                         if let Some(carat_view) = carat.view.upgrade() {
@@ -827,71 +834,28 @@ custom_view!(
                     }
                 },
                 KeyCode::Backspace => {
-                    let mut extra_movement_for_following_carat: i32 = 0;
-                    let mut carats = text_field_behavior.carats.borrow_mut();
-                    for carat in carats.iter_mut() {
-                        // First move the cursor if other cursors have caused
-                        // this one to move.
-                        {
-                            let index = carat.character_index.get();
-                            let mut new_index: i32 = index as i32 - extra_movement_for_following_carat;
-                            if new_index < 0 {
-                                new_index = 0;
-                            }
-                            carat.character_index.set(new_index as usize);
+                    let view = self.view.upgrade().unwrap();
+                    let text_field = TextField::from_view(view);
 
-                            if let Some(selection) = &carat.selection {
-                                let start = selection.start as i32 - extra_movement_for_following_carat;
-                                let end = selection.end as i32 - extra_movement_for_following_carat;
-                                let start = start as usize;
-                                let end = end as usize;
-                                text_field.select_range(carat, start..end);
-                            }
-                        }
+                    let mut movement_type = CursorMovement::Character;
 
-                        // And then move again for this deletion
-                        {
-                            let mut distance = 1;
-                            if let Some(selection) = &carat.selection {
-                                distance = selection.end as i32 - selection.start as i32;
-                                if carat.character_index.get() != selection.end {
-                                    carat.character_index.set(selection.end);
-                                }
-                                text_field.select_range(carat, 0..0);
-                            } else if key.modifier_flags().contains(&ModifierFlag::Alternate) || key.modifier_flags().contains(&ModifierFlag::Command) {
-                                let index = carat.character_index.get();
-                                let text_field = TextField::from_view(self.view.upgrade().unwrap());
-                                let label = text_field.label();
-                                let text = label.text();
-                                let boundary: usize;
-                                if key.modifier_flags().contains(&ModifierFlag::Alternate) {
-                                    boundary = word_boundary::find_word_boundary(text, index, false);
-                                } else {
-                                    boundary = word_boundary::find_line_boundary(text, index, false);
-                                }
-
-                                distance = index as i32 - boundary as i32;
-                            }
-
-                            let index = carat.character_index.get();
-                            let mut new_index = index as i32 - distance;
-                            if new_index < 0 {
-                                new_index = 0;
-                            }
-                            let new_index = new_index as usize;
-                            carat.character_index.set(new_index as usize);
-
-                            label.replace_text_in_range(new_index..index, "");
-                            let distance = index as i32 - new_index as i32;
-                            extra_movement_for_following_carat += distance;
-                        }
-
-                        if let Some(carat_view) = carat.view.upgrade() {
-                            carat_view.set_hidden(false);
-                            carat_view.set_needs_display();
-                        }
-                        self.delay_animation.set(true);
+                    if key.modifier_flags().contains(&ModifierFlag::Alternate) {
+                        movement_type = CursorMovement::Word;
+                    } else if key.modifier_flags().contains(&ModifierFlag::Command) {
+                        movement_type = CursorMovement::Line;
                     }
+
+                    let mut text_backspace = TextBackspace::new(
+                        self.view.clone(),
+                        1,
+                        movement_type,
+                        text_field.carat_snapshots()
+                    );
+
+                    text_backspace.forward();
+
+                    let mut history = self.history.borrow_mut();
+                    history.add(Box::new(text_backspace));
                 },
                 KeyCode::A => {
                     if key.modifier_flags().contains(&ModifierFlag::Command) {

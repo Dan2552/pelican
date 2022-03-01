@@ -9,12 +9,10 @@ pub(crate) fn update(sdl: &sdl2::Sdl) {
     let mut event_arena = EventArena::borrow_mut();
 
     event_arena.cleanup_ended_touches();
-
+    #[allow(unused_mut)]
     let mut timeout = 0;
     #[cfg(target_os = "emscripten")]
-    {
-        timeout = 10;
-    }
+    { timeout = 10; }
 
     if let Some(sdl_event) = event_pump.wait_event_timeout(timeout) { //blocking wait for events
         match sdl_event {
