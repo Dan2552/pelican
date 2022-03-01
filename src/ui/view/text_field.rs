@@ -502,6 +502,9 @@ custom_view!(
             let label = self.label();
             let label_behavior = label.behavior();
             let rendering = label_behavior.rendering();
+            if rendering.is_none() {
+                return;
+            }
             let rendering = rendering.as_ref().unwrap();
             let render_scale = rendering.render_scale();
 

@@ -204,24 +204,102 @@ mod tests {
         let frame = Rectangle::new(0, 0, 100, 100);
         let text_field = TextField::new(frame, "abc def".to_string());
         let mut carats = Vec::new();
-        carats.push(CaratSnapshot::new(0, None));
+        carats.push(CaratSnapshot::new(0, Some(0..3)));
 
         let mut action = TextBackspace::new(text_field.view.downgrade(), 1, CursorMovement::Character, carats);
         action.forward();
+        assert_eq!(text_field.label().text().string(), " def");
+        let carats = text_field.carat_snapshots();
+        assert_eq!(carats.len(), 1);
+        assert_eq!(carats[0].character_index(), 0);
+        assert_eq!(carats[0].selection(), &None);
 
-        // TODO: need cursor snapshot
-        unimplemented!();
+        action.backward();
+        assert_eq!(text_field.label().text().string(), "abc def");
+        let carats = text_field.carat_snapshots();
+        assert_eq!(carats.len(), 1);
+        assert_eq!(carats[0].character_index(), 0);
+        assert_eq!(carats[0].selection(), &Some(0..3));
     }
 
     #[test]
     fn test_deletion_with_selection_single_cursor_when_specifying_word() {
+        // In this case, we want it to ignore the word cursor movement, and
+        // delete the selection only.
+
         let frame = Rectangle::new(0, 0, 100, 100);
         let text_field = TextField::new(frame, "abc def".to_string());
         let mut carats = Vec::new();
-        carats.push(CaratSnapshot::new(0, None));
+        carats.push(CaratSnapshot::new(3, Some(1..3)));
 
         let mut action = TextBackspace::new(text_field.view.downgrade(), 1, CursorMovement::Word, carats);
-        unimplemented!();
+        action.forward();
+        assert_eq!(text_field.label().text().string(), "a def");
+        let carats = text_field.carat_snapshots();
+        assert_eq!(carats.len(), 1);
+        assert_eq!(carats[0].character_index(), 1);
+        assert_eq!(carats[0].selection(), &None);
+
+        action.backward();
+        assert_eq!(text_field.label().text().string(), "abc def");
+        let carats = text_field.carat_snapshots();
+        assert_eq!(carats.len(), 1);
+        assert_eq!(carats[0].character_index(), 3);
+        assert_eq!(carats[0].selection(), &Some(1..3));
+    }
+
+    #[test]
+    fn test_deletion_with_selection_single_cursor_when_specifying_line() {
+        // In this case, we want it to ignore the line cursor movement, and
+        // delete the selection only.
+
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let text_field = TextField::new(frame, "abc def".to_string());
+        let mut carats = Vec::new();
+        carats.push(CaratSnapshot::new(3, Some(1..3)));
+
+        let mut action = TextBackspace::new(text_field.view.downgrade(), 1, CursorMovement::Line, carats);
+        action.forward();
+        assert_eq!(text_field.label().text().string(), "a def");
+        let carats = text_field.carat_snapshots();
+        assert_eq!(carats.len(), 1);
+        assert_eq!(carats[0].character_index(), 1);
+        assert_eq!(carats[0].selection(), &None);
+
+        action.backward();
+        assert_eq!(text_field.label().text().string(), "abc def");
+        let carats = text_field.carat_snapshots();
+        assert_eq!(carats.len(), 1);
+        assert_eq!(carats[0].character_index(), 3);
+        assert_eq!(carats[0].selection(), &Some(1..3));
+    }
+
+    #[test]
+    fn test_multiple_selections() {
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let text_field = TextField::new(frame, "abc def".to_string());
+        let mut carats = Vec::new();
+        carats.push(CaratSnapshot::new(0, Some(0..3)));
+        carats.push(CaratSnapshot::new(3, Some(3..6)));
+
+        let mut action = TextBackspace::new(text_field.view.downgrade(), 1, CursorMovement::Character, carats);
+        action.forward();
+        assert_eq!(text_field.label().text().string(), "f");
+        let carats = text_field.carat_snapshots();
+        assert_eq!(carats.len(), 2);
+        assert_eq!(carats[0].character_index(), 0);
+        assert_eq!(carats[0].selection(), &None);
+        assert_eq!(carats[1].character_index(), 0);
+        assert_eq!(carats[1].selection(), &None);
+
+        action.backward();
+        assert_eq!(text_field.label().text().string(), "abc def");
+        let carats = text_field.carat_snapshots();
+        assert_eq!(carats.len(), 2);
+        assert_eq!(carats[0].character_index(), 0);
+        assert_eq!(carats[0].selection(), &Some(0..3));
+        assert_eq!(carats[1].character_index(), 3);
+        assert_eq!(carats[1].selection(), &Some(3..6));
     }
 }
 

@@ -76,65 +76,106 @@ mod tests {
         assert_eq!(text_field.carat_indexes(), vec![5]);
     }
 
-    // #[test]
-    // fn test_forward_multi_cursor() {
-    //     let frame = Rectangle::new(0, 0, 100, 100);
-    //     let text_field = TextField::new(frame, "|".to_string());
+    #[test]
+    fn test_forward_multi_cursor() {
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let text_field = TextField::new(frame, "|".to_string());
 
-    //     let mut text_insertion = TextInsertion {
-    //         view: text_field.view.downgrade(),
-    //         text: "Hello".to_string(),
-    //         cursors_before: vec![0, 1],
-    //         cursors_after: vec![]
-    //     };
+        let mut carats = Vec::new();
+        carats.push(CaratSnapshot::new(0, None));
+        carats.push(CaratSnapshot::new(1, None));
 
-    //     text_insertion.forward();
+        let mut text_insertion = TextInsertion::new(
+            text_field.view.downgrade(),
+            "Hello".to_string(),
+            carats
+        );
 
-    //     assert_eq!(text_field.label().text().string(), "Hello|Hello");
-    //     assert_eq!(text_field.carat_indexes(), vec![5, 11]);
-    // }
 
-    // #[test]
-    // fn test_backward() {
-    //     let frame = Rectangle::new(0, 0, 100, 100);
-    //     let text_field = TextField::new(frame, "".to_string());
+        text_insertion.forward();
 
-    //     let mut text_insertion = TextInsertion {
-    //         view: text_field.view.downgrade(),
-    //         text: "Hello".to_string(),
-    //         cursors_before: vec![0],
-    //         cursors_after: vec![]
-    //     };
+        assert_eq!(text_field.label().text().string(), "Hello|Hello");
+        assert_eq!(text_field.carat_indexes(), vec![5, 11]);
+    }
 
-    //     text_insertion.forward();
-    //     text_insertion.backward();
+    #[test]
+    fn test_backward() {
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let text_field = TextField::new(frame, "".to_string());
 
-    //     assert_eq!(text_field.label().text().string(), "");
-    //     assert_eq!(text_field.carat_indexes(), vec![0]);
-    // }
+        let mut carats = Vec::new();
+        carats.push(CaratSnapshot::new(0, None));
 
-    // #[test]
-    // fn test_backward_multi_cursor() {
-    //     let frame = Rectangle::new(0, 0, 100, 100);
-    //     let text_field = TextField::new(frame, "|".to_string());
+        let mut text_insertion = TextInsertion::new(
+            text_field.view.downgrade(),
+            "Hello".to_string(),
+            carats
+        );
 
-    //     let mut text_insertion = TextInsertion {
-    //         view: text_field.view.downgrade(),
-    //         text: "Hello".to_string(),
-    //         cursors_before: vec![0, 1],
-    //         cursors_after: vec![]
-    //     };
+        text_insertion.forward();
+        text_insertion.backward();
 
-    //     text_insertion.forward();
+        assert_eq!(text_field.label().text().string(), "");
+        assert_eq!(text_field.carat_indexes(), vec![0]);
+    }
 
-    //     assert_eq!(text_field.label().text().string(), "Hello|Hello");
-    //     assert_eq!(text_field.carat_indexes(), vec![5, 11]);
-    //     assert_eq!(text_insertion.cursors_after, vec![5, 11]);
+    #[test]
+    fn test_backward_multi_cursor() {
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let text_field = TextField::new(frame, "|".to_string());
 
-    //     text_insertion.backward();
+        let mut carats = Vec::new();
+        carats.push(CaratSnapshot::new(0, None));
+        carats.push(CaratSnapshot::new(1, None));
 
-    //     assert_eq!(text_field.label().text().string(), "|");
-    //     assert_eq!(text_field.carat_indexes(), vec![0, 1]);
-    //     assert_eq!(text_insertion.cursors_after, vec![5, 11]);
-    // }
+        let mut text_insertion = TextInsertion::new(
+            text_field.view.downgrade(),
+            "Hello".to_string(),
+            carats
+        );
+
+        text_insertion.forward();
+
+        assert_eq!(text_field.label().text().string(), "Hello|Hello");
+
+        let carats = text_field.carat_snapshots();
+        assert_eq!(carats.len(), 2);
+        assert_eq!(carats[0].character_index(), 5);
+        assert_eq!(carats[0].selection(), &None);
+        assert_eq!(carats[1].character_index(), 11);
+        assert_eq!(carats[1].selection(), &None);
+
+        text_insertion.backward();
+
+        assert_eq!(text_field.label().text().string(), "|");
+        let carats = text_field.carat_snapshots();
+        assert_eq!(carats.len(), 2);
+        assert_eq!(carats[0].character_index(), 0);
+        assert_eq!(carats[0].selection(), &None);
+        assert_eq!(carats[1].character_index(), 1);
+        assert_eq!(carats[1].selection(), &None);
+    }
+
+    #[test]
+    fn test_insertion_with_selection() {
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let text_field = TextField::new(frame, "Hi world".to_string());
+
+        let mut carats = Vec::new();
+        carats.push(CaratSnapshot::new(0, Some(0..2)));
+
+        let mut text_insertion = TextInsertion::new(
+            text_field.view.downgrade(),
+            "Hello".to_string(),
+            carats
+        );
+
+        text_insertion.forward();
+
+        assert_eq!(text_field.label().text().string(), "Hello world");
+        let carats = text_field.carat_snapshots();
+        assert_eq!(carats.len(), 1);
+        assert_eq!(carats[0].character_index(), 5);
+        assert_eq!(carats[0].selection(), &None);
+    }
 }
