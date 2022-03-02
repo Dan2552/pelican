@@ -30,6 +30,9 @@ impl History {
 
     /// Add an action to the history.
     pub fn add(&mut self, action: Box<dyn Action>) {
+        if self.current < self.actions.len() {
+            self.actions.truncate(self.current);
+        }
         self.actions.push(action);
         self.current = self.actions.len();
     }
@@ -184,6 +187,66 @@ mod tests {
         {
             let example = example.test_example.borrow();
             assert_eq!(example.text.to_string(), "HelloWorld");
+        }
+    }
+
+    #[test]
+    fn test_change_of_history() {
+        let example = TestExampleRef {
+            test_example: Rc::new(RefCell::new(TestExample {
+                text: Text::from("")
+            }))
+        };
+
+        let mut action1 = TestAction {
+            example: example.clone(),
+            addition: "Hello".to_string(),
+            index: 0
+        };
+
+        let mut action2 = TestAction {
+            example: example.clone(),
+            addition: "World".to_string(),
+            index: 5
+        };
+
+        let mut action3 = TestAction {
+            example: example.clone(),
+            addition: "Universe".to_string(),
+            index: 5
+        };
+
+        action1.forward();
+        action2.forward();
+
+        let mut history = History::new();
+        history.add(Box::new(action1));
+        history.add(Box::new(action2));
+
+        assert_eq!(history.actions.len(), 2);
+
+        history.undo();
+
+        assert_eq!(history.actions.len(), 2);
+
+        action3.forward();
+
+        history.add(Box::new(action3));
+
+        assert_eq!(history.actions.len(), 2);
+
+        history.undo();
+
+        {
+            let example = example.test_example.borrow();
+            assert_eq!(example.text.to_string(), "Hello");
+        }
+
+        history.redo();
+
+        {
+            let example = example.test_example.borrow();
+            assert_eq!(example.text.to_string(), "HelloUniverse");
         }
     }
 }

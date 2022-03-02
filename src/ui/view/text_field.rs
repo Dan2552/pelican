@@ -371,7 +371,15 @@ custom_view!(
         ///
         /// Inserts a str at each of the current carat positions. This will move
         /// the carats to the end of the inserted text.
-        pub(crate) fn insert_str(&self, text: &str) {
+        ///
+        /// If any of the carats are currently selected, the inserted text will
+        /// replace the selected text.
+        ///
+        /// Returns the contents of any text that was replaced (one element
+        /// per carat).
+        pub(crate) fn insert_str(&self, text: &str) -> Vec<Option<String>> {
+            let mut result = Vec::new();
+
             let view = &self.view;
             let text_field = TextField::from_view(view.clone());
             text_field.consume_and_sort_cursors();
@@ -404,10 +412,12 @@ custom_view!(
                 }
 
                 if let Some(selection) = &carat.selection {
+                    result.push(Some(label.text()[selection.start..selection.end].to_string()));
                     label.replace_text_in_range(selection.start..selection.end, &text);
                     extra_movement_for_following_carat -= (selection.end - selection.start) as i32;
                     carat.character_index.set(selection.start + text.len());
                 } else {
+                    result.push(None);
                     let index = carat.character_index.get();
                     label.insert_text_at_index(index, text);
                     carat.character_index.set(index + Text::from(text).len());
@@ -424,6 +434,8 @@ custom_view!(
 
             let behavior = self.behavior();
             behavior.delay_animation.set(true);
+
+            result
         }
 
         // TODO: is this still correct?

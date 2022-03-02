@@ -1,7 +1,6 @@
 use crate::ui::view::WeakView;
 use crate::ui::view::TextField;
 use crate::platform::history::Action;
-use crate::ui::view::text_field::CursorMovement;
 use crate::ui::history::text_field::carat_snapshot::CaratSnapshot;
 
 /// A reversible action that inserts text into a text field.
@@ -9,7 +8,8 @@ pub struct TextInsertion {
     view: WeakView,
     text: String,
     cursors_before: Vec<CaratSnapshot>,
-    cursors_after: Vec<CaratSnapshot>
+    cursors_after: Vec<CaratSnapshot>,
+    text_replaced: Vec<Option<String>>
 }
 
 impl TextInsertion {
@@ -18,7 +18,8 @@ impl TextInsertion {
             view,
             text,
             cursors_before,
-            cursors_after: Vec::new()
+            cursors_after: Vec::new(),
+            text_replaced: Vec::new()
         }
     }
 
@@ -36,7 +37,7 @@ impl Action for TextInsertion {
     fn forward(&mut self) {
         let text_field = self.text_field();
         text_field.restore_carat_snapshots(&self.cursors_before);
-        text_field.insert_str(&self.text);
+        self.text_replaced = text_field.insert_str(&self.text);
         self.cursors_after = text_field.carat_snapshots();
     }
 
@@ -46,8 +47,20 @@ impl Action for TextInsertion {
         }
 
         let text_field = self.text_field();
-        text_field.restore_carat_snapshots(&self.cursors_after);
-        text_field.backspace(CursorMovement::Character, self.text.len());
+
+        for (cursor_index, text_replaced) in self.text_replaced.iter().enumerate().rev() {
+            let cursor = &self.cursors_after[cursor_index];
+            let start = cursor.character_index() - self.text.len();
+            let end = cursor.character_index();
+
+            if let Some(text_replaced) = text_replaced {
+                text_field.label().replace_text_in_range(start..end, text_replaced);
+            } else {
+                text_field.label().replace_text_in_range(start..end, "");
+            }
+        }
+
+        text_field.restore_carat_snapshots(&self.cursors_before);
     }
 }
 
@@ -79,8 +92,8 @@ mod tests {
     #[test]
     fn test_forward_multi_cursor() {
         let frame = Rectangle::new(0, 0, 100, 100);
-        let text_field = TextField::new(frame, "|".to_string());
 
+        let text_field = TextField::new(frame, "|".to_string());
         let mut carats = Vec::new();
         carats.push(CaratSnapshot::new(0, None));
         carats.push(CaratSnapshot::new(1, None));
@@ -177,5 +190,13 @@ mod tests {
         assert_eq!(carats.len(), 1);
         assert_eq!(carats[0].character_index(), 5);
         assert_eq!(carats[0].selection(), &None);
+
+        text_insertion.backward();
+
+        assert_eq!(text_field.label().text().string(), "Hi world");
+        let carats = text_field.carat_snapshots();
+        assert_eq!(carats.len(), 1);
+        assert_eq!(carats[0].character_index(), 0);
+        assert_eq!(carats[0].selection(), &Some(0..2));
     }
 }
