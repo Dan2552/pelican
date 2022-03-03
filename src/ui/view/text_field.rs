@@ -206,26 +206,28 @@ custom_view!(
         }
 
         pub fn spawn_carat(&self, character_index: usize) {
-            let behavior = self.behavior();
-            let mut carats = behavior.carats.borrow_mut();
+            {
+                let behavior = self.behavior();
+                let mut carats = behavior.carats.borrow_mut();
 
-            // The frame doesn't matter here, it will be updated later when the
-            // view draws.
-            let carat_view = View::new(Rectangle::new(0, 0, 1, 1));
+                // The frame doesn't matter here, it will be updated later when the
+                // view draws.
+                let carat_view = View::new(Rectangle::new(0, 0, 1, 1));
 
-            carat_view.set_background_color(Color::new(226, 175, 10, 255));
-            carat_view.set_hidden(true);
-            carat_view.set_user_interaction_enabled(false);
-            self.view.add_subview(carat_view.clone());
+                carat_view.set_background_color(Color::new(226, 175, 10, 255));
+                carat_view.set_hidden(true);
+                carat_view.set_user_interaction_enabled(false);
+                self.view.add_subview(carat_view.clone());
 
-            let carat = Carat {
-                view: carat_view.downgrade(),
-                character_index: Cell::new(character_index),
-                selection: None
-            };
+                let carat = Carat {
+                    view: carat_view.downgrade(),
+                    character_index: Cell::new(character_index),
+                    selection: None
+                };
 
-            carats.push(carat);
-
+                carats.push(carat);
+            }
+            self.consume_and_sort_cursors();
             self.view.set_needs_display();
         }
 
@@ -882,3 +884,94 @@ custom_view!(
         }
     }
 );
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ui::view::behavior::Behavior;
+    use crate::ui::key::{Key, ModifierFlag};
+    use crate::ui::press::Press;
+
+    #[test]
+    fn test_text_field_integration() {
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let text_field = TextField::new(frame, "".to_string());
+        let behavior = text_field.behavior();
+
+        behavior.text_input_did_receive("hello");
+
+        assert_eq!(text_field.label().text().string(), "hello");
+
+        let key = Key::new(KeyCode::Z, vec![ModifierFlag::Command]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        assert_eq!(text_field.label().text().string(), "");
+
+        behavior.text_input_did_receive("hello");
+
+        let key = Key::new(KeyCode::Left, vec![ModifierFlag::Shift]);
+        let press = Press::new(key);
+
+        for _ in 0..4 {
+            behavior.press_began(&press);
+            behavior.press_ended(&press);
+        }
+
+        behavior.text_input_did_receive("i");
+
+        assert_eq!(text_field.label().text().string(), "hi");
+
+        let key = Key::new(KeyCode::A, vec![ModifierFlag::Command]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        let key = Key::new(KeyCode::Backspace, vec![]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        assert_eq!(text_field.label().text().string(), "");
+
+        behavior.text_input_did_receive("hello");
+        assert_eq!(text_field.carat_positions().len(), 1);
+        assert_eq!(text_field.carat_positions()[0], 5);
+
+        text_field.spawn_carat(0);
+        assert_eq!(text_field.carat_positions().len(), 2);
+        assert_eq!(text_field.carat_positions()[0], 0);
+        assert_eq!(text_field.carat_positions()[1], 5);
+
+        behavior.text_input_did_receive("world");
+
+        assert_eq!(text_field.label().text().string(), "worldhelloworld");
+
+        let key = Key::new(KeyCode::Right, vec![ModifierFlag::Command]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        assert_eq!(text_field.carat_positions()[0], 15);
+
+        let key = Key::new(KeyCode::Left, vec![ModifierFlag::Shift, ModifierFlag::Alternate]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        behavior.text_input_did_receive("hello world");
+
+        assert_eq!(text_field.carat_positions().len(), 1);
+        assert_eq!(text_field.carat_positions()[0], 11);
+        assert_eq!(text_field.label().text().string(), "hello world");
+
+        let key = Key::new(KeyCode::Left, vec![ModifierFlag::Alternate]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        behavior.text_input_did_receive("wide ");
+        assert_eq!(text_field.label().text().string(), "hello wide world");
+    }
+}
