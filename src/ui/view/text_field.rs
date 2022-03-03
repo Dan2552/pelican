@@ -909,6 +909,13 @@ mod tests {
 
         assert_eq!(text_field.label().text().string(), "");
 
+        let key = Key::new(KeyCode::Z, vec![ModifierFlag::Command, ModifierFlag::Shift]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        assert_eq!(text_field.label().text().string(), "hello");
+
         behavior.text_input_did_receive("hello");
 
         let key = Key::new(KeyCode::Left, vec![ModifierFlag::Shift]);
@@ -921,7 +928,7 @@ mod tests {
 
         behavior.text_input_did_receive("i");
 
-        assert_eq!(text_field.label().text().string(), "hi");
+        assert_eq!(text_field.label().text().string(), "hellohi");
 
         let key = Key::new(KeyCode::A, vec![ModifierFlag::Command]);
         let press = Press::new(key);
