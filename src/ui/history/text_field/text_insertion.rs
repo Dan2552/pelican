@@ -62,6 +62,54 @@ impl Action for TextInsertion {
 
         text_field.restore_carat_snapshots(&self.cursors_before);
     }
+
+    fn merge(&self, other: &Box<dyn Action>) -> Option<Box<dyn Action>> {
+        if other.name() != self.name() {
+            return None
+        }
+
+        let other = other.as_any().downcast_ref::<TextInsertion>().unwrap();
+
+        // Return early if the other action cursors don't match
+        if self.cursors_after != other.cursors_before {
+            return None
+        }
+
+        let text = self.text.clone() + &other.text;
+
+        let mut combo_text_replaced: Vec<Option<String>> = Vec::new();
+
+        for (index, text_replaced) in self.text_replaced.iter().enumerate() {
+            if let Some(text_replaced) = text_replaced {
+                if let Some(other_text_replaced) = other.text_replaced.get(index) {
+                    if let Some(other_text_replaced) = other_text_replaced {
+                        combo_text_replaced.push(Some(text_replaced.clone() + other_text_replaced));
+                    } else {
+                        combo_text_replaced.push(Some(text_replaced.clone()));
+                    }
+                    combo_text_replaced.push(Some(text_replaced.clone()));
+                } else {
+                    combo_text_replaced.push(Some(text_replaced.clone()));
+                }
+            } else {
+                combo_text_replaced.push(None);
+            }
+        }
+
+        let mut new = Self::new(
+            self.view.clone(),
+            text,
+            self.cursors_before.clone(),
+        );
+
+        new.cursors_after = other.cursors_after.clone();
+        new.text_replaced = combo_text_replaced;
+        Some(Box::new(new))
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 #[cfg(test)]
@@ -198,5 +246,75 @@ mod tests {
         assert_eq!(carats.len(), 1);
         assert_eq!(carats[0].character_index(), 0);
         assert_eq!(carats[0].selection(), &Some(0..2));
+    }
+
+    #[test]
+    fn test_merge() {
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let text_field = TextField::new(frame, "".to_string());
+        let mut carats = Vec::new();
+        carats.push(CaratSnapshot::new(0, None));
+
+        let mut text_insertion1 = TextInsertion::new(
+            text_field.view.downgrade(),
+            "Hello".to_string(),
+            carats
+        );
+
+        let mut carats = Vec::new();
+        carats.push(CaratSnapshot::new(5, None));
+
+        let mut text_insertion2 = TextInsertion::new(
+            text_field.view.downgrade(),
+            " world".to_string(),
+            carats
+        );
+
+        text_insertion1.forward();
+        text_insertion2.forward();
+
+        let boxed2: std::boxed::Box<(dyn Action + 'static)> = Box::new(text_insertion2);
+
+        let result = text_insertion1.merge(&boxed2);
+        assert!(result.is_some());
+        let mut result = result.unwrap();
+        result.backward();
+        assert_eq!(text_field.label().text().string(), "");
+
+        result.forward();
+        assert_eq!(text_field.label().text().string(), "Hello world");
+    }
+
+    #[test]
+    fn test_merge_negative() {
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let text_field = TextField::new(frame, "".to_string());
+        let mut carats = Vec::new();
+        carats.push(CaratSnapshot::new(0, None));
+
+        let mut text_insertion1 = TextInsertion::new(
+            text_field.view.downgrade(),
+            " world".to_string(),
+            carats
+        );
+
+        let mut carats = Vec::new();
+        carats.push(CaratSnapshot::new(0, None));
+
+        let mut text_insertion2 = TextInsertion::new(
+            text_field.view.downgrade(),
+            "Hello".to_string(),
+            carats
+        );
+
+        text_insertion1.forward();
+        text_insertion2.forward();
+
+        assert_eq!(text_field.label().text().string(), "Hello world");
+
+        let boxed2: std::boxed::Box<(dyn Action + 'static)> = Box::new(text_insertion2);
+        let result = text_insertion1.merge(&boxed2);
+
+        assert!(result.is_none());
     }
 }

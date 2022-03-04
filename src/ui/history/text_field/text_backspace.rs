@@ -60,6 +60,10 @@ impl Action for TextBackspace {
         }
         text_field.restore_carat_snapshots(&self.cursors_before);
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 #[cfg(test)]
