@@ -64,6 +64,47 @@ impl Action for TextBackspace {
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }
+
+    fn merge(&self, other: &Box<dyn Action>) -> Option<Box<dyn Action>> {
+        if other.name() != self.name() {
+            return None
+        }
+
+        let other = other.as_any().downcast_ref::<TextBackspace>().unwrap();
+
+        // Return early if the other action cursors don't match
+        if self.cursors_after != other.cursors_before {
+            return None
+        }
+
+        // Return early if the cursor movement doesn't match
+        if self.cursor_movement != other.cursor_movement {
+            return None
+        }
+
+        let mut combo_texts_deleted = Vec::new();
+
+        for (index, text_deleted) in self.texts_deleted.iter().enumerate() {
+            let other_text_deleted = other.texts_deleted.get(index).unwrap();
+            combo_texts_deleted.push(other_text_deleted.clone() + text_deleted);
+        }
+
+        let count = self.count + other.count;
+        let cursor_movement = self.cursor_movement.clone();
+        let cursors_before = self.cursors_before.clone();
+
+        let mut new = Self::new(
+            self.view.clone(),
+            count,
+            cursor_movement,
+            cursors_before
+        );
+
+        new.cursors_after = other.cursors_after.clone();
+        new.texts_deleted = combo_texts_deleted;
+
+        Some(Box::new(new))
+    }
 }
 
 #[cfg(test)]
@@ -305,5 +346,83 @@ mod tests {
         assert_eq!(carats[1].character_index(), 3);
         assert_eq!(carats[1].selection(), &Some(3..6));
     }
-}
 
+    #[test]
+    fn test_merge() {
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let text_field = TextField::new(frame, "abc def".to_string());
+
+        let mut carats = Vec::new();
+        carats.push(CaratSnapshot::new(7, None));
+
+        let mut action1 = TextBackspace::new(
+            text_field.view.downgrade(),
+            4,
+            CursorMovement::Character,
+            carats
+        );
+
+        let mut carats = Vec::new();
+        carats.push(CaratSnapshot::new(3, None));
+
+        let mut action2 = TextBackspace::new(
+            text_field.view.downgrade(),
+            3,
+            CursorMovement::Character,
+            carats
+        );
+
+        action1.forward();
+        action2.forward();
+
+        assert_eq!(text_field.label().text().string(), "");
+
+        let boxed2: std::boxed::Box<(dyn Action + 'static)> = Box::new(action2);
+
+        let result = action1.merge(&boxed2);
+        assert!(result.is_some());
+
+        let mut result = result.unwrap();
+        result.backward();
+        assert_eq!(text_field.label().text().string(), "abc def");
+
+        result.forward();
+        assert_eq!(text_field.label().text().string(), "");
+    }
+
+    #[test]
+    fn test_merge_negative() {
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let text_field = TextField::new(frame, "abc def".to_string());
+
+        let mut carats = Vec::new();
+        carats.push(CaratSnapshot::new(7, None));
+
+        let mut action1 = TextBackspace::new(
+            text_field.view.downgrade(),
+            4,
+            CursorMovement::Character,
+            carats
+        );
+
+        let mut carats = Vec::new();
+        carats.push(CaratSnapshot::new(2, None));
+
+        let mut action2 = TextBackspace::new(
+            text_field.view.downgrade(),
+            2,
+            CursorMovement::Character,
+            carats
+        );
+
+        action1.forward();
+        action2.forward();
+
+        assert_eq!(text_field.label().text().string(), "c");
+
+        let boxed2: std::boxed::Box<(dyn Action + 'static)> = Box::new(action2);
+
+        let result = action1.merge(&boxed2);
+        assert!(result.is_none());
+    }
+}
