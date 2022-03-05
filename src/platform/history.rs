@@ -6,9 +6,10 @@ pub trait Action {
     fn name(&self) -> &str;
     fn forward(&mut self);
     fn backward(&mut self);
-    fn merge(&self, _other: Box<dyn Action>) -> Option<Box<dyn Action>> {
+    fn merge(&self, _other: &Box<dyn Action>) -> Option<Box<dyn Action>> {
         None
     }
+    fn as_any(&self) -> &dyn std::any::Any;
 }
 
 /// A history of actions which can be undone/redone.
@@ -33,7 +34,18 @@ impl History {
         if self.current < self.actions.len() {
             self.actions.truncate(self.current);
         }
-        self.actions.push(action);
+
+        if self.actions.len() > 0 {
+            if let Some(merged) = self.actions[self.current - 1].merge(&action) {
+                self.actions.pop();
+                self.actions.push(merged);
+            } else {
+                self.actions.push(action);
+            }
+        } else {
+            self.actions.push(action);
+        }
+
         self.current = self.actions.len();
     }
 
@@ -81,6 +93,7 @@ mod tests {
         example: TestExampleRef,
         addition: String,
         index: usize,
+        mergeable: bool
     }
 
     impl Action for TestAction {
@@ -99,6 +112,25 @@ mod tests {
             let end = start + self.addition.len();
             example.text.replace_range(start..end, "");
         }
+
+        fn as_any(&self) -> &dyn std::any::Any {
+            self
+        }
+
+        fn merge(&self, other: &Box<dyn Action>) -> Option<Box<dyn Action>> {
+            let other = other.as_any().downcast_ref::<TestAction>().unwrap();
+
+            if !(self.mergeable && other.mergeable) {
+                return None;
+            }
+
+            Some(Box::new(TestAction {
+                example: self.example.clone(),
+                addition: format!("{}{}", self.addition, other.addition),
+                index: self.index,
+                mergeable: true
+            }))
+        }
     }
 
     #[test]
@@ -112,13 +144,15 @@ mod tests {
         let mut action1 = TestAction {
             example: example.clone(),
             addition: "Hello".to_string(),
-            index: 0
+            index: 0,
+            mergeable: false
         };
 
         let mut action2 = TestAction {
             example: example.clone(),
             addition: "World".to_string(),
-            index: 5
+            index: 5,
+            mergeable: false
         };
 
         action1.forward();
@@ -201,19 +235,22 @@ mod tests {
         let mut action1 = TestAction {
             example: example.clone(),
             addition: "Hello".to_string(),
-            index: 0
+            index: 0,
+            mergeable: false
         };
 
         let mut action2 = TestAction {
             example: example.clone(),
             addition: "World".to_string(),
-            index: 5
+            index: 5,
+            mergeable: false
         };
 
         let mut action3 = TestAction {
             example: example.clone(),
             addition: "Universe".to_string(),
-            index: 5
+            index: 5,
+            mergeable: false
         };
 
         action1.forward();
@@ -248,5 +285,38 @@ mod tests {
             let example = example.test_example.borrow();
             assert_eq!(example.text.to_string(), "HelloUniverse");
         }
+    }
+
+    #[test]
+    fn test_merge() {
+        let example = TestExampleRef {
+            test_example: Rc::new(RefCell::new(TestExample {
+                text: Text::from("")
+            }))
+        };
+
+        let mut action1 = TestAction {
+            example: example.clone(),
+            addition: "Hello".to_string(),
+            index: 0,
+            mergeable: true
+        };
+
+        let mut action2 = TestAction {
+            example: example.clone(),
+            addition: "World".to_string(),
+            index: 5,
+            mergeable: true
+        };
+
+        action1.forward();
+        action2.forward();
+
+        let mut history = History::new();
+        history.add(Box::new(action1));
+        history.add(Box::new(action2));
+
+        assert_eq!(history.actions.len(), 1);
+        assert_eq!(history.actions.first().unwrap().as_any().downcast_ref::<TestAction>().unwrap().addition, "HelloWorld");
     }
 }
