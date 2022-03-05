@@ -7,9 +7,13 @@ use pelican::ui::TextField;
 struct ExampleViewController {}
 impl ViewControllerBehavior for ExampleViewController {
     fn view_did_load(&self, view: View) {
-        let text_field = TextField::new(Rectangle::new(10, 10, 180, 36), "".to_string());
-        text_field.view.set_background_color(Color::gray());
-        view.add_subview(text_field.clone().view);
+        let background = View::new(Rectangle::new(0, 0, view.frame().width(), view.frame().height()));
+        background.set_background_color(Color::gray());
+        view.add_subview(background.clone());
+
+        let text_field = TextField::new(Rectangle::new(10, 10, 180, 36 * 2), "".to_string());
+        text_field.view.set_background_color(Color::white());
+        background.add_subview(text_field.clone().view);
 
         text_field.view.become_first_responder();
     }
