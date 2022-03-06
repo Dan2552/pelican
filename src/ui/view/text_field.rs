@@ -113,7 +113,14 @@ custom_view!(
 
     impl Self {
         pub fn new(frame: Rectangle<i32, u32>, text: String) -> TextField {
-            let label = Label::new(frame.clone(), text);
+            let label_padding = 8;
+            let label_frame = Rectangle::new(
+                label_padding as i32,
+                label_padding as i32,
+                frame.width() - (label_padding * 2),
+                frame.height() - (label_padding * 2)
+            );
+            let label = Label::new(label_frame, text);
             label.view.set_tag(1);
             label.view.set_user_interaction_enabled(false);
 
