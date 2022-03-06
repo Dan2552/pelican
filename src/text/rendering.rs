@@ -1196,4 +1196,26 @@ mod tests {
             assert_eq!(result.render_scale, 2.0);
         }
     }
+
+    #[test]
+    fn test_newline() {
+        let attributed_string = AttributedString::new(String::from("a\nb"));
+
+        let frame = Rectangle::new(0, 0, 50, 100);
+        let text = WholeText::from(&attributed_string, frame, 1.0);
+
+        assert_eq!(text.lines.len(), 2);
+
+        let result = text.calculate_character_render_positions();
+        assert_eq!(result.positions.len(), 3);
+
+        let position_for_character_at_index = result.position_for_character_at_index(0).unwrap();
+        assert_eq!(position_for_character_at_index, Point::new(0, 2));
+
+        let position_for_character_at_index = result.position_for_character_at_index(1).unwrap();
+        assert_eq!(position_for_character_at_index, Point::new(0, 20));
+
+        let position_for_character_at_index = result.position_for_character_at_index(2).unwrap();
+        assert_eq!(position_for_character_at_index, Point::new(0, 17));
+    }
 }

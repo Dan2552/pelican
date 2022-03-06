@@ -886,6 +886,21 @@ custom_view!(
                         text_field.select_all();
                     }
                 },
+                KeyCode::Return => {
+                    let view = self.view.upgrade().unwrap();
+                    let text_field = TextField::from_view(view.clone());
+
+                    let mut text_insertion = TextInsertion::new(
+                        self.view.clone(),
+                        '\n'.to_string(),
+                        text_field.carat_snapshots()
+                    );
+
+                    text_insertion.forward();
+
+                    let mut history = self.history.borrow_mut();
+                    history.add(Box::new(text_insertion));
+                }
                 _ => ()
             }
         }
