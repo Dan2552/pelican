@@ -8,7 +8,7 @@ pub fn find_word_boundary(text: &Text, index: usize, rightwards: bool) -> usize 
 
     if rightwards {
         while index < text.len() {
-            let character = text[index].chars().nth(0).unwrap();
+            let character = text.nth(index).unwrap().chars().nth(0).unwrap();
             if !(character.is_alphanumeric() || character == '_') {
                 let whitespace = character.is_whitespace();
 
@@ -34,7 +34,7 @@ pub fn find_word_boundary(text: &Text, index: usize, rightwards: bool) -> usize 
         }
     } else {
         while index > 0 {
-            let character = text[index - 1].chars().nth(0).unwrap();
+            let character = text.nth(index - 1).unwrap().chars().nth(0).unwrap();
             if !(character.is_alphanumeric() || character == '_') {
                 let whitespace = character.is_whitespace();
 

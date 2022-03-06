@@ -110,7 +110,17 @@ impl Text {
             return None;
         }
 
-        Some(&self[index])
+        if self.grapheme_indices.len() == 0 {
+            return Some(&self.string);
+        }
+
+        let start = self.grapheme_indices[index];
+        if index + 1 == self.len() {
+            Some(&self.string[start..])
+        } else {
+            let end = self.grapheme_indices[index + 1];
+            Some(&self.string[start..end])
+        }
     }
 }
 
@@ -126,31 +136,16 @@ impl std::fmt::Debug for Text {
     }
 }
 
-impl std::ops::Index<usize> for Text {
-    type Output = str;
-
-    fn index(&self, index: usize) -> &str {
-        if self.grapheme_indices.len() == 0 {
-            return &self.string
-        }
-
-        let start = self.grapheme_indices[index];
-        if index + 1 == self.len() {
-            &self.string[start..]
-        } else {
-            let end = self.grapheme_indices[index + 1];
-            &self.string[start..end]
-        }
-    }
-}
-
 impl std::ops::Index<Range<usize>> for Text {
     type Output = str;
 
     fn index(&self, index: Range<usize>) -> &str {
-
         if index.start == index.end {
-            return &self[index.start];
+            if index.start <= self.len() {
+                return "";
+            } else {
+                panic!("character index {} is out of bounds of `{:?}`", index.start, self);
+            }
         } else if index.end == self.len() {
             let start = self.grapheme_indices[index.start];
             &self.string[start..]
@@ -220,12 +215,12 @@ mod tests {
         text.insert_str(2, "é");
         assert_eq!(text.string(), "heéllo");
         assert_eq!(text.len(), 6);
-        assert_eq!(&text[0], "h");
-        assert_eq!(&text[1], "e");
-        assert_eq!(&text[2], "é");
-        assert_eq!(&text[3], "l");
-        assert_eq!(&text[4], "l");
-        assert_eq!(&text[5], "o");
+        assert_eq!(text.nth(0).unwrap(), "h");
+        assert_eq!(text.nth(1).unwrap(), "e");
+        assert_eq!(text.nth(2).unwrap(), "é");
+        assert_eq!(text.nth(3).unwrap(), "l");
+        assert_eq!(text.nth(4).unwrap(), "l");
+        assert_eq!(text.nth(5).unwrap(), "o");
 
         let mut text = Text::new("hello".to_string());
         text.insert_str(5, " world!");
@@ -267,12 +262,12 @@ mod tests {
         text.insert_text(2, &Text::from("é"));
         assert_eq!(text.string(), "heéllo");
         assert_eq!(text.len(), 6);
-        assert_eq!(&text[0], "h");
-        assert_eq!(&text[1], "e");
-        assert_eq!(&text[2], "é");
-        assert_eq!(&text[3], "l");
-        assert_eq!(&text[4], "l");
-        assert_eq!(&text[5], "o");
+        assert_eq!(text.nth(0).unwrap(), "h");
+        assert_eq!(text.nth(1).unwrap(), "e");
+        assert_eq!(text.nth(2).unwrap(), "é");
+        assert_eq!(text.nth(3).unwrap(), "l");
+        assert_eq!(text.nth(4).unwrap(), "l");
+        assert_eq!(text.nth(5).unwrap(), "o");
 
         let mut text = Text::new("hello".to_string());
         text.insert_text(5, &Text::from(" world!"));
@@ -341,32 +336,32 @@ mod tests {
     #[test]
     fn test_index() {
         let text = Text::new("hello world".to_string());
-        assert_eq!(&text[0], "h");
-        assert_eq!(&text[1], "e");
-        assert_eq!(&text[2], "l");
-        assert_eq!(&text[3], "l");
-        assert_eq!(&text[4], "o");
-        assert_eq!(&text[5], " ");
-        assert_eq!(&text[6], "w");
-        assert_eq!(&text[7], "o");
-        assert_eq!(&text[8], "r");
-        assert_eq!(&text[9], "l");
-        assert_eq!(&text[10], "d");
+        assert_eq!(text.nth(0).unwrap(), "h");
+        assert_eq!(text.nth(1).unwrap(), "e");
+        assert_eq!(text.nth(2).unwrap(), "l");
+        assert_eq!(text.nth(3).unwrap(), "l");
+        assert_eq!(text.nth(4).unwrap(), "o");
+        assert_eq!(text.nth(5).unwrap(), " ");
+        assert_eq!(text.nth(6).unwrap(), "w");
+        assert_eq!(text.nth(7).unwrap(), "o");
+        assert_eq!(text.nth(8).unwrap(), "r");
+        assert_eq!(text.nth(9).unwrap(), "l");
+        assert_eq!(text.nth(10).unwrap(), "d");
 
         let text = Text::new("héllo".to_string());
-        assert_eq!(&text[0], "h");
-        assert_eq!(&text[1], "é");
-        assert_eq!(&text[2], "l");
-        assert_eq!(&text[3], "l");
-        assert_eq!(&text[4], "o");
+        assert_eq!(text.nth(0).unwrap(), "h");
+        assert_eq!(text.nth(1).unwrap(), "é");
+        assert_eq!(text.nth(2).unwrap(), "l");
+        assert_eq!(text.nth(3).unwrap(), "l");
+        assert_eq!(text.nth(4).unwrap(), "o");
 
         let text = Text::new("a👨‍👨‍👧‍👧b".to_string());
-        assert_eq!(&text[0], "a");
-        assert_eq!(&text[1], "👨‍👨‍👧‍👧");
-        assert_eq!(&text[2], "b");
+        assert_eq!(text.nth(0).unwrap(), "a");
+        assert_eq!(text.nth(1).unwrap(), "👨‍👨‍👧‍👧");
+        assert_eq!(text.nth(2).unwrap(), "b");
 
         let text = Text::new("".to_string());
-        assert_eq!(&text[0], "");
+        assert!(text.nth(0).is_none());
     }
 
     #[test]
@@ -381,8 +376,50 @@ mod tests {
         assert_eq!(&text[0..2], "hé");
         assert_eq!(&text[2..5], "llo");
 
+
+        let text = Text::new("".to_string());
+        assert_eq!(&text.string()[0..0], "");
+        assert_eq!(&text[0..0], "");
+    }
+
+    #[test]
+    fn test_range_empty() {
+        let string = "";
+        assert_eq!(&string[0..0], "");
+
         let text = Text::new("".to_string());
         assert_eq!(&text[0..0], "");
+    }
+
+    #[test]
+    #[should_panic(expected = "byte index 1 is out of bounds of ``")]
+    fn test_range_edge_case_proof() {
+        let string = "";
+        let _ = &string[1..1];
+    }
+    #[test]
+    #[should_panic(expected = "character index 1 is out of bounds of ``")]
+    fn test_range_edge_case_actual() {
+        let text = Text::new("".to_string());
+        let _ = &text[1..1];
+    }
+
+    #[test]
+    fn test_range_same() {
+        let string = "a";
+        let text = Text::new("a".to_string());
+        assert_eq!(&string[0..0], "");
+        assert_eq!(&text[0..0], "");
+    }
+
+    #[test]
+    fn test_newline() {
+        let text = Text::new("\n".to_string());
+        assert_eq!(text.len(), 1);
+        assert_eq!(text.string(), "\n");
+        assert_eq!(text.nth(0), Some("\n"));
+        assert_eq!(text.nth(1), None);
+        assert_eq!(&text[0..1], "\n");
     }
 
     #[test]
