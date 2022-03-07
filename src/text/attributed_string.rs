@@ -126,7 +126,7 @@ impl AttributedString {
                 lines.push(AttributedSubstring {
                     attributed_string: self,
                     start: start,
-                    end: i
+                    end: i + 1
                 });
                 start = i + 1;
             }
@@ -263,13 +263,23 @@ mod tests {
         let attributed_string = AttributedString::new(text.to_string());
         let lines = attributed_string.lines();
         assert_eq!(lines.len(), 2);
-        assert_eq!(lines[0].text(), "Hello, world!");
+        assert_eq!(lines[0].text(), "Hello, world!\n");
         assert_eq!(lines[1].text(), "Goodbye, world!");
 
         assert_eq!(lines[0].start, 0);
-        assert_eq!(lines[0].end, 13);
+        assert_eq!(lines[0].end, 14);
         assert_eq!(lines[1].start, 14);
         assert_eq!(lines[1].end, 29);
+    }
+
+    #[test]
+    fn test_lines_with_empty_content() {
+        let text = "\n";
+        let attributed_string = AttributedString::new(text.to_string());
+        let lines = attributed_string.lines();
+        assert_eq!(lines.len(), 2);
+        assert_eq!(lines[0].text(), "\n");
+        assert_eq!(lines[1].text(), "");
     }
 
     #[test]
@@ -297,7 +307,7 @@ mod tests {
         let text = "Hello, world!\nGoodbye, world!";
         let attributed_string = AttributedString::new(text.to_string());
         let lines = attributed_string.lines();
-        assert_eq!(lines[0].chars().count(), "Hello, world!".len());
+        assert_eq!(lines[0].chars().count(), "Hello, world!\n".len());
         assert_eq!(lines[0].chars().nth(0), Some('H'));
         assert_eq!(lines[0].chars().nth(1), Some('e'));
         assert_eq!(lines[0].chars().nth(2), Some('l'));

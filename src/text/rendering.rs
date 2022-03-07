@@ -90,10 +90,15 @@ pub struct Result {
     sizes: Vec<Size<u32>>,
     line_heights: Vec<u32>,
     render_scale: f32,
-    fallback_cursor_rectangle: Rectangle<i32, u32>
+    fallback_cursor_rectangle: Rectangle<i32, u32>,
+    ends_with_newline: bool
 }
 
 impl Character {
+    fn is_newline(&self) -> bool {
+        self.character == '\n'
+    }
+
     fn is_whitespace(&self) -> bool {
         self.character.is_whitespace()
     }
@@ -257,12 +262,10 @@ impl LineOfText {
         }
 
         // If there are words on the remaining line, add it to the output.
-        if !current_line_words.is_empty() {
-            lines.push(LineOfText {
-                words: current_line_words,
-                size: Size::new(current_line_width, current_line_height)
-            });
-        }
+        lines.push(LineOfText {
+            words: current_line_words,
+            size: Size::new(current_line_width, current_line_height)
+        });
 
         lines
     }
@@ -423,11 +426,11 @@ impl WholeText<'_> {
     /// Iterate characters of the text with their positions to render.
     ///
     /// Positions of characters are calculated during this iteration.
-    // pub fn calculate_character_render_positions(&self) -> impl Iterator<Item = (&Character, Point<i32>)> {
     pub fn calculate_character_render_positions(&self) -> Result {
         let mut positions: Vec<Point<i32>> = Vec::new();
         let mut sizes: Vec<Size<u32>> = Vec::new();
         let mut line_heights: Vec<u32> = Vec::new();
+        let mut ends_with_newline = false;
 
         for (line_index, line) in self.lines.iter().enumerate() {
             let line_relative_position = &self.line_positions[line_index];
@@ -459,6 +462,8 @@ impl WholeText<'_> {
                     positions.push(absolute_position.clone());
                     sizes.push(character.size.clone());
                     line_heights.push(line_height);
+
+                    ends_with_newline = character.is_newline();
                 }
             }
         }
@@ -477,7 +482,8 @@ impl WholeText<'_> {
             sizes,
             line_heights,
             render_scale,
-            fallback_cursor_rectangle
+            fallback_cursor_rectangle,
+            ends_with_newline
         }
     }
 }
@@ -554,10 +560,17 @@ impl Result {
 
         let height = line_height - around_line_height as u32;
 
-        let last = Point {
+        let mut last = Point {
             x: position.x + character_size.width as i32,
             y: position.y
         };
+
+        if self.ends_with_newline {
+            last = Point {
+                x: 0,
+                y: position.y + line_height.clone() as i32
+            };
+        }
 
         if index > self.positions.len() - 1 {
             position = &last;
@@ -1134,7 +1147,7 @@ mod tests {
             let frame = Rectangle::new(0, 0, 50, 100);
             let text = WholeText::from(&attributed_string, frame, 1.0);
 
-            assert_eq!(text.lines.len(), 0);
+            assert_eq!(text.lines.len(), 1);
 
             let result = text.calculate_character_render_positions();
 
@@ -1155,6 +1168,21 @@ mod tests {
 
             assert_eq!(result.cursor_rectangle_for_character_at_index(0), Rectangle::new(0, 0, 2, 17));
             assert_eq!(result.cursor_rectangle_for_character_at_index(1), Rectangle::new(9, 0, 2, 17));
+        }
+
+        // test after newline
+        {
+            let attributed_string = AttributedString::new(String::from("\n"));
+
+            let frame = Rectangle::new(0, 0, 50, 100);
+            let text = WholeText::from(&attributed_string, frame, 1.0);
+
+            assert_eq!(text.lines.len(), 2);
+
+            let result = text.calculate_character_render_positions();
+
+            assert_eq!(result.cursor_rectangle_for_character_at_index(0), Rectangle::new(0, 0, 2, 17));
+            assert_eq!(result.cursor_rectangle_for_character_at_index(1), Rectangle::new(0, 19, 2, 17));
         }
     }
 
@@ -1198,7 +1226,7 @@ mod tests {
     }
 
     #[test]
-    fn test_newline() {
+    fn test_newline_character_index_match() {
         let attributed_string = AttributedString::new(String::from("a\nb"));
 
         let frame = Rectangle::new(0, 0, 50, 100);
@@ -1213,9 +1241,9 @@ mod tests {
         assert_eq!(position_for_character_at_index, Point::new(0, 2));
 
         let position_for_character_at_index = result.position_for_character_at_index(1).unwrap();
-        assert_eq!(position_for_character_at_index, Point::new(0, 20));
+        assert_eq!(position_for_character_at_index, Point::new(9, 2));
 
         let position_for_character_at_index = result.position_for_character_at_index(2).unwrap();
-        assert_eq!(position_for_character_at_index, Point::new(0, 17));
+        assert_eq!(position_for_character_at_index, Point::new(0, 20));
     }
 }
