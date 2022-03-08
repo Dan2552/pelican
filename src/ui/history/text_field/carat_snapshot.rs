@@ -19,6 +19,21 @@ impl CaratSnapshot {
     pub(crate) fn selection(&self) -> &Option<std::ops::Range<usize>> {
         &self.selection
     }
+
+    pub(crate) fn selection_intersects(&self, other: &CaratSnapshot) -> bool {
+        if self.selection.is_none() {
+            return false;
+        }
+
+        if other.selection.is_none() {
+            return false;
+        }
+
+        let self_range = self.selection.as_ref().unwrap();
+        let other_range = other.selection.as_ref().unwrap();
+
+        self_range.start < other_range.end && other_range.start < self_range.end
+    }
 }
 
 impl Clone for CaratSnapshot {
@@ -62,5 +77,56 @@ mod tests {
         let snapshot = CaratSnapshot::new(5, None);
         let snapshot_clone = snapshot.clone();
         assert_eq!(snapshot, snapshot_clone);
+    }
+
+    #[test]
+    fn test_selection_intersects() {
+        // 1 [     ]
+        // 2 [     ]
+        let snapshot = CaratSnapshot::new(5, None);
+        let snapshot_other = CaratSnapshot::new(5, None);
+        assert!(!snapshot.selection_intersects(&snapshot_other));
+
+        // 1 [     ]
+        // 2 *
+        let snapshot = CaratSnapshot::new(5, None);
+        let snapshot_other = CaratSnapshot::new(5, Some(2..5));
+        assert!(!snapshot.selection_intersects(&snapshot_other));
+
+        // 1 *
+        // 2 [     ]
+        let snapshot = CaratSnapshot::new(5, Some(2..5));
+        let snapshot_other = CaratSnapshot::new(5, None);
+        assert!(!snapshot.selection_intersects(&snapshot_other));
+
+        // 1 [  ---]
+        // 2 [  ---]
+        let snapshot = CaratSnapshot::new(5, Some(2..5));
+        let snapshot_other = CaratSnapshot::new(5, Some(2..5));
+        assert!(snapshot.selection_intersects(&snapshot_other));
+
+        // 1 [  ---]
+        // 2 [   ---]
+        let snapshot = CaratSnapshot::new(5, Some(2..5));
+        let snapshot_other = CaratSnapshot::new(5, Some(3..6));
+        assert!(snapshot.selection_intersects(&snapshot_other));
+
+        // 1 [  ---]
+        // 2 [ --- ]
+        let snapshot = CaratSnapshot::new(5, Some(2..5));
+        let snapshot_other = CaratSnapshot::new(5, Some(1..4));
+        assert!(snapshot.selection_intersects(&snapshot_other));
+
+        // 1 [--   ]
+        // 2 [   --]
+        let snapshot = CaratSnapshot::new(5, Some(0..2));
+        let snapshot_other = CaratSnapshot::new(5, Some(3..5));
+        assert!(!snapshot.selection_intersects(&snapshot_other));
+
+        // 1 [--   ]
+        // 2 [  ---]
+        let snapshot = CaratSnapshot::new(5, Some(0..2));
+        let snapshot_other = CaratSnapshot::new(5, Some(2..4));
+        assert!(!snapshot.selection_intersects(&snapshot_other));
     }
 }

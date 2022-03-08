@@ -14,7 +14,6 @@ use std::time::Duration;
 use std::cell::Cell;
 use std::ops::Range;
 use crate::text::word_boundary;
-use std::collections::HashMap;
 use std::time::Instant;
 use crate::text::text::Text;
 use crate::platform::clipboard;
@@ -23,6 +22,7 @@ use crate::ui::history::text_field::text_backspace::TextBackspace;
 use crate::platform::history::Action;
 use crate::platform::history::History;
 use crate::ui::history::text_field::carat_snapshot::CaratSnapshot;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum CursorMovement {
@@ -588,6 +588,42 @@ custom_view!(
             let behavior = self.behavior();
             let mut carats = behavior.carats.borrow_mut();
 
+            // if we sort upfront, then any overlapping cursors / selections
+            // should be next to each other.
+            carats.sort_by(|a, b| a.character_index.get().cmp(&b.character_index.get()));
+
+            // 1. search for intersecting, set the character index to be the same
+            for index in 0..(carats.len()) {
+                if index == 0 {
+                    continue;
+                }
+
+                let last_snapshot = carats[index - 1].snapshot();
+                let current_snapshot = carats[index].snapshot();
+
+                if current_snapshot.selection_intersects(&last_snapshot) {
+                    // Replace the previous carat's selection with one that
+                    // encompasses both.
+                    {
+                        let last_carat = carats.get_mut(index - 1).unwrap();
+                        last_carat.selection = Some(Selection {
+                            start: last_snapshot.selection().as_ref().unwrap().start,
+                            end: current_snapshot.selection().as_ref().unwrap().end,
+                            views: RefCell::new(Vec::new())
+                        });
+                        self.position_selection(&last_carat.selection.as_ref().unwrap());
+                    }
+
+                    // Set the current carat to matching character index, so it
+                    // will be removed.
+                    {
+                        let current_carat = carats.get_mut(index).unwrap();
+                        current_carat.character_index.set(last_snapshot.character_index());
+                    }
+                }
+            }
+
+            // 2. drain ones that are the same
             let mut indexes = HashMap::new();
             carats.retain(|carat| {
                 let character_index = carat.character_index.get();
@@ -598,8 +634,6 @@ custom_view!(
                     return true;
                 }
             });
-
-            carats.sort_by(|a, b| a.character_index.get().cmp(&b.character_index.get()));
         }
     }
 
@@ -903,6 +937,8 @@ custom_view!(
                 }
                 _ => ()
             }
+
+            text_field.consume_and_sort_cursors();
         }
     }
 );
@@ -1002,5 +1038,61 @@ mod tests {
 
         behavior.text_input_did_receive("wide ");
         assert_eq!(text_field.label().text().string(), "hello wide world");
+
+        let key = Key::new(KeyCode::A, vec![ModifierFlag::Command]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        let key = Key::new(KeyCode::Backspace, vec![]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        assert_eq!(text_field.label().text().string(), "");
+
+        behavior.text_input_did_receive("hello");
+        assert_eq!(text_field.carat_positions().len(), 1);
+        assert_eq!(text_field.carat_positions()[0], 5);
+
+        text_field.spawn_carat(0);
+        text_field.spawn_carat(1);
+
+        assert_eq!(text_field.carat_positions().len(), 3);
+
+        let cursors = text_field.carat_snapshots();
+        assert_eq!(cursors.len(), 3);
+        assert_eq!(cursors[0].character_index(), 0);
+        assert_eq!(cursors[0].selection(), &None);
+        assert_eq!(cursors[1].character_index(), 1);
+        assert_eq!(cursors[1].selection(), &None);
+        assert_eq!(cursors[2].character_index(), 5);
+        assert_eq!(cursors[2].selection(), &None);
+
+        let key = Key::new(KeyCode::Right, vec![ModifierFlag::Shift]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        let cursors = text_field.carat_snapshots();
+        assert_eq!(cursors.len(), 3);
+        assert_eq!(cursors[0].character_index(), 1);
+        assert_eq!(cursors[0].selection(), &Some(0..1));
+        assert_eq!(cursors[1].character_index(), 2);
+        assert_eq!(cursors[1].selection(), &Some(1..2));
+        assert_eq!(cursors[2].character_index(), 5);
+        assert_eq!(cursors[2].selection(), &None);
+
+        let key = Key::new(KeyCode::Right, vec![ModifierFlag::Shift]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        let cursors = text_field.carat_snapshots();
+        assert_eq!(cursors.len(), 2);
+        assert_eq!(cursors[0].character_index(), 2);
+        assert_eq!(cursors[0].selection(), &Some(0..3));
+        assert_eq!(cursors[1].character_index(), 5);
+        assert_eq!(cursors[1].selection(), &None);
     }
 }
