@@ -598,7 +598,7 @@ custom_view!(
                     continue;
                 }
 
-                let last_snapshot = carats[index - 1].snapshot();
+                let mut last_snapshot = carats[index - 1].snapshot();
                 let current_snapshot = carats[index].snapshot();
 
                 if current_snapshot.selection_intersects(&last_snapshot) {
@@ -606,11 +606,20 @@ custom_view!(
                     // encompasses both.
                     {
                         let last_carat = carats.get_mut(index - 1).unwrap();
+                        let merged_end = current_snapshot.selection().as_ref().unwrap().end;
                         last_carat.selection = Some(Selection {
                             start: last_snapshot.selection().as_ref().unwrap().start,
-                            end: current_snapshot.selection().as_ref().unwrap().end,
+                            end: merged_end,
                             views: RefCell::new(Vec::new())
                         });
+
+                        // If the cursor wasn't on the left hand side of the
+                        // selection, then we need to move it to the new right.
+                        if last_snapshot.character_index() != last_snapshot.selection().as_ref().unwrap().start {
+                            last_carat.character_index.replace(merged_end);
+                            last_snapshot = last_carat.snapshot();
+                        }
+
                         self.position_selection(&last_carat.selection.as_ref().unwrap());
                     }
 
@@ -1090,7 +1099,7 @@ mod tests {
 
         let cursors = text_field.carat_snapshots();
         assert_eq!(cursors.len(), 2);
-        assert_eq!(cursors[0].character_index(), 2);
+        assert_eq!(cursors[0].character_index(), 3);
         assert_eq!(cursors[0].selection(), &Some(0..3));
         assert_eq!(cursors[1].character_index(), 5);
         assert_eq!(cursors[1].selection(), &None);
