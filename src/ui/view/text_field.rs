@@ -530,8 +530,9 @@ custom_view!(
             let render_scale = rendering.render_scale();
 
             for view in selection.views.borrow().iter() {
-                let view = view.upgrade().unwrap();
-                view.remove_from_superview();
+                if let Some(view) = view.upgrade() {
+                    view.remove_from_superview();
+                }
             }
 
             selection.views.borrow_mut().clear();
@@ -658,11 +659,33 @@ custom_view!(
             let text_field = TextField::from_view(view.clone());
 
             if let Some(last_cursor) = self.carats.borrow_mut().last_mut() {
-                let start = self.touch_began_at_index.get();
                 let touched_character_index = text_field.touch_to_index(touches.first().unwrap());
 
-                text_field.select(last_cursor, start, touched_character_index);
-                last_cursor.character_index.set(touched_character_index);
+                if let Some(selection) = last_cursor.selection.as_mut() {
+                    let current_cursor = last_cursor.character_index.get();
+                    last_cursor.character_index.set(touched_character_index);
+
+                    let start_distance = (current_cursor as i32  - selection.start as i32).abs();
+                    let end_distance = (current_cursor as i32 - selection.end as i32).abs();
+                    if start_distance < end_distance {
+                        selection.start = touched_character_index;
+                        text_field.position_selection(&last_cursor.selection.as_ref().unwrap());
+                    } else if end_distance < start_distance {
+                        selection.end = touched_character_index;
+                        text_field.position_selection(&last_cursor.selection.as_ref().unwrap());
+                    } else {
+                        let start = self.touch_began_at_index.get();
+
+                        text_field.select(last_cursor, start, touched_character_index);
+                        last_cursor.character_index.set(touched_character_index);
+                    }
+
+                } else {
+                    let start = self.touch_began_at_index.get();
+
+                    text_field.select(last_cursor, start, touched_character_index);
+                    last_cursor.character_index.set(touched_character_index);
+                }
             }
         }
 
