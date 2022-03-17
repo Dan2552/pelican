@@ -84,8 +84,15 @@ pub struct WholeText<'a> {
     render_scale: f32
 }
 
+pub struct LineResult {
+    start_index: usize,
+    positions: Vec<Point<i32>>,
+    sizes: Vec<Size<u32>>,
+    height: u32,
+}
 
 pub struct Result {
+    lines: Vec<LineResult>,
     positions: Vec<Point<i32>>,
     sizes: Vec<Size<u32>>,
     line_heights: Vec<u32>,
@@ -431,8 +438,13 @@ impl WholeText<'_> {
         let mut sizes: Vec<Size<u32>> = Vec::new();
         let mut line_heights: Vec<u32> = Vec::new();
         let mut ends_with_newline = false;
+        let mut line_results = Vec::new();
+        let mut index = 0;
 
         for (line_index, line) in self.lines.iter().enumerate() {
+            let mut line_positions: Vec<Point<i32>> = Vec::new();
+            let mut line_character_sizes: Vec<Size<u32>> = Vec::new();
+            let line_start_index = index;
             let line_relative_position = &self.line_positions[line_index];
             let line_height = line.visual_size().height;
 
@@ -459,13 +471,25 @@ impl WholeText<'_> {
                         y: character_relative_position.y
                     };
 
+                    line_positions.push(absolute_position.clone());
                     positions.push(absolute_position.clone());
                     sizes.push(character.size.clone());
+                    line_character_sizes.push(character.size.clone());
                     line_heights.push(line_height);
 
                     ends_with_newline = character.is_newline();
+                    index += 1;
                 }
             }
+
+            let line_result = LineResult {
+                start_index: line_start_index,
+                positions: line_positions,
+                sizes: line_character_sizes,
+                height: line_height
+            };
+
+            line_results.push(line_result);
         }
 
         let render_scale = self.render_scale;
@@ -478,6 +502,7 @@ impl WholeText<'_> {
         }
 
         Result {
+            lines: line_results,
             positions,
             sizes,
             line_heights,
@@ -504,34 +529,82 @@ impl Result {
     ///
     /// Returns `None` if the character is not found.
     pub fn character_at_position(&self, position: Point<i32>) -> Option<usize> {
-        for (index, character_position) in self.positions.iter().enumerate() {
-            let size = self.sizes.get(index).unwrap();
+        println!("{:?}", position);
+        println!("{:?}", position.x);
+        println!("{:?}", position.y);
 
-            let character_rectangle_lhs = Rectangle {
-                origin: character_position.clone(),
-                size: Size {
-                    width: size.width / 2,
-                    height: size.height
+        let mut accrued_height: i32 = 0;
+        for (line_index, line_result) in self.lines.iter().enumerate() {
+            accrued_height += line_result.height as i32;
+
+            // If the position is lower than the current line, and there is
+            // another line, then it's definitely not on this line.
+            //
+            // If not, then this is the last line it could possibly be on, and
+            // therefore we ignore the y axis from now on.
+            println!("Y -- if {:?} > {:?} && {:?} > {:?}", position.y, accrued_height, self.lines.len(), line_index + 1);
+            if position.y > accrued_height && self.lines.len() > line_index + 1 {
+                println!("skipped");
+                continue;
+            }
+            println!("assuming this line");
+
+            let mut accrued_width: i32 = 0;
+            for (line_char_index, character_position) in line_result.positions.iter().enumerate() {
+                let width = self.sizes.get(line_char_index).unwrap().width;
+                accrued_width += width as i32;
+
+                // If the position is higher than the current character, and
+                // there is another character, then it's definitely not on this
+                // character.
+                //
+                // If not, then this is the best character.
+                println!("X -- if {:?} > {:?} && {:?} > {:?}", position.x, accrued_width, line_result.positions.len(), line_char_index + 1);
+                if position.x > accrued_width && line_result.positions.len() > line_char_index + 1 {
+                    println!("skipped");
+                    continue;
                 }
-            };
+                println!("assuming this character");
 
-            let character_rectangle_rhs = Rectangle {
-                origin: Point {
-                    x: character_position.x + (size.width as f32 / 2.0).round() as i32,
-                    y: character_position.y
-                },
-                size: Size {
-                    width: size.width / 2,
-                    height: size.height
+                let half_width = width as i32 / 2;
+                let halfway = character_position.x + half_width;
+
+                if position.x < halfway {
+                    return Some(line_char_index);
+                } else {
+                    return Some(line_char_index + 1);
                 }
-            };
-
-            if character_rectangle_lhs.contains(&position) {
-                return Some(index);
-            } else if character_rectangle_rhs.contains(&position) {
-                return Some(index + 1);
             }
         }
+
+        // for (index, character_position) in self.positions.iter().enumerate() {
+        //     let size = self.sizes.get(index).unwrap();
+
+        //     let character_rectangle_lhs = Rectangle {
+        //         origin: character_position.clone(),
+        //         size: Size {
+        //             width: size.width / 2,
+        //             height: size.height
+        //         }
+        //     };
+
+        //     let character_rectangle_rhs = Rectangle {
+        //         origin: Point {
+        //             x: character_position.x + (size.width as f32 / 2.0).round() as i32,
+        //             y: character_position.y
+        //         },
+        //         size: Size {
+        //             width: size.width / 2,
+        //             height: size.height
+        //         }
+        //     };
+
+        //     if character_rectangle_lhs.contains(&position) {
+        //         return Some(index);
+        //     } else if character_rectangle_rhs.contains(&position) {
+        //         return Some(index + 1);
+        //     }
+        // }
 
         None
     }
@@ -977,6 +1050,18 @@ mod tests {
     }
 
     #[test]
+    fn simple_test_character_at_position() {
+        let attributed_string = AttributedString::new(String::from("Hello, world!"));
+        let frame = Rectangle::new(50, 50, 100, 100);
+        let text = WholeText::from(&attributed_string, frame, 1.0);
+
+        let result = text.calculate_character_render_positions();
+
+        let index = result.character_at_position(Point::new(10, 5));
+        assert_eq!(index.unwrap(), 1);
+    }
+
+    #[test]
     fn test_character_at_position() {
         let attributed_string = AttributedString::new(String::from("Hello, world!"));
         let frame = Rectangle::new(50, 50, 100, 100);
@@ -1028,6 +1113,33 @@ mod tests {
 
         let index = result.character_at_position(Point::new(91, 5));
         assert!(index.is_none());
+    }
+
+    #[test]
+    fn test_character_at_position_out_of_view() {
+        let attributed_string = AttributedString::new(String::from("Hello, world!"));
+        let frame = Rectangle::new(50, 50, 100, 100);
+        let text = WholeText::from(&attributed_string, frame, 1.0);
+
+        let result = text.calculate_character_render_positions();
+
+        // too far left
+        {
+            let index = result.character_at_position(Point::new(-10, 5));
+            assert_eq!(index.unwrap(), 0);
+        }
+
+        // too far up
+        {
+            let index = result.character_at_position(Point::new(4, -5));
+            assert_eq!(index.unwrap(), 0);
+        }
+
+        // too far up and left
+        {
+            let index = result.character_at_position(Point::new(-10, -5));
+            assert_eq!(index.unwrap(), 0);
+        }
     }
 
     #[test]
