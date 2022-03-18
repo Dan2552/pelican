@@ -89,6 +89,7 @@ pub struct LineResult {
     positions: Vec<Point<i32>>,
     sizes: Vec<Size<u32>>,
     height: u32,
+    ends_with_newline: bool
 }
 
 pub struct Result {
@@ -447,6 +448,7 @@ impl WholeText<'_> {
             let line_start_index = index;
             let line_relative_position = &self.line_positions[line_index];
             let line_height = line.visual_size().height;
+            let mut line_ends_with_newline = false;
 
             let mut word_x = 0;
             for word in line.words.iter() {
@@ -478,6 +480,8 @@ impl WholeText<'_> {
                     line_heights.push(line_height);
 
                     ends_with_newline = character.is_newline();
+                    line_ends_with_newline = character.is_newline();
+
                     index += 1;
                 }
             }
@@ -486,7 +490,8 @@ impl WholeText<'_> {
                 start_index: line_start_index,
                 positions: line_positions,
                 sizes: line_character_sizes,
-                height: line_height
+                height: line_height,
+                ends_with_newline: line_ends_with_newline
             };
 
             line_results.push(line_result);
@@ -527,12 +532,8 @@ impl Result {
     /// If the position is over halfway for a given character, the following
     /// character index is returned.
     ///
-    /// Returns `None` if the character is not found.
-    pub fn character_at_position(&self, position: Point<i32>) -> Option<usize> {
-        println!("{:?}", position);
-        println!("{:?}", position.x);
-        println!("{:?}", position.y);
-
+    /// Returns `0` if the character is not found.
+    pub fn character_at_position(&self, position: Point<i32>) -> usize {
         let mut accrued_height: i32 = 0;
         for (line_index, line_result) in self.lines.iter().enumerate() {
             accrued_height += line_result.height as i32;
@@ -542,15 +543,20 @@ impl Result {
             //
             // If not, then this is the last line it could possibly be on, and
             // therefore we ignore the y axis from now on.
-            println!("Y -- if {:?} > {:?} && {:?} > {:?}", position.y, accrued_height, self.lines.len(), line_index + 1);
             if position.y > accrued_height && self.lines.len() > line_index + 1 {
-                println!("skipped");
                 continue;
             }
-            println!("assuming this line");
 
             let mut accrued_width: i32 = 0;
             for (line_char_index, character_position) in line_result.positions.iter().enumerate() {
+                // if we're on the last element and it's a newline, then we
+                // don't want to count it.
+                if line_char_index == line_result.positions.len() - 1 {
+                    if line_result.ends_with_newline {
+                        return line_char_index + line_result.start_index;
+                    }
+                }
+
                 let width = self.sizes.get(line_char_index).unwrap().width;
                 accrued_width += width as i32;
 
@@ -559,54 +565,28 @@ impl Result {
                 // character.
                 //
                 // If not, then this is the best character.
-                println!("X -- if {:?} > {:?} && {:?} > {:?}", position.x, accrued_width, line_result.positions.len(), line_char_index + 1);
                 if position.x > accrued_width && line_result.positions.len() > line_char_index + 1 {
-                    println!("skipped");
                     continue;
                 }
-                println!("assuming this character");
 
                 let half_width = width as i32 / 2;
                 let halfway = character_position.x + half_width;
 
+                let index = line_char_index + line_result.start_index;
+
                 if position.x < halfway {
-                    return Some(line_char_index);
+                    return index;
                 } else {
-                    return Some(line_char_index + 1);
+                    if line_char_index >= line_result.positions.len() {
+                        return index;
+                    } else {
+                        return index + 1;
+                    }
                 }
             }
         }
 
-        // for (index, character_position) in self.positions.iter().enumerate() {
-        //     let size = self.sizes.get(index).unwrap();
-
-        //     let character_rectangle_lhs = Rectangle {
-        //         origin: character_position.clone(),
-        //         size: Size {
-        //             width: size.width / 2,
-        //             height: size.height
-        //         }
-        //     };
-
-        //     let character_rectangle_rhs = Rectangle {
-        //         origin: Point {
-        //             x: character_position.x + (size.width as f32 / 2.0).round() as i32,
-        //             y: character_position.y
-        //         },
-        //         size: Size {
-        //             width: size.width / 2,
-        //             height: size.height
-        //         }
-        //     };
-
-        //     if character_rectangle_lhs.contains(&position) {
-        //         return Some(index);
-        //     } else if character_rectangle_rhs.contains(&position) {
-        //         return Some(index + 1);
-        //     }
-        // }
-
-        None
+        0
     }
 
     /// Returns the line height for a given character.
@@ -1058,61 +1038,76 @@ mod tests {
         let result = text.calculate_character_render_positions();
 
         let index = result.character_at_position(Point::new(10, 5));
-        assert_eq!(index.unwrap(), 1);
+        assert_eq!(index, 1);
     }
 
     #[test]
-    fn test_character_at_position() {
+    fn test_character_at_position_without_word_wrap() {
         let attributed_string = AttributedString::new(String::from("Hello, world!"));
         let frame = Rectangle::new(50, 50, 100, 100);
         let text = WholeText::from(&attributed_string, frame, 1.0);
 
         let result = text.calculate_character_render_positions();
 
+        // before H
         let index = result.character_at_position(Point::new(4, 5));
-        assert_eq!(index.unwrap(), 0);
+        assert_eq!(index, 0);
 
+        // before e
         let index = result.character_at_position(Point::new(10, 5));
-        assert_eq!(index.unwrap(), 1);
+        assert_eq!(index, 1);
 
-        let index = result.character_at_position(Point::new(15, 5));
-        assert_eq!(index.unwrap(), 1);
-
+        // before l
         let index = result.character_at_position(Point::new(22, 5));
-        assert_eq!(index.unwrap(), 2);
+        assert_eq!(index, 2);
 
+        // before l
         let index = result.character_at_position(Point::new(26, 5));
-        assert_eq!(index.unwrap(), 3);
+        assert_eq!(index, 3);
 
+        // before o
         let index = result.character_at_position(Point::new(32, 5));
-        assert_eq!(index.unwrap(), 4);
+        assert_eq!(index, 4);
 
-        let index = result.character_at_position(Point::new(40, 5));
-        assert_eq!(index.unwrap(), 5);
+        // before ,
+        let index = result.character_at_position(Point::new(38, 5));
+        assert_eq!(index, 5);
 
+        // before " "
         let index = result.character_at_position(Point::new(42, 5));
-        assert_eq!(index.unwrap(), 6);
+        assert_eq!(index, 6);
 
+        // before w
         let index = result.character_at_position(Point::new(50, 5));
-        assert_eq!(index.unwrap(), 7);
+        assert_eq!(index, 7);
 
-        let index = result.character_at_position(Point::new(62, 5));
-        assert_eq!(index.unwrap(), 8);
+        // before o
+        let index = result.character_at_position(Point::new(58, 5));
+        assert_eq!(index, 8);
 
+        // before r
         let index = result.character_at_position(Point::new(68, 5));
-        assert_eq!(index.unwrap(), 9);
+        assert_eq!(index, 9);
 
+        // before l
         let index = result.character_at_position(Point::new(74, 5));
-        assert_eq!(index.unwrap(), 10);
+        assert_eq!(index, 10);
 
+        // before d
         let index = result.character_at_position(Point::new(80, 5));
-        assert_eq!(index.unwrap(), 11);
+        assert_eq!(index, 11);
 
-        let index = result.character_at_position(Point::new(88, 5));
-        assert_eq!(index.unwrap(), 12);
+        // before !
+        let index = result.character_at_position(Point::new(85, 5));
+        assert_eq!(index, 12);
 
+        // after !
         let index = result.character_at_position(Point::new(91, 5));
-        assert!(index.is_none());
+        assert_eq!(index, 13);
+
+        // too far, should still be the last
+        let index = result.character_at_position(Point::new(115, 5));
+        assert_eq!(index, 13);
     }
 
     #[test]
@@ -1126,19 +1121,19 @@ mod tests {
         // too far left
         {
             let index = result.character_at_position(Point::new(-10, 5));
-            assert_eq!(index.unwrap(), 0);
+            assert_eq!(index, 0);
         }
 
         // too far up
         {
             let index = result.character_at_position(Point::new(4, -5));
-            assert_eq!(index.unwrap(), 0);
+            assert_eq!(index, 0);
         }
 
         // too far up and left
         {
             let index = result.character_at_position(Point::new(-10, -5));
-            assert_eq!(index.unwrap(), 0);
+            assert_eq!(index, 0);
         }
     }
 
@@ -1153,47 +1148,85 @@ mod tests {
 
         let result = text.calculate_character_render_positions();
 
+        // before H
         let index = result.character_at_position(Point::new(4, 5));
-        assert_eq!(index.unwrap(), 0);
+        assert_eq!(index, 0);
 
+        // before e
         let index = result.character_at_position(Point::new(15, 5));
-        assert_eq!(index.unwrap(), 1);
+        assert_eq!(index, 1);
 
+        // before l
         let index = result.character_at_position(Point::new(22, 5));
-        assert_eq!(index.unwrap(), 2);
+        assert_eq!(index, 2);
 
+        // before l
         let index = result.character_at_position(Point::new(24, 5));
-        assert_eq!(index.unwrap(), 3);
+        assert_eq!(index, 3);
 
+        // before o
         let index = result.character_at_position(Point::new(32, 5));
-        assert_eq!(index.unwrap(), 4);
+        assert_eq!(index, 4);
 
-        let index = result.character_at_position(Point::new(40, 5));
-        assert_eq!(index.unwrap(), 5);
+        // before ,
+        let index = result.character_at_position(Point::new(38, 5));
+        assert_eq!(index, 5);
 
+        // before " "
         let index = result.character_at_position(Point::new(42, 5));
-        assert_eq!(index.unwrap(), 6);
+        assert_eq!(index, 6);
 
+        // before w
         let index = result.character_at_position(Point::new(0, 26));
-        assert_eq!(index.unwrap(), 7);
+        assert_eq!(index, 7);
 
-        let index = result.character_at_position(Point::new(16, 26));
-        assert_eq!(index.unwrap(), 8);
+        // before o
+        let index = result.character_at_position(Point::new(10, 26));
+        assert_eq!(index, 8);
 
+        // before r
         let index = result.character_at_position(Point::new(22, 26));
-        assert_eq!(index.unwrap(), 9);
+        assert_eq!(index, 9);
 
+        // before l
         let index = result.character_at_position(Point::new(28, 26));
-        assert_eq!(index.unwrap(), 10);
+        assert_eq!(index, 10);
 
+        // before d
         let index = result.character_at_position(Point::new(32, 26));
-        assert_eq!(index.unwrap(), 11);
+        assert_eq!(index, 11);
 
-        let index = result.character_at_position(Point::new(42, 26));
-        assert_eq!(index.unwrap(), 12);
+        // before !
+        let index = result.character_at_position(Point::new(38, 26));
+        assert_eq!(index, 12);
 
+        // after !
         let index = result.character_at_position(Point::new(50, 26));
-        assert!(index.is_none());
+        assert_eq!(index, 13);
+    }
+
+
+    #[test]
+    fn test_character_at_position_with_multi_line() {
+        let attributed_string = AttributedString::new(String::from("Hello\nworld!"));
+
+        let frame = Rectangle::new(50, 50, 100, 100);
+        let text = WholeText::from(&attributed_string, frame, 1.0);
+
+        let result = text.calculate_character_render_positions();
+
+        // before H
+        let index = result.character_at_position(Point::new(0, 5));
+        assert_eq!(index, 0);
+
+        // before w
+        let index = result.character_at_position(Point::new(0, 26));
+        assert_eq!(index, 6);
+
+        // far right on the first line
+        let index = result.character_at_position(Point::new(50, 5));
+        assert_eq!(index, 5);
+
     }
 
     #[test]

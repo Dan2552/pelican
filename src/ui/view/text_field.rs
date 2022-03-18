@@ -173,7 +173,7 @@ custom_view!(
                 y: (position.y as f32 * render_scale).round() as i32
             };
 
-            rendering.character_at_position(position).unwrap_or(label.text_len())
+            rendering.character_at_position(position)
         }
 
         fn select(&self, carat: &mut Carat, index_one: usize, index_two: usize) {
@@ -655,14 +655,11 @@ custom_view!(
         }
 
         fn touches_moved(&self, touches: &Vec<Touch>) {
-            println!("touches_moved {:?}", std::time::SystemTime::now());
-
             let view = self.view.upgrade().unwrap();
             let text_field = TextField::from_view(view.clone());
 
             if let Some(last_cursor) = self.carats.borrow_mut().last_mut() {
                 let touched_character_index = text_field.touch_to_index(touches.first().unwrap());
-                println!("touched_character_index: {:?}", touched_character_index);
                 if let Some(selection) = last_cursor.selection.as_mut() {
                     let current_cursor = last_cursor.character_index.get();
                     last_cursor.character_index.set(touched_character_index);
