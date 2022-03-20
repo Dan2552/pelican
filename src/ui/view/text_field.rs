@@ -519,6 +519,38 @@ custom_view!(
             result
         }
 
+        /// Called internally by `press_began` (when holding shift and pressing
+        /// a directional key) and `touches_moved`.
+        fn move_carat_selecting(&self, carat: &mut Carat, previous_character_index: usize, target_character_index: usize) {
+            let text_field = self;
+
+            if let Some(selection) = carat.selection.as_mut() {
+                let current_cursor = carat.character_index.get();
+                carat.character_index.set(target_character_index);
+
+                let start_distance = (current_cursor as i32  - selection.start as i32).abs();
+                let end_distance = (current_cursor as i32 - selection.end as i32).abs();
+                if start_distance < end_distance {
+                    selection.start = target_character_index;
+                    text_field.position_selection(&carat.selection.as_ref().unwrap());
+                } else if end_distance < start_distance {
+                    selection.end = target_character_index;
+                    text_field.position_selection(&carat.selection.as_ref().unwrap());
+                } else {
+                    let start = previous_character_index;
+
+                    text_field.select(carat, start, target_character_index);
+                    carat.character_index.set(target_character_index);
+                }
+
+            } else {
+                let start = previous_character_index;
+
+                text_field.select(carat, start, target_character_index);
+                carat.character_index.set(target_character_index);
+            }
+        }
+
         fn position_selection(&self, selection: &Selection) {
             let label = self.label();
             let label_behavior = label.behavior();
@@ -660,31 +692,9 @@ custom_view!(
 
             if let Some(last_cursor) = self.carats.borrow_mut().last_mut() {
                 let touched_character_index = text_field.touch_to_index(touches.first().unwrap());
-                if let Some(selection) = last_cursor.selection.as_mut() {
-                    let current_cursor = last_cursor.character_index.get();
-                    last_cursor.character_index.set(touched_character_index);
 
-                    let start_distance = (current_cursor as i32  - selection.start as i32).abs();
-                    let end_distance = (current_cursor as i32 - selection.end as i32).abs();
-                    if start_distance < end_distance {
-                        selection.start = touched_character_index;
-                        text_field.position_selection(&last_cursor.selection.as_ref().unwrap());
-                    } else if end_distance < start_distance {
-                        selection.end = touched_character_index;
-                        text_field.position_selection(&last_cursor.selection.as_ref().unwrap());
-                    } else {
-                        let start = self.touch_began_at_index.get();
-
-                        text_field.select(last_cursor, start, touched_character_index);
-                        last_cursor.character_index.set(touched_character_index);
-                    }
-
-                } else {
-                    let start = self.touch_began_at_index.get();
-
-                    text_field.select(last_cursor, start, touched_character_index);
-                    last_cursor.character_index.set(touched_character_index);
-                }
+                let previous_character_index = self.touch_began_at_index.get();
+                text_field.move_carat_selecting(last_cursor, previous_character_index, touched_character_index);
             }
         }
 
@@ -860,16 +870,14 @@ custom_view!(
                             new_index = 0;
                         }
                         let new_index = new_index as usize;
-                        carat.character_index.set(new_index as usize);
+
                         if highlight {
-                            let mut rhs_select = index;
-                            if let Some(existing_selection) = &carat.selection {
-                                rhs_select = existing_selection.end;
-                            }
-                            text_field.select_range(carat, &(new_index..rhs_select));
+                            let previous_character_index = carat.character_index.get();
+                            text_field.move_carat_selecting(carat, previous_character_index, new_index as usize);
                         } else {
+                            carat.character_index.set(new_index as usize);
                             text_field.select_range(carat, &(0..0));
-                            }
+                        }
 
                         if let Some(carat_view) = carat.view.upgrade() {
                             carat_view.set_hidden(false);
@@ -903,15 +911,12 @@ custom_view!(
                         if new_index > label.text_len() as i32 {
                             new_index = label.text_len() as i32;
                         }
-                        carat.character_index.set(new_index as usize);
+
                         if highlight {
-                            let mut lhs_select = index;
-                            if let Some(existing_selection) = &carat.selection {
-                                lhs_select = existing_selection.start;
-                            }
-                            let new_index = new_index as usize;
-                            text_field.select_range(carat, &(lhs_select..new_index));
+                            let previous_character_index = carat.character_index.get();
+                            text_field.move_carat_selecting(carat, previous_character_index, new_index as usize);
                         } else {
+                            carat.character_index.set(new_index as usize);
                             text_field.select_range(carat, &(0..0));
                         }
 
@@ -1125,5 +1130,66 @@ mod tests {
         assert_eq!(cursors[0].selection(), &Some(0..3));
         assert_eq!(cursors[1].character_index(), 5);
         assert_eq!(cursors[1].selection(), &None);
+
+        let key = Key::new(KeyCode::A, vec![ModifierFlag::Command]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        let key = Key::new(KeyCode::Backspace, vec![]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        behavior.text_input_did_receive("hi");
+
+        assert_eq!(text_field.carat_positions().len(), 1);
+        assert_eq!(text_field.carat_positions()[0], 2);
+        assert_eq!(text_field.label().text().string(), "hi");
+
+        let key = Key::new(KeyCode::Left, vec![ModifierFlag::Shift]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        let key = Key::new(KeyCode::Left, vec![ModifierFlag::Shift]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        let key = Key::new(KeyCode::Right, vec![ModifierFlag::Shift]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        let cursors = text_field.carat_snapshots();
+        assert_eq!(cursors.len(), 1);
+        assert_eq!(cursors[0].character_index(), 1);
+        assert_eq!(cursors[0].selection(), &Some(1..2));
+
+        let key = Key::new(KeyCode::Left, vec![]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        let key = Key::new(KeyCode::Right, vec![ModifierFlag::Shift]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        let key = Key::new(KeyCode::Right, vec![ModifierFlag::Shift]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        let key = Key::new(KeyCode::Left, vec![ModifierFlag::Shift]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        let cursors = text_field.carat_snapshots();
+        assert_eq!(cursors.len(), 1);
+        assert_eq!(cursors[0].character_index(), 1);
+        assert_eq!(cursors[0].selection(), &Some(0..1));
     }
 }
