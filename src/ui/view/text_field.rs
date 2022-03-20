@@ -927,6 +927,52 @@ custom_view!(
                         self.delay_animation.set(true);
                     }
                 },
+                KeyCode::Up => {
+                    let mut carats = text_field_behavior.carats.borrow_mut();
+                    for carat in carats.iter_mut() {
+                        let label_behavior = label.behavior();
+                        let rendering = label_behavior.rendering();
+                        let rendering = rendering.as_ref().unwrap();
+                        let position = rendering.position_for_character_at_index(carat.character_index.get()).unwrap();
+                        let line_height = rendering.line_height_for_character_at_index(carat.character_index.get()).unwrap();
+
+                        let new_position = Point {
+                            x: position.x,
+                            y: position.y - line_height as i32,
+                        };
+
+                        let new_index = rendering.character_at_position(new_position);
+
+                        carat.character_index.set(new_index);
+                        if let Some(carat_view) = carat.view.upgrade() {
+                            carat_view.set_needs_display();
+                        }
+                        self.delay_animation.set(true);
+                    }
+                },
+                KeyCode::Down => {
+                    let mut carats = text_field_behavior.carats.borrow_mut();
+                    for carat in carats.iter_mut() {
+                        let label_behavior = label.behavior();
+                        let rendering = label_behavior.rendering();
+                        let rendering = rendering.as_ref().unwrap();
+                        let position = rendering.position_for_character_at_index(carat.character_index.get()).unwrap();
+                        let line_height = rendering.line_height_for_character_at_index(carat.character_index.get()).unwrap();
+
+                        let new_position = Point {
+                            x: position.x,
+                            y: position.y + line_height as i32,
+                        };
+
+                        let new_index = rendering.character_at_position(new_position);
+
+                        carat.character_index.set(new_index);
+                        if let Some(carat_view) = carat.view.upgrade() {
+                            carat_view.set_needs_display();
+                        }
+                        self.delay_animation.set(true);
+                    }
+                },
                 KeyCode::Backspace => {
                     let view = self.view.upgrade().unwrap();
                     let text_field = TextField::from_view(view);
