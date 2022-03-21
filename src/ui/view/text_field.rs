@@ -165,7 +165,6 @@ custom_view!(
             let position = window.view.convert_point_to(&touch.position(), &label.view);
             let label_behavior = label.behavior();
             let rendering = label_behavior.rendering();
-            let rendering = rendering.as_ref().unwrap();
             let render_scale = rendering.render_scale();
 
             let position = Point {
@@ -461,16 +460,6 @@ custom_view!(
             let carats = behavior.carats.borrow();
             let rendering = label_behavior.rendering();
 
-            if rendering.is_none() {
-                for carat in carats.iter() {
-                    let carat_view = carat.view.upgrade().unwrap();
-                    carat_view.set_hidden(true);
-                }
-                return;
-            }
-
-            let rendering = rendering.as_ref().unwrap();
-
             let render_scale = rendering.render_scale();
 
             for carat in carats.iter() {
@@ -555,10 +544,7 @@ custom_view!(
             let label = self.label();
             let label_behavior = label.behavior();
             let rendering = label_behavior.rendering();
-            if rendering.is_none() {
-                return;
-            }
-            let rendering = rendering.as_ref().unwrap();
+
             let render_scale = rendering.render_scale();
 
             for view in selection.views.borrow().iter() {
@@ -932,9 +918,8 @@ custom_view!(
                     for carat in carats.iter_mut() {
                         let label_behavior = label.behavior();
                         let rendering = label_behavior.rendering();
-                        let rendering = rendering.as_ref().unwrap();
-                        let position = rendering.position_for_character_at_index(carat.character_index.get()).unwrap();
-                        let line_height = rendering.line_height_for_character_at_index(carat.character_index.get()).unwrap();
+                        let position = rendering.position_for_character_at_index(carat.character_index.get());
+                        let line_height = rendering.line_height_for_character_at_index(carat.character_index.get());
 
                         let new_position = Point {
                             x: position.x,
@@ -955,16 +940,24 @@ custom_view!(
                     for carat in carats.iter_mut() {
                         let label_behavior = label.behavior();
                         let rendering = label_behavior.rendering();
-                        let rendering = rendering.as_ref().unwrap();
-                        let position = rendering.position_for_character_at_index(carat.character_index.get()).unwrap();
-                        let line_height = rendering.line_height_for_character_at_index(carat.character_index.get()).unwrap();
+                        let position = rendering.position_for_character_at_index(carat.character_index.get());
+                        let line_height = rendering.line_height_for_character_at_index(carat.character_index.get());
+
+                        println!("position: {:?}", position);
+                        println!("line height: {:?}", line_height);
 
                         let new_position = Point {
                             x: position.x,
                             y: position.y + line_height as i32,
                         };
 
+                        println!("new position: {:?}", new_position);
+
+                        println!("old index: {}", carat.character_index.get());
+
                         let new_index = rendering.character_at_position(new_position);
+
+                        println!("new index: {:?}", new_index);
 
                         carat.character_index.set(new_index);
                         if let Some(carat_view) = carat.view.upgrade() {
@@ -1237,5 +1230,34 @@ mod tests {
         assert_eq!(cursors.len(), 1);
         assert_eq!(cursors[0].character_index(), 1);
         assert_eq!(cursors[0].selection(), &Some(0..1));
+
+        let key = Key::new(KeyCode::Down, vec![]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        let cursors = text_field.carat_snapshots();
+        assert_eq!(cursors.len(), 1);
+        assert_eq!(cursors[0].character_index(), 2);
+        assert_eq!(cursors[0].selection(), &None);
+
+        behavior.text_input_did_receive("\nhi");
+
+        assert_eq!(text_field.label().text().string(), "hi\nhi");
+
+        let cursors = text_field.carat_snapshots();
+        assert_eq!(cursors.len(), 1);
+        assert_eq!(cursors[0].character_index(), 5);
+        assert_eq!(cursors[0].selection(), &None);
+
+        let key = Key::new(KeyCode::Up, vec![]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        let cursors = text_field.carat_snapshots();
+        assert_eq!(cursors.len(), 1);
+        assert_eq!(cursors[0].character_index(), 2);
+        assert_eq!(cursors[0].selection(), &None);
     }
 }

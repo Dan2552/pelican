@@ -184,15 +184,20 @@ custom_view!(
             let behavior = self.behavior();
             let attributed_string = behavior.attributed_text.borrow();
 
+            let render_scale: f32;
             if let Some(parent_layer) = &inner_self.layer {
                 let context = parent_layer.context();
-                let mut whole_text = rendering::WholeText::from(&attributed_string, self.view.frame(), context.render_scale);
-                whole_text.align_horizontally(behavior.text_alignment.get());
-                whole_text.align_vertically(behavior.text_vertical_alignment.get());
-
-                let rendering_result = whole_text.calculate_character_render_positions();
-                behavior.rendering_result.replace(Some(rendering_result));
+                render_scale = context.render_scale
+            } else {
+                render_scale = 1.0;
             }
+
+            let mut whole_text = rendering::WholeText::from(&attributed_string, self.view.frame(), render_scale);
+            whole_text.align_horizontally(behavior.text_alignment.get());
+            whole_text.align_vertically(behavior.text_vertical_alignment.get());
+
+            let rendering_result = whole_text.calculate_character_render_positions();
+            behavior.rendering_result.replace(Some(rendering_result));
         }
     }
 
@@ -226,7 +231,7 @@ custom_view!(
                     let color_attribute = &attributed_string.get_attribute_for(index, Key::Color);
                     let font = font_attribute.font();
                     let color = color_attribute.color();
-                    let position = rendering_result.position_for_character_at_index(index).unwrap();
+                    let position = rendering_result.position_for_character_at_index(index);
 
                     let child_layer = font.layer_for(
                         &parent_layer.context.clone(),
@@ -241,7 +246,7 @@ custom_view!(
                     };
 
                     let character_frame = Rectangle {
-                        origin: position,
+                        origin: position.clone(),
                         size: size
                     };
 
@@ -253,8 +258,14 @@ custom_view!(
 );
 
 impl LabelBehavior {
-    pub fn rendering(&self) -> Ref<'_, Option<rendering::Result>> {
-        Ref::map(self.rendering_result.borrow(), |rendering_result| rendering_result)
+    pub fn rendering(&self) -> Ref<'_, rendering::Result> {
+        let label = Label::from_view(self.view.upgrade().unwrap());
+        let rendering_result = self.rendering_result.borrow();
+        if rendering_result.is_none() {
+            label.generate_rendering_result();
+        };
+
+        Ref::map(self.rendering_result.borrow(), |rendering_result| rendering_result.as_ref().unwrap())
     }
 }
 
