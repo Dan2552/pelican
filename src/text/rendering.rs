@@ -545,7 +545,7 @@ impl Result {
     /// If the position is over halfway for a given character, the following
     /// character index is returned.
     ///
-    /// Returns `0` if the character is not found.
+    /// Returns the last character index if the character is not found.
     pub fn character_at_position(&self, position: Point<i32>) -> usize {
         let mut accrued_height: i32 = 0;
         for (line_index, line_result) in self.lines.iter().enumerate() {
@@ -559,8 +559,10 @@ impl Result {
             if position.y > accrued_height && self.lines.len() > line_index + 1 {
                 continue;
             }
-
             let mut accrued_width: i32 = 0;
+            if line_result.positions.is_empty() {
+                return self.positions.len();
+            }
             for (line_char_index, character_position) in line_result.positions.iter().enumerate() {
                 // if we're on the last element and it's a newline, then we
                 // don't want to count it.
@@ -599,7 +601,7 @@ impl Result {
             }
         }
 
-        0
+        unreachable!();
     }
 
     /// Returns the line height for a given character.
