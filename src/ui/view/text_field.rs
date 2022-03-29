@@ -916,17 +916,23 @@ custom_view!(
                 KeyCode::Up => {
                     let mut carats = text_field_behavior.carats.borrow_mut();
                     for carat in carats.iter_mut() {
+                        let new_index;
                         let label_behavior = label.behavior();
                         let rendering = label_behavior.rendering();
                         let position = rendering.position_for_character_at_index(carat.character_index.get());
-                        let line_height = rendering.line_height_for_character_at_index(carat.character_index.get());
 
-                        let new_position = Point {
-                            x: position.x,
-                            y: position.y - line_height as i32,
-                        };
+                        if position.y < rendering.line_height_for_character_at_index(0) as i32 {
+                            new_index = 0;
+                        } else {
+                            let line_height = rendering.line_height_for_character_at_index(carat.character_index.get());
 
-                        let new_index = rendering.character_at_position(new_position);
+                            let new_position = Point {
+                                x: position.x,
+                                y: position.y - line_height as i32,
+                            };
+
+                            new_index = rendering.character_at_position(new_position);
+                        }
 
                         carat.character_index.set(new_index);
                         if let Some(carat_view) = carat.view.upgrade() {
@@ -1226,6 +1232,8 @@ mod tests {
         behavior.press_began(&press);
         behavior.press_ended(&press);
 
+        assert_eq!(text_field.label().text().string(), "hi");
+
         let cursors = text_field.carat_snapshots();
         assert_eq!(cursors.len(), 1);
         assert_eq!(cursors[0].character_index(), 1);
@@ -1236,10 +1244,24 @@ mod tests {
         behavior.press_began(&press);
         behavior.press_ended(&press);
 
+        // it should move to the end of the line
         let cursors = text_field.carat_snapshots();
         assert_eq!(cursors.len(), 1);
         assert_eq!(cursors[0].character_index(), 2);
         assert_eq!(cursors[0].selection(), &None);
+
+        let key = Key::new(KeyCode::Up, vec![]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        // it should move to the start of the line
+        let cursors = text_field.carat_snapshots();
+        assert_eq!(cursors.len(), 1);
+        assert_eq!(cursors[0].character_index(), 0);
+        assert_eq!(cursors[0].selection(), &None);
+
+// TODO: shift + up and down
 
         behavior.text_input_did_receive("\nhi");
 
