@@ -212,15 +212,30 @@ custom_view!(
             self.super_behavior().unwrap().draw();
             let label = Label::from_view(self.view.upgrade().unwrap());
 
-            if self.rendering_result.borrow().is_none() {
-                label.generate_rendering_result();
-            };
+
 
             let view = self.view.upgrade().unwrap().clone();
             let inner_self = view.inner_self.borrow();
 
-            let attributed_string = self.attributed_text.borrow();
+            let mut needs_generation = false;
 
+            if let Some(rendering_result) = self.rendering_result.borrow().as_ref() {
+                if let Some(parent_layer) = &inner_self.layer {
+                    let context = parent_layer.context();
+
+                    if context.render_scale != rendering_result.render_scale() {
+                        needs_generation = true;
+                    }
+                }
+            } else {
+                needs_generation = true;
+            };
+
+            if needs_generation {
+                label.generate_rendering_result();
+            }
+
+            let attributed_string = self.attributed_text.borrow();
 
             if let Some(parent_layer) = &inner_self.layer {
                 let rendering_result = self.rendering_result.borrow();
