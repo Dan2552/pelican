@@ -914,6 +914,7 @@ custom_view!(
                     }
                 },
                 KeyCode::Up => {
+                    let highlight = key.modifier_flags().contains(&ModifierFlag::Shift);
                     let mut carats = text_field_behavior.carats.borrow_mut();
                     for carat in carats.iter_mut() {
                         let new_index;
@@ -934,7 +935,14 @@ custom_view!(
                             new_index = rendering.character_at_position(new_position);
                         }
 
-                        carat.character_index.set(new_index);
+                        if highlight {
+                            let previous_character_index = carat.character_index.get();
+                            text_field.move_carat_selecting(carat, previous_character_index, new_index as usize);
+                        } else {
+                            carat.character_index.set(new_index as usize);
+                            text_field.select_range(carat, &(0..0));
+                        }
+
                         if let Some(carat_view) = carat.view.upgrade() {
                             carat_view.set_needs_display();
                         }
@@ -942,6 +950,7 @@ custom_view!(
                     }
                 },
                 KeyCode::Down => {
+                    let highlight = key.modifier_flags().contains(&ModifierFlag::Shift);
                     let mut carats = text_field_behavior.carats.borrow_mut();
                     for carat in carats.iter_mut() {
                         let label_behavior = label.behavior();
@@ -964,8 +973,12 @@ custom_view!(
                         let new_index = rendering.character_at_position(new_position);
 
                         println!("new index: {:?}", new_index);
-
-                        carat.character_index.set(new_index);
+                        if highlight {
+                            text_field.move_carat_selecting(carat, carat.character_index.get(), new_index);
+                        } else {
+                            carat.character_index.set(new_index);
+                            text_field.select_range(carat, &(0..0));
+                        }
                         if let Some(carat_view) = carat.view.upgrade() {
                             carat_view.set_needs_display();
                         }
@@ -1263,13 +1276,13 @@ mod tests {
 
 // TODO: shift + up and down
 
-        behavior.text_input_did_receive("\nhi");
+        behavior.text_input_did_receive("hi\n");
 
         assert_eq!(text_field.label().text().string(), "hi\nhi");
 
         let cursors = text_field.carat_snapshots();
         assert_eq!(cursors.len(), 1);
-        assert_eq!(cursors[0].character_index(), 5);
+        assert_eq!(cursors[0].character_index(), 3);
         assert_eq!(cursors[0].selection(), &None);
 
         let key = Key::new(KeyCode::Up, vec![]);
@@ -1279,7 +1292,27 @@ mod tests {
 
         let cursors = text_field.carat_snapshots();
         assert_eq!(cursors.len(), 1);
-        assert_eq!(cursors[0].character_index(), 2);
+        assert_eq!(cursors[0].character_index(), 0);
         assert_eq!(cursors[0].selection(), &None);
+
+        let key = Key::new(KeyCode::Down, vec![ModifierFlag::Shift]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        let cursors = text_field.carat_snapshots();
+        assert_eq!(cursors.len(), 1);
+        assert_eq!(cursors[0].character_index(), 3);
+        assert_eq!(cursors[0].selection(), &Some(0..3));
+
+        let key = Key::new(KeyCode::Down, vec![ModifierFlag::Shift]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        let cursors = text_field.carat_snapshots();
+        assert_eq!(cursors.len(), 1);
+        assert_eq!(cursors[0].character_index(), 5);
+        assert_eq!(cursors[0].selection(), &Some(0..5));
     }
 }
