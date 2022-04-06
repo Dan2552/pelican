@@ -448,6 +448,7 @@ impl WholeText<'_> {
             let line_start_index = index;
             let line_relative_position = &self.line_positions[line_index];
             let line_height = line.visual_size().height;
+            println!("BUILDING line_height: {}", line_height);
             let mut line_ends_with_newline = false;
 
             let mut word_x = 0;
@@ -646,10 +647,15 @@ println!("{}", index + 1);
 
     /// Returns the line height for a given character.
     pub fn line_height_for_character_at_index(&self, index: usize) -> u32 {
+        if self.line_heights.len() == 0 {
+            return self.fallback_cursor_rectangle.size.height;
+        }
+
         if let Some(height) = self.line_heights.get(index) {
+            println!("found line height for character at index {}, height {}", index, height);
             *height
         } else {
-            self.fallback_cursor_rectangle.size.height
+            self.line_heights.last().unwrap().clone()
         }
     }
 

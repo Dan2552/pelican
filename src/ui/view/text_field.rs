@@ -914,6 +914,7 @@ custom_view!(
                     }
                 },
                 KeyCode::Up => {
+                    println!("UP IS PRESSED");
                     let highlight = key.modifier_flags().contains(&ModifierFlag::Shift);
                     let mut carats = text_field_behavior.carats.borrow_mut();
                     for carat in carats.iter_mut() {
@@ -922,11 +923,12 @@ custom_view!(
                         let rendering = label_behavior.rendering();
                         let position = rendering.position_for_character_at_index(carat.character_index.get());
 
+                        println!("UP: {:?} < {:?}", position.y, rendering.line_height_for_character_at_index(0) as i32);
                         if position.y < rendering.line_height_for_character_at_index(0) as i32 {
                             new_index = 0;
                         } else {
                             let line_height = rendering.line_height_for_character_at_index(carat.character_index.get());
-
+println!("line height is {}", line_height);
                             let new_position = Point {
                                 x: position.x,
                                 y: position.y - line_height as i32,
@@ -950,27 +952,34 @@ custom_view!(
                     }
                 },
                 KeyCode::Down => {
+                    println!("DOWN IS PRESSED");
                     let highlight = key.modifier_flags().contains(&ModifierFlag::Shift);
                     let mut carats = text_field_behavior.carats.borrow_mut();
                     for carat in carats.iter_mut() {
                         let label_behavior = label.behavior();
                         let rendering = label_behavior.rendering();
                         let position = rendering.position_for_character_at_index(carat.character_index.get());
-                        let line_height = rendering.line_height_for_character_at_index(carat.character_index.get());
 
-                        println!("position: {:?}", position);
-                        println!("line height: {:?}", line_height);
+                        let last_index = label.text().len();
+                        let last_line_height = rendering.line_height_for_character_at_index(last_index as usize);
+                        let last_character_position = rendering.position_for_character_at_index(last_index as usize);
+                        let bottom = last_character_position.y + last_line_height as i32;
+
+                        println!("DOWN: {:?} > {:?}", position.y, bottom);
+
+                        let line_height = rendering.line_height_for_character_at_index(carat.character_index.get());
 
                         let new_position = Point {
                             x: position.x,
                             y: position.y + line_height as i32,
                         };
 
-                        println!("new position: {:?}", new_position);
-
-                        println!("old index: {}", carat.character_index.get());
-
-                        let new_index = rendering.character_at_position(new_position);
+                        let new_index;
+                        if new_position.y >= bottom {
+                            new_index = last_index;
+                        } else {
+                            new_index = rendering.character_at_position(new_position);
+                        }
 
                         println!("new index: {:?}", new_index);
                         if highlight {
@@ -1274,8 +1283,6 @@ mod tests {
         assert_eq!(cursors[0].character_index(), 0);
         assert_eq!(cursors[0].selection(), &None);
 
-// TODO: shift + up and down
-
         behavior.text_input_did_receive("hi\n");
 
         assert_eq!(text_field.label().text().string(), "hi\nhi");
@@ -1314,5 +1321,15 @@ mod tests {
         assert_eq!(cursors.len(), 1);
         assert_eq!(cursors[0].character_index(), 5);
         assert_eq!(cursors[0].selection(), &Some(0..5));
+
+        let key = Key::new(KeyCode::Up, vec![ModifierFlag::Shift]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        let cursors = text_field.carat_snapshots();
+        assert_eq!(cursors.len(), 1);
+        assert_eq!(cursors[0].character_index(), 2);
+        assert_eq!(cursors[0].selection(), &Some(0..2));
     }
 }
