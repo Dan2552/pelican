@@ -1332,4 +1332,60 @@ mod tests {
         assert_eq!(cursors[0].character_index(), 2);
         assert_eq!(cursors[0].selection(), &Some(0..2));
     }
+
+    #[test]
+    fn test_text_field_up_down_through_empty_line() {
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let text_field = TextField::new(frame, "".to_string());
+        let behavior = text_field.behavior();
+
+        behavior.text_input_did_receive("a\n\nb");
+
+        assert_eq!(text_field.label().text().string(), "a\n\nb");
+
+        let cursors = text_field.carat_snapshots();
+        assert_eq!(cursors.len(), 1);
+        assert_eq!(cursors[0].character_index(), 4);
+        assert_eq!(cursors[0].selection(), &None);
+
+        let key = Key::new(KeyCode::Up, vec![]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        let cursors = text_field.carat_snapshots();
+        assert_eq!(cursors.len(), 1);
+        assert_eq!(cursors[0].character_index(), 2);
+        assert_eq!(cursors[0].selection(), &None);
+
+        let key = Key::new(KeyCode::Up, vec![]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        let cursors = text_field.carat_snapshots();
+        assert_eq!(cursors.len(), 1);
+        assert_eq!(cursors[0].character_index(), 0);
+        assert_eq!(cursors[0].selection(), &None);
+
+        let key = Key::new(KeyCode::Down, vec![]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        let cursors = text_field.carat_snapshots();
+        assert_eq!(cursors.len(), 1);
+        assert_eq!(cursors[0].character_index(), 2);
+        assert_eq!(cursors[0].selection(), &None);
+
+        let key = Key::new(KeyCode::Down, vec![]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        let cursors = text_field.carat_snapshots();
+        assert_eq!(cursors.len(), 1);
+        assert_eq!(cursors[0].character_index(), 3);
+        assert_eq!(cursors[0].selection(), &None);
+    }
 }
