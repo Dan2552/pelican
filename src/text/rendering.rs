@@ -505,18 +505,22 @@ impl WholeText<'_> {
         } else {
             fallback_cursor_rectangle = Rectangle::new(0, 0, 0, 0);
 
-            let after_position: Point<i32>;
-            {
-                let last_position = positions.last().unwrap();
-                let last_size = sizes.last().unwrap();
+            let last_line_result = line_results.last().unwrap();
 
-                after_position = Point {
-                    x: last_position.x + last_size.width as i32,
-                    y: last_position.y
-                };
+            if !last_line_result.ends_with_newline {
+                let after_position: Point<i32>;
+                {
+                    let last_position = positions.last().unwrap();
+                    let last_size = sizes.last().unwrap();
+
+                    after_position = Point {
+                        x: last_position.x + last_size.width as i32,
+                        y: last_position.y
+                    };
+                }
+
+                positions.push(after_position)
             }
-
-            positions.push(after_position)
         }
 
         Result {
@@ -654,7 +658,7 @@ println!("{}", index + 1);
     /// Returns the same as the last character if no character at the index is
     /// found.
     pub fn cursor_rectangle_for_character_at_index(&self, index: usize) -> Rectangle<i32, u32> {
-        if self.positions.len() == 0 {
+        if self.sizes.len() == 0 {
             return self.fallback_cursor_rectangle.clone();
         }
 
@@ -676,10 +680,10 @@ println!("{}", index + 1);
                 x: 0,
                 y: position.y + line_height.clone() as i32
             };
-        }
 
-        if index > self.positions.len() - 1 {
-            position = &last;
+            if index > self.sizes.len() - 1 {
+                position = &last;
+            }
         }
 
         Rectangle {
