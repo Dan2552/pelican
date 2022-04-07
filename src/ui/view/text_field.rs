@@ -820,6 +820,24 @@ custom_view!(
                         }
                     }
                 },
+                KeyCode::X => {
+                    if key.modifier_flags().contains(&ModifierFlag::Control) || key.modifier_flags().contains(&ModifierFlag::Command) {
+                        let text_to_copy = text_field.selected_text().join("\n");
+                        clipboard::set_string(&text_to_copy);
+                    }
+
+                    let mut text_backspace = TextBackspace::new(
+                        self.view.clone(),
+                        1,
+                        CursorMovement::Character,
+                        text_field.carat_snapshots()
+                    );
+
+                    text_backspace.forward();
+
+                    let mut history = self.history.borrow_mut();
+                    history.add(Box::new(text_backspace));
+                },
                 KeyCode::Z => {
                     if key.modifier_flags().contains(&ModifierFlag::Control) || key.modifier_flags().contains(&ModifierFlag::Command) {
                         let mut history = self.history.borrow_mut();
