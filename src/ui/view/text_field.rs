@@ -931,7 +931,7 @@ custom_view!(
 println!("line height is {}", line_height);
                             let new_position = Point {
                                 x: position.x,
-                                y: position.y - line_height as i32,
+                                y: position.y - (line_height / 2) as i32,
                             };
 
                             new_index = rendering.character_at_position(new_position);
@@ -971,7 +971,7 @@ println!("line height is {}", line_height);
 
                         let new_position = Point {
                             x: position.x,
-                            y: position.y + line_height as i32,
+                            y: position.y + line_height as i32 + (line_height / 2) as i32,
                         };
 
                         let new_index;
@@ -1334,7 +1334,7 @@ mod tests {
     }
 
     #[test]
-    fn test_text_field_up_down_through_empty_line() {
+    fn test_text_field_up_down_through_multiple_lines() {
         let frame = Rectangle::new(0, 0, 100, 100);
         let text_field = TextField::new(frame, "".to_string());
         let behavior = text_field.behavior();

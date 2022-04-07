@@ -676,11 +676,7 @@ println!("{}", index + 1);
 
         let height = line_height - around_line_height as u32;
 
-        let mut last = Point {
-            x: position.x + character_size.width as i32,
-            y: position.y
-        };
-
+        let last;
         if self.ends_with_newline {
             last = Point {
                 x: 0,
