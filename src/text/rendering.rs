@@ -448,7 +448,6 @@ impl WholeText<'_> {
             let line_start_index = index;
             let line_relative_position = &self.line_positions[line_index];
             let line_height = line.visual_size().height;
-            println!("BUILDING line_height: {}", line_height);
             let mut line_ends_with_newline = false;
 
             let mut word_x = 0;
@@ -541,20 +540,15 @@ impl Result {
     ///
     /// Returns `None` if the character is not found.
     pub fn position_for_character_at_index(&self, index: usize) -> &Point<i32> {
-        println!("finding position for character at index {}", index);
-        println!("length of positions {:?}", self.positions.len());
         let mut index = index as i32;
         if index >= self.positions.len() as i32 {
-            println!("character index {} is out of bounds", index);
             index = self.positions.len() as i32 - 1;
         }
 
         if index < 0 {
-            println!("character index {} is out of bounds", index);
             index = 0;
         }
 
-        println!("character index {} is in bounds", index);
         if let Some(position) = self.positions.get(index as usize) {
             position
         } else {
@@ -570,11 +564,8 @@ impl Result {
     ///
     /// Returns the last character index if the character is not found.
     pub fn character_at_position(&self, position: Point<i32>) -> usize {
-
-println!("----\n\nfinding character at position {:?}", position);
         let mut accrued_height: i32 = 0;
         for (line_index, line_result) in self.lines.iter().enumerate() {
-println!("trying line {}", line_index);
             accrued_height += line_result.height as i32;
 
             // If the position is lower than the current line, and there is
@@ -582,27 +573,23 @@ println!("trying line {}", line_index);
             //
             // If not, then this is the last line it could possibly be on, and
             // therefore we ignore the y axis from now on.
-println!("position.y = {}, accrued_height = {}", position.y, accrued_height);
             if position.y > accrued_height && self.lines.len() > line_index + 1 {
-println!("not this line");
                 continue;
             } else if position.y > accrued_height {
-println!("last line");
                 return self.sizes.len();
             }
-println!("found the line - {}", line_index);
+
             let mut accrued_width: i32 = 0;
+
             if line_result.positions.is_empty() {
-println!("no characters on line");
                 return self.sizes.len();
             }
+
             for (line_char_index, character_position) in line_result.positions.iter().enumerate() {
-println!("trying character {}", line_char_index);
                 // if we're on the last element and it's a newline, then we
                 // don't want to count it.
                 if line_char_index == line_result.sizes.len() - 1 {
                     if line_result.ends_with_newline {
-println!("found newline at end of line");
                         return line_char_index + line_result.start_index;
                     }
                 }
@@ -616,7 +603,6 @@ println!("found newline at end of line");
                 //
                 // If not, then this is the best character.
                 if position.x > accrued_width && line_result.positions.len() > line_char_index + 1 {
-println!("not this character");
                     continue;
                 }
 
@@ -624,19 +610,14 @@ println!("not this character");
                 let halfway = character_position.x + half_width;
 
                 let index = line_char_index + line_result.start_index;
-println!("found it...");
+
                 if position.x < halfway {
-println!("lower than halfway");
-println!("{}", index);
                     return index;
                 } else {
-println!("higher than halfway");
                     if line_char_index >= line_result.positions.len() {
                         return index;
-println!("{}", index);
                     } else {
                         return index + 1;
-println!("{}", index + 1);
                     }
                 }
             }
@@ -652,7 +633,6 @@ println!("{}", index + 1);
         }
 
         if let Some(height) = self.line_heights.get(index) {
-            println!("found line height for character at index {}, height {}", index, height);
             *height
         } else {
             self.line_heights.last().unwrap().clone()

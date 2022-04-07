@@ -914,7 +914,6 @@ custom_view!(
                     }
                 },
                 KeyCode::Up => {
-                    println!("UP IS PRESSED");
                     let highlight = key.modifier_flags().contains(&ModifierFlag::Shift);
                     let mut carats = text_field_behavior.carats.borrow_mut();
                     for carat in carats.iter_mut() {
@@ -923,12 +922,10 @@ custom_view!(
                         let rendering = label_behavior.rendering();
                         let position = rendering.position_for_character_at_index(carat.character_index.get());
 
-                        println!("UP: {:?} < {:?}", position.y, rendering.line_height_for_character_at_index(0) as i32);
                         if position.y < rendering.line_height_for_character_at_index(0) as i32 {
                             new_index = 0;
                         } else {
                             let line_height = rendering.line_height_for_character_at_index(carat.character_index.get());
-println!("line height is {}", line_height);
                             let new_position = Point {
                                 x: position.x,
                                 y: position.y - (line_height / 2) as i32,
@@ -952,7 +949,6 @@ println!("line height is {}", line_height);
                     }
                 },
                 KeyCode::Down => {
-                    println!("DOWN IS PRESSED");
                     let highlight = key.modifier_flags().contains(&ModifierFlag::Shift);
                     let mut carats = text_field_behavior.carats.borrow_mut();
                     for carat in carats.iter_mut() {
@@ -964,8 +960,6 @@ println!("line height is {}", line_height);
                         let last_line_height = rendering.line_height_for_character_at_index(last_index as usize);
                         let last_character_position = rendering.position_for_character_at_index(last_index as usize);
                         let bottom = last_character_position.y + last_line_height as i32;
-
-                        println!("DOWN: {:?} > {:?}", position.y, bottom);
 
                         let line_height = rendering.line_height_for_character_at_index(carat.character_index.get());
 
@@ -981,7 +975,6 @@ println!("line height is {}", line_height);
                             new_index = rendering.character_at_position(new_position);
                         }
 
-                        println!("new index: {:?}", new_index);
                         if highlight {
                             text_field.move_carat_selecting(carat, carat.character_index.get(), new_index);
                         } else {
