@@ -187,7 +187,7 @@ custom_view!(
             let render_scale: f32;
             if let Some(parent_layer) = &inner_self.layer {
                 let context = parent_layer.context();
-                render_scale = context.render_scale
+                render_scale = context.render_scale()
             } else {
                 render_scale = 1.0;
             }
@@ -223,7 +223,7 @@ custom_view!(
                 if let Some(parent_layer) = &inner_self.layer {
                     let context = parent_layer.context();
 
-                    if context.render_scale != rendering_result.render_scale() {
+                    if context.render_scale() != rendering_result.render_scale() {
                         needs_generation = true;
                     }
                 }
@@ -249,7 +249,7 @@ custom_view!(
                     let position = rendering_result.position_for_character_at_index(index);
 
                     let child_layer = font.layer_for(
-                        &parent_layer.context.clone(),
+                        parent_layer.context(),
                         &character.to_string(),
                         color.clone()
                     );

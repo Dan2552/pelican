@@ -62,8 +62,8 @@ impl Font {
     }
 
     // Get a drawable layer from the font for the given context.
-    pub fn layer_for(&self, context: &Rc<Context>, text: &str, color: Color) -> Layer {
-        let font_size = (self.size as f32 * context.render_scale) as u16;
+    pub fn layer_for(&self, context: &Context, text: &str, color: Color) -> Layer {
+        let font_size = (self.size as f32 * context.render_scale()) as u16;
         let font = self.load_font_for_size(font_size);
 
         let (width, height) = font.size_of(text).unwrap();
@@ -73,7 +73,7 @@ impl Font {
             .blended(color)
             .unwrap();
 
-        let texture = surface.as_texture(&context.texture_creator).unwrap();
+        let texture = surface.as_texture(context.texture_creator()).unwrap();
 
         Layer::new_prerendered(
             context.clone(),

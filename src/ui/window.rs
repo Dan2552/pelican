@@ -6,14 +6,13 @@ use crate::ui::render;
 use crate::ui::Color;
 use crate::ui::timer::Timer;
 use crate::ui::run_loop::RunLoop;
-use std::rc::Rc;
 use std::option::Option;
 use std::cell::RefCell;
 
 pub struct WindowBehavior {
     view: WeakView,
     super_behavior: Box<dyn Behavior>,
-    pub(crate) graphics_context: Rc<Context>,
+    context: Context,
     pub(crate) view_controller: ViewController<'static>,
 
     /// The window's first responder. Default to the window itself. Overriden
@@ -40,7 +39,7 @@ impl Window {
 
         let context_frame = frame.clone();
 
-        let graphics_context = Context::new(
+        let context = Context::new(
             title,
             context_frame.origin,
             context_frame.size
@@ -49,7 +48,7 @@ impl Window {
         let window_behavior = WindowBehavior {
             view: WeakView::none(),
             super_behavior: Box::new(default_behavior),
-            graphics_context: Rc::new(graphics_context),
+            context: context,
             view_controller: view_controller,
             first_responder: RefCell::new(WeakView::none())
         };
@@ -90,10 +89,10 @@ impl Window {
         self.set_hidden(false);
     }
 
-    pub(crate) fn context_id(&self) -> u32 {
+    pub fn context(&self) -> Context {
         let behavior = self.view.behavior.borrow();
         let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().unwrap();
-        behavior.graphics_context.id
+        behavior.context.clone()
     }
 
     /// Returns the window's first responder.

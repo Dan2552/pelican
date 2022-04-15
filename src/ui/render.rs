@@ -2,22 +2,26 @@ use crate::ui::view::View;
 use crate::ui::window::WindowBehavior;
 use crate::graphics::Layer;
 use crate::graphics::Rectangle;
+use crate::ui::Window;
+use crate::graphics::Context;
 
-pub(crate) fn window_display(window: View) {
-    if window.is_hidden() {
+pub(crate) fn window_display(window_view: View) {
+    if window_view.is_hidden() {
         return;
     }
 
-    // Additional reference for view controller notification.
-    let window1 = window.clone();
+    let window = Window::from_view(window_view.clone());
 
-    let behavior = window.behavior.borrow();
+    // Additional reference for view controller notification.
+    let window1 = window_view.clone();
+
+    let behavior = window_view.behavior.borrow();
     let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().unwrap();
 
     // Recursively draw the texture for each layer that needs redisplay.
-    draw_view(&window, behavior);
+    draw_view(&window_view, behavior, &window.context());
 
-    let inner_view = window.inner_self.borrow();
+    let inner_view = window_view.inner_self.borrow();
 
     // If layer was not present before this function was invoked, the leading
     // `draw_view` will have lazily created the layer, so we can be certain it
@@ -28,12 +32,12 @@ pub(crate) fn window_display(window: View) {
     layer.draw_into_context();
 
     // Actually draw the window to the screen.
-    layer.context.draw();
+    layer.context().draw();
 
     behavior.view_controller.window_displayed(window1);
 }
 
-fn draw_view(view: &View, behavior: &WindowBehavior) {
+fn draw_view(view: &View, behavior: &WindowBehavior, context: &Context) {
     let hidden = view.is_hidden();
 
     {
@@ -42,9 +46,8 @@ fn draw_view(view: &View, behavior: &WindowBehavior) {
 
             // TODO: lazily recreate layer if mismatch contexts
             if inner_view.layer.as_ref().is_none() {
-                let context = behavior.graphics_context.clone();
                 let size = inner_view.frame.size.clone();
-                let layer = Layer::new(context, size, Box::new(view.clone()));
+                let layer = Layer::new(context.clone(), size, Box::new(view.clone()));
                 inner_view.layer = Some(layer);
             }
 
@@ -71,7 +74,7 @@ fn draw_view(view: &View, behavior: &WindowBehavior) {
 
     for subview in view.subviews().iter() {
         // redraw the subview (if it needs it!)
-        draw_view(subview, behavior);
+        draw_view(subview, behavior, context);
 
         if subview.is_hidden() {
             continue;

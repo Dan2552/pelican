@@ -119,7 +119,7 @@ impl Recognizer for PanRecognizer {
         {
             if let Some(view) = self.view().upgrade() {
                 if let Some(layer) = view.layer() {
-                    render_scale = layer.context().render_scale;
+                    render_scale = layer.context().render_scale();
                 } else {
                     return;
                 }

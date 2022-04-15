@@ -86,6 +86,14 @@ impl Timer {
     }
 }
 
+impl Clone for Timer {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone()
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

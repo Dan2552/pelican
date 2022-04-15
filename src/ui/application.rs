@@ -40,7 +40,7 @@ impl<'a> Application {
 
     pub(crate) fn get_window(&self, context_id: u32) -> Option<&Window> {
         for window in self.windows.iter() {
-            if window.context_id() == context_id {
+            if window.context().id() == context_id {
                 return Some(window);
             }
         }

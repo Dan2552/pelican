@@ -20,7 +20,7 @@ use std::cell::Cell;
 /// is going to be drawn on it, or in what order. It instead delegates this
 /// behavior to `delegate`. Without a `delegate`, it wont draw anything.
 pub struct Layer {
-    pub(crate) context: Rc<Context>, // e.g. the window this layer is in
+    context: Context, // e.g. the window this layer is in
     texture: Rc<RefCell<Texture>>, // the texture this layer is drawn with
 
     // TODO: should the size be updated using the following somewhere? Maybe it cannot change though without layer changing it?
@@ -44,11 +44,11 @@ pub trait LayerDelegate {
 
 impl Layer {
     // TODO: probably pub(crate)
-    pub fn new(context: Rc<Context>, size: Size<u32>, delegate: Box<dyn LayerDelegate>) -> Layer {
-        let width = (size.width as f32 * context.render_scale) as u32;
-        let height = (size.height as f32 * context.render_scale) as u32;
+    pub fn new(context: Context, size: Size<u32>, delegate: Box<dyn LayerDelegate>) -> Layer {
+        let width = (size.width as f32 * context.render_scale()) as u32;
+        let height = (size.height as f32 * context.render_scale()) as u32;
 
-        let mut texture = context.texture_creator
+        let mut texture = context.texture_creator()
             .create_texture(
                 None,
                 TextureAccess::Target,
@@ -70,7 +70,7 @@ impl Layer {
     /// Create a layer with a texture already drawn. That is, a texture is
     /// passed in at construction, and there is no delegate to handle any draw
     /// instructions. Making `draw()` no-op.
-    pub fn new_prerendered(context: Rc<Context>, size: Size<u32>, texture: Texture) -> Layer {
+    pub fn new_prerendered(context: Context, size: Size<u32>, texture: Texture) -> Self {
         Layer {
             context: context,
             size: size,
@@ -82,7 +82,7 @@ impl Layer {
 
     /// Creates a layer that cannot draw anything on its own. It's useful for
     /// creating a layer that can be used as a container for other layers.
-    pub fn new_no_render(context: Rc<Context>, size: Size<u32>) -> Layer {
+    pub fn new_no_render(context: Context, size: Size<u32>) -> Self {
         Layer::new(context, size, Box::new(EmptyLayerDelegate {}))
     }
 
@@ -122,7 +122,7 @@ impl Layer {
         let child_texture = child_layer.texture.borrow();
         let context = &self.context;
 
-        let destination = destination * self.context.render_scale;
+        let destination = destination * self.context.render_scale();
 
         context.draw_texture_in_texture(&mut parent_texture, &child_texture, &destination);
     }
@@ -137,7 +137,7 @@ impl Layer {
             size: self.size.clone()
         };
 
-        let rectangle = &rectangle * self.context.render_scale;
+        let rectangle = &rectangle * self.context.render_scale();
 
         context.draw_texture_in_context(&texture, &rectangle);
     }
@@ -153,7 +153,7 @@ impl Layer {
         &self.size
     }
 
-    pub fn context(&self) -> &Rc<Context> {
+    pub fn context(&self) -> &Context {
         &self.context
     }
 }
@@ -161,6 +161,12 @@ impl Layer {
 impl PartialEq for Layer {
     fn eq(&self, rhs: &Layer) -> bool {
         std::ptr::eq(self, rhs)
+    }
+}
+
+impl std::fmt::Debug for Layer {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Layer {{ size: {:?} }}", self.size)
     }
 }
 

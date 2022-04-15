@@ -69,8 +69,8 @@ fn context() {
     assert_eq!(window.view.frame().size(), layer.size());
     assert_eq!(layer.size(), &context.size());
 
-    let scaled_width = layer.size().width as f32 * context.render_scale;
-    let scaled_height = layer.size().height as f32 * context.render_scale;
+    let scaled_width = layer.size().width as f32 * context.render_scale();
+    let scaled_height = layer.size().height as f32 * context.render_scale();
 
     assert_eq!(scaled_width, context.pixel_size().width as f32);
     assert_eq!(scaled_height, context.pixel_size().height as f32);

@@ -28,7 +28,7 @@ custom_view!(
 
             if let Some(layer) = &inner_self.layer {
                 let mut image = behavior.image.borrow_mut();
-                let child_layer = image.layer_for(layer.context.clone());
+                let child_layer = image.layer_for(layer.context());
                 layer.draw_child_layer(&child_layer, &inner_self.frame);
             }
         }

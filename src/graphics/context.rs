@@ -14,8 +14,6 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::convert::TryInto;
 
-// TODO: make all SdlContainer related pub(crate)
-
 pub struct SdlContainer {
     sdl: Option<Rc<sdl2::Sdl>>,
 }
@@ -40,7 +38,11 @@ pub static mut SDL_CONTAINER: SdlContainer = SdlContainer {
 /// Each `Layer` for a given render target will use the `Context` to draw to
 /// screen.
 pub struct Context {
-    pub id: u32,
+    inner: Rc<ContextInner>
+}
+
+struct ContextInner {
+    id: u32,
 
     /// The point size of the drawable canvas.
     ///
@@ -55,18 +57,19 @@ pub struct Context {
 
     /// The render scale. This would be different if using a higher density
     /// display.
-    pub render_scale: f32,
+    render_scale: f32,
 
     /// Internal SDL canvas
     canvas: Rc<RefCell<Canvas<Window>>>,
 
     /// Internal SDL texture creator
-    pub(crate) texture_creator: TextureCreator<WindowContext>
+    texture_creator: TextureCreator<WindowContext>
 }
 
 impl Context {
     pub fn new(title: &str, position: Point<i32>, size: Size<u32>) -> Context {
         let sdl: &sdl2::Sdl;
+
         unsafe { sdl = SDL_CONTAINER.lazy(); }
 
         let video_subsystem = sdl.video().unwrap();
@@ -83,6 +86,8 @@ impl Context {
         let (render_width, render_height) = window.size();
 
         let mut canvas = window.into_canvas().build().unwrap();
+
+
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         canvas.clear();
         canvas.present();
@@ -99,25 +104,39 @@ impl Context {
         let texture_creator = canvas.texture_creator();
 
         Context {
-            id: id,
-            size: size,
-            render_scale: render_scale,
-            canvas: Rc::new(RefCell::new(canvas)),
-            pixel_size: pixel_size,
-            texture_creator: texture_creator
+            inner: Rc::new(ContextInner {
+                id: id,
+                size: size,
+                render_scale: render_scale,
+                canvas: Rc::new(RefCell::new(canvas)),
+                pixel_size: pixel_size,
+                texture_creator: texture_creator
+            })
         }
     }
 
+    pub fn id(&self) -> u32 {
+        self.inner.id
+    }
+
+    pub(crate) fn texture_creator(&self) -> &TextureCreator<WindowContext> {
+        &self.inner.texture_creator
+    }
+
+    pub fn render_scale(&self) -> f32 {
+        self.inner.render_scale
+    }
+
     pub fn size(&self) -> Size<u32> {
-        self.size.clone()
+        self.inner.size.clone()
     }
 
     pub fn pixel_size(&self) -> Size<u32> {
-        self.pixel_size.clone()
+        self.inner.pixel_size.clone()
     }
 
     pub fn draw(&self) {
-        let mut canvas = self.canvas.borrow_mut();
+        let mut canvas = self.inner.canvas.borrow_mut();
         canvas.present();
     }
 
@@ -130,7 +149,7 @@ impl Context {
             destination.size.height
         );
 
-        let mut canvas = self.canvas.borrow_mut();
+        let mut canvas = self.inner.canvas.borrow_mut();
         canvas.copy(child, None, destination).unwrap();
     }
 
@@ -142,7 +161,7 @@ impl Context {
             destination.size.height
         );
 
-        let mut canvas = self.canvas.borrow_mut();
+        let mut canvas = self.inner.canvas.borrow_mut();
 
         canvas.with_texture_canvas(parent, |canvas| {
             canvas.copy(&child, None, destination).unwrap();
@@ -150,11 +169,19 @@ impl Context {
     }
 
     pub(crate) fn clear_texture(&self, texture: &mut Texture, color: Color) {
-        let mut canvas = self.canvas.borrow_mut();
+        let mut canvas = self.inner.canvas.borrow_mut();
 
         canvas.with_texture_canvas(texture, |canvas| {
             canvas.set_draw_color(color);
             canvas.clear();
         }).unwrap();
+    }
+}
+
+impl Clone for Context {
+    fn clone(&self) -> Self {
+        Context {
+            inner: self.inner.clone()
+        }
     }
 }

@@ -9,7 +9,6 @@ use pelican::graphics::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
-use std::rc::Rc;
 
 struct FakeView {
     a: u32
@@ -35,7 +34,7 @@ pub fn main() -> Result<(), String> {
     let origin = Point { x: 10, y: 10};
     let size = Size { width: 800, height: 600 };
 
-    let window1 = Rc::new(Context::new("hello world", origin, size));
+    let window1 = Context::new("hello world", origin, size);
 
     // let context_reference1 = Rc::new(RefCell::new(window1));
     // let context_reference2 = context_reference1.clone();

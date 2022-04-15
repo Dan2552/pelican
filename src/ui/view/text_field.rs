@@ -74,7 +74,9 @@ impl Drop for Selection {
 
 impl Drop for TextFieldBehavior {
     fn drop(&mut self) {
-        if let Some(timer) = &self.carat_animation_timer {
+        let carat_animation_timer = self.carat_animation_timer.borrow();
+
+        if let Some(timer) = &*carat_animation_timer {
             timer.invalidate();
         }
     }
@@ -101,7 +103,7 @@ custom_view!(
         touch_began_at_index: Cell<usize>,
 
         // A timer responsible for animating the carats.
-        carat_animation_timer: Option<Timer>,
+        carat_animation_timer: RefCell<Option<Timer>>,
 
         delay_animation: Cell<bool>,
 
@@ -131,7 +133,7 @@ custom_view!(
                 Cell::new(0),
                 Cell::new(0),
                 Cell::new(0),
-                None,
+                RefCell::new(None),
                 Cell::new(false),
                 Cell::new(Instant::now()),
                 Cell::new(0),
@@ -149,9 +151,12 @@ custom_view!(
                 }
             });
             let run_loop = RunLoop::borrow();
-            run_loop.add_timer(carat_animation_timer);
+            run_loop.add_timer(carat_animation_timer.clone());
 
-            text_field
+            let behavior = text_field.behavior();
+            behavior.carat_animation_timer.replace(Some(carat_animation_timer));
+
+            text_field.clone()
         }
 
         pub fn label(&self) -> Label {

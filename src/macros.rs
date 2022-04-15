@@ -1,3 +1,4 @@
+#[macro_export]
 macro_rules! singleton {
     ($singleton_name:ident$(, $key:ident: $value:expr)*) => {
         struct SingletonOwner {
@@ -107,7 +108,7 @@ macro_rules! custom_view {
     };
 }
 
-pub(crate) use singleton;
+pub use singleton;
 pub use custom_view;
 
 #[cfg(test)]
