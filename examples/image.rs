@@ -11,8 +11,12 @@ impl ViewControllerBehavior for ExampleViewController {
         view.add_subview(tree.view);
 
         let always2tree = Image::new("always2tree.png");
-        let tree2 = ImageView::new(always2tree, Point::new(400, 10));
+        let tree2 = ImageView::new(always2tree, Point::new(350, 10));
         view.add_subview(tree2.view);
+
+        let always1tree = Image::new("always1tree.png");
+        let tree3 = ImageView::new(always1tree, Point::new(700, 10));
+        view.add_subview(tree3.view);
     }
 }
 
@@ -24,7 +28,7 @@ impl ApplicationDelegate for AppDelegate {
         // need to do this in your own code.
         copy_images();
 
-        let frame = Rectangle::new(200, 200, 700, 350);
+        let frame = Rectangle::new(200, 200, 1100, 350);
         let view_controller = ViewController::new(ExampleViewController {});
         let window = Window::new("Image example", frame, view_controller);
         window.make_key_and_visible();
