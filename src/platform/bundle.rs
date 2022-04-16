@@ -17,3 +17,19 @@ impl Bundle {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_bundle_path_for_resource() {
+        let path = Bundle::path_for_resource("/foo/bar/baz.txt");
+        assert_eq!(path, "/foo/bar/baz.txt");
+
+        let path = Bundle::path_for_resource("foo/bar/baz.txt");
+        assert_ne!(path, "foo/bar/baz.txt");
+        assert_ne!(path, "resources/foo/bar/baz.txt");
+        assert!(path.ends_with("resources/foo/bar/baz.txt"))
+    }
+}

@@ -20,7 +20,6 @@ custom_view!(
 
     impl Behavior {
         fn draw(&self) {
-            // TODO: if image is @2x, scale differently
             let view = self.view.upgrade().unwrap().clone();
             let inner_self = view.inner_self.borrow();
             let behavior = view.behavior.borrow();
@@ -29,7 +28,11 @@ custom_view!(
             if let Some(layer) = &inner_self.layer {
                 let mut image = behavior.image.borrow_mut();
                 let child_layer = image.layer_for(layer.context());
-                layer.draw_child_layer(&child_layer, &inner_self.frame);
+                let rectangle = Rectangle {
+                    origin: Point::new(0, 0),
+                    size: view.frame().size
+                };
+                layer.draw_child_layer(&child_layer, &rectangle);
             }
         }
     }

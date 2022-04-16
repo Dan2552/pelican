@@ -12,6 +12,7 @@ cc = "1"
 uuid = { version = "0.8", features = ["v4"] }
 sdl2 = { version = "0.35.1", features = ["unsafe_textures", "image", "ttf"] }
 unicode-segmentation = "1.8.0"
+regex = "1.5.5"
 
 [[example]]
 name = "graphics"
