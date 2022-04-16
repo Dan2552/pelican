@@ -58,6 +58,10 @@ impl<T> BinarySortInsertArray<T> {
     pub fn is_empty(&self) -> bool {
         self.store.is_empty()
     }
+
+    pub fn clear(&mut self) {
+        self.store.clear();
+    }
 }
 
 #[cfg(test)]
@@ -179,6 +183,22 @@ mod tests {
         assert!(!described_instance.is_empty());
 
         described_instance.delete(8, f);
+        assert!(described_instance.is_empty());
+    }
+
+    #[test]
+    fn test_clear() {
+        let mut described_instance: BinarySortInsertArray<u32> = BinarySortInsertArray::new();
+        let f: fn(&u32, &u32) -> Ordering = |new_element, comparison| comparison.cmp(new_element);
+        described_instance.push(1, f);
+        described_instance.push(8, f);
+        described_instance.push(2, f);
+        described_instance.push(5, f);
+        described_instance.push(3, f);
+
+        assert!(!described_instance.is_empty());
+
+        described_instance.clear();
         assert!(described_instance.is_empty());
     }
 }
