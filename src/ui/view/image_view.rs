@@ -32,7 +32,7 @@ custom_view!(
                     origin: Point::new(0, 0),
                     size: view.frame().size
                 };
-                layer.draw_child_layer(child_layer, &rectangle);
+                layer.draw_child_layer(&child_layer, &rectangle);
             }
         }
     }
