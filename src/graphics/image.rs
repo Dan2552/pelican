@@ -3,7 +3,6 @@ use crate::graphics::Size;
 use crate::graphics::Context;
 use crate::platform::bundle::Bundle;
 use std::collections::HashMap;
-use std::rc::Rc;
 use sdl2::image::LoadSurface;
 use sdl2::surface::Surface;
 use regex::Regex;
@@ -19,7 +18,7 @@ pub struct Image<'a> {
     /// context, so `Image` will lazily create `Layer` objects once per context.
     /// This are lazily populated by `layer_for()`.
     ///
-    layers: HashMap<u32, Rc<Layer>>,
+    layers: HashMap<u32, Layer>,
 
     surface: Surface<'a>,
 
@@ -81,7 +80,7 @@ impl<'a> Image<'a> {
     /// window is moved from one screen to another, this may reload the image
     /// from disk if a more appropriate scale version is found. This may also
     /// happen once because the scale wasn't known at initialization.
-    pub fn layer_for(&mut self, context: &Context) -> Rc<Layer> {
+    pub fn layer_for(&mut self, context: &Context) -> &Layer {
         let id = context.id();
         let render_scale = context.render_scale();
 
@@ -105,10 +104,10 @@ impl<'a> Image<'a> {
             let texture = self.surface.as_texture(context.texture_creator()).unwrap();
             let layer = Layer::new_prerendered(context.clone(), self.size.clone(), texture);
             let layers = &mut self.layers;
-            layers.insert(id, Rc::new(layer));
+            layers.insert(id, layer);
         }
 
-        self.layers.get(&id).unwrap().clone()
+        self.layers.get(&id).as_ref().unwrap()
     }
 
     fn scale_2x_name(name: &str) -> String {
