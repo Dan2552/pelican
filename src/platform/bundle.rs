@@ -8,6 +8,12 @@ impl Bundle {
             match std::env::current_exe() {
                 Ok(mut path) => {
                     path.pop();
+
+                    if path.to_str().unwrap().ends_with("target/debug") {
+                        path.pop();
+                        path.pop();
+                    }
+
                     path.push("resources");
                     path.push(file);
                     String::from(path.to_str().unwrap())
