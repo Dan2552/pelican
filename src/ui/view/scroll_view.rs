@@ -255,16 +255,20 @@ custom_view!(
                         height: height_of_vertical_handle
                     };
 
-                    let percent_of_scrollview = self.percent() as f32 / 100.0;
-                    let origin_y = (percent_of_scrollview * (scrollview_size.height - handle_size.height) as f32) as i32;
-                    let origin_x = handle.frame().origin.x;
+                    if scrollview_size.height < handle_size.height {
+                        handle.set_hidden(true);
+                    } else {
+                        let percent_of_scrollview = self.percent() as f32 / 100.0;
+                        let origin_y = (percent_of_scrollview * (scrollview_size.height - handle_size.height) as f32) as i32;
+                        let origin_x = handle.frame().origin.x;
 
-                    handle.set_frame(Rectangle {
-                        origin: Point::new(origin_x, origin_y),
-                        size: handle_size
-                    });
+                        handle.set_frame(Rectangle {
+                            origin: Point::new(origin_x, origin_y),
+                            size: handle_size
+                        });
 
-                    handle.set_hidden(scrollview_size.height == height_of_vertical_handle);
+                        handle.set_hidden(scrollview_size.height == height_of_vertical_handle);
+                    }
                 },
                 ScrollBarDirection::Horizontal => {
                     let width_of_horizontal_handle: u32;
