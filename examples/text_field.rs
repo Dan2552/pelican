@@ -15,6 +15,10 @@ impl ViewControllerBehavior for ExampleViewController {
         text_field.view.set_background_color(Color::white());
         background.add_subview(text_field.clone().view);
 
+        text_field.on_text_change(|text_field| {
+            println!("text changed: {}", text_field.label().text());
+        });
+
         text_field.view.become_first_responder();
     }
 }

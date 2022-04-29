@@ -110,7 +110,9 @@ custom_view!(
         last_click: Cell<Instant>,
         click_count: Cell<u8>,
 
-        history: RefCell<History>
+        history: RefCell<History>,
+
+        text_change: RefCell<Option<Box<dyn Fn(&TextField) -> ()>>>
     }
 
     impl Self {
@@ -137,7 +139,8 @@ custom_view!(
                 Cell::new(false),
                 Cell::new(Instant::now()),
                 Cell::new(0),
-                RefCell::new(History::new())
+                RefCell::new(History::new()),
+                RefCell::new(None)
             );
 
             text_field.view.add_subview(label.view);
@@ -157,6 +160,11 @@ custom_view!(
             behavior.carat_animation_timer.replace(Some(carat_animation_timer));
 
             text_field.clone()
+        }
+
+        pub fn on_text_change(&self, action: impl Fn(&TextField) -> () + 'static) {
+            let behavior = self.behavior();
+            behavior.text_change.replace(Some(Box::new(action)));
         }
 
         pub fn label(&self) -> Label {
@@ -773,6 +781,10 @@ custom_view!(
 
             let mut history = self.history.borrow_mut();
             history.add(Box::new(text_insertion));
+
+            if let Some(text_change) = self.text_change.borrow().as_ref() {
+                text_change(&text_field);
+            }
         }
 
         fn press_ended(&self, press: &Press) {
@@ -850,6 +862,10 @@ custom_view!(
                             history.redo();
                         } else {
                             history.undo();
+                        }
+                        
+                        if let Some(text_change) = self.text_change.borrow().as_ref() {
+                            text_change(&text_field);
                         }
                     }
                 },
@@ -1033,6 +1049,10 @@ custom_view!(
 
                     let mut history = self.history.borrow_mut();
                     history.add(Box::new(text_backspace));
+
+                    if let Some(text_change) = self.text_change.borrow().as_ref() {
+                        text_change(&text_field);
+                    }
                 },
                 KeyCode::A => {
                     if key.modifier_flags().contains(&ModifierFlag::Command) {
@@ -1403,5 +1423,44 @@ mod tests {
         assert_eq!(cursors.len(), 1);
         assert_eq!(cursors[0].character_index(), 3);
         assert_eq!(cursors[0].selection(), &None);
+    }
+
+    #[test]
+    fn test_on_text_change() {
+        let frame = Rectangle::new(0, 0, 100, 100);
+        let text_field = TextField::new(frame, "".to_string());
+        let behavior = text_field.behavior();
+
+        let test = std::rc::Rc::new(RefCell::new("".to_string()));
+
+        let test_clone = test.clone();
+        text_field.on_text_change(move |text_field| {
+            test_clone.replace(text_field.label().text().string().to_string());
+        });
+
+        behavior.text_input_did_receive("hello");
+
+        assert_eq!(*test.borrow(), "hello");
+
+        let key = Key::new(KeyCode::Backspace, vec![]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+        
+        assert_eq!(*test.borrow(), "hell");
+
+        let key = Key::new(KeyCode::Z, vec![ModifierFlag::Command]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        assert_eq!(*test.borrow(), "hello");
+
+        let key = Key::new(KeyCode::Z, vec![ModifierFlag::Command, ModifierFlag::Shift]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        assert_eq!(*test.borrow(), "hell");        
     }
 }
