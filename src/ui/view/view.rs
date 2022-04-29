@@ -412,8 +412,9 @@ impl View {
         }
     }
 
-    pub fn subviews(&self) -> Ref<'_, Vec<View>> {
-        Ref::map(self.inner_self.borrow(), |inner_self| &inner_self.subviews)
+    pub fn subviews(&self) -> Vec<View> {
+        let inner_self = self.inner_self.borrow();
+        inner_self.subviews.clone()
     }
 
     /// Request for this view to be the first responder. A first responder
