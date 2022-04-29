@@ -19,9 +19,9 @@ extern {
 }
 
 impl ApplicationMain {
-    pub fn new(delegate: Box<dyn ApplicationDelegate>) -> ApplicationMain {
+    pub fn new<T>(delegate: T) -> ApplicationMain where T: ApplicationDelegate + 'static {
         ApplicationMain {
-            delegate: delegate
+            delegate: Box::new(delegate)
         }
     }
 

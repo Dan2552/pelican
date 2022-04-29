@@ -87,8 +87,7 @@ impl ApplicationDelegate for AppDelegate {
 }
 
 pub fn main() -> Result<(), String> {
-    let app_delegate = AppDelegate {};
-    let application_main = ApplicationMain::new(Box::new(app_delegate));
+    let application_main = ApplicationMain::new(AppDelegate {});
     application_main.launch();
     Ok(())
 }
