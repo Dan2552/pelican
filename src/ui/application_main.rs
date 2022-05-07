@@ -31,6 +31,9 @@ impl ApplicationMain {
         #[cfg(target_os = "macos")]
         unsafe { objc_enable_momentum_scroll(); }
 
+        #[cfg(target_os = "emscripten")]
+        let _ = sdl2::hint::set("SDL_EMSCRIPTEN_ASYNCIFY","1");
+
         self.delegate.application_will_finish_launching();
         self.delegate.application_did_finish_launching();
 
