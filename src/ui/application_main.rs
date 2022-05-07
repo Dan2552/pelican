@@ -14,6 +14,7 @@ pub struct ApplicationMain {
     delegate: Box<dyn ApplicationDelegate>
 }
 
+#[link(name = "CoreFoundation", kind = "framework")]
 extern {
     fn objc_enable_momentum_scroll();
 }

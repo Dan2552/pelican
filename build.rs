@@ -1,4 +1,3 @@
-#[link(name = "CoreFoundation", kind = "framework")]
 fn main() {
     #[cfg(target_os = "macos")]
     objective_c();
