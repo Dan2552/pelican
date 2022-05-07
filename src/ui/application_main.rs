@@ -14,6 +14,7 @@ pub struct ApplicationMain {
     delegate: Box<dyn ApplicationDelegate>
 }
 
+#[cfg(target_os = "macos")]
 #[link(name = "CoreFoundation", kind = "framework")]
 extern {
     fn objc_enable_momentum_scroll();
