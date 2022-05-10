@@ -11,8 +11,8 @@ pub mod run_loop;
 
 pub mod timer;
 
-mod touch;
-use touch::Touch;
+pub mod touch;
+pub use touch::Touch;
 
 pub mod view;
 pub use view::View;
