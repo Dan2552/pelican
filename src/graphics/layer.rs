@@ -33,6 +33,16 @@ pub struct Layer {
     size: Size<u32>,
 
     needs_display: Cell<bool>,
+
+    /// This layer's scale.
+    ///
+    /// If the layer scale is 1.0 and the screen display is 2.0, when the layer
+    /// is drawn, it will be scaled up by 2.0.
+    ///
+    /// If the layer scale is 2.0 and the screen display is 2.0, when the layer
+    /// is drawn, it wont be scaled up at all.
+    scale: f32,
+
     delegate: Box<dyn LayerDelegate>
 }
 
@@ -50,15 +60,23 @@ pub trait LayerDelegate {
 impl Layer {
     // TODO: probably pub(crate)
     pub fn new(context: Context, size: Size<u32>, delegate: Box<dyn LayerDelegate>) -> Layer {
-        let width = (size.width as f32 * context.render_scale()) as u32;
-        let height = (size.height as f32 * context.render_scale()) as u32;
+        let width = size.width as f32 * context.render_scale();
+        let height = size.height as f32 * context.render_scale();
+
+        if width.round() as u32 != width as u32 {
+            println!("Warning: Layer width is not an integer. This may cause rendering issues.");
+        }
+
+        if height.round() as u32 != height as u32 {
+            println!("Warning: Layer height is not an integer. This may cause rendering issues.");
+        }
 
         let mut texture = context.texture_creator()
             .create_texture(
                 None,
                 TextureAccess::Target,
-                width,
-                height
+                width.round() as u32,
+                height.round() as u32
             ).unwrap();
 
         texture.set_blend_mode(BlendMode::Blend);
@@ -69,6 +87,7 @@ impl Layer {
             needs_display: Cell::new(true),
             texture: Rc::new(RefCell::new(texture)),
             delegate: delegate,
+            scale: 1.0,
             source_rectangle: None
         }
     }
@@ -76,13 +95,14 @@ impl Layer {
     /// Create a layer with a texture already drawn. That is, a texture is
     /// passed in at construction, and there is no delegate to handle any draw
     /// instructions. Making `draw()` no-op.
-    pub fn new_prerendered(context: Context, size: Size<u32>, texture: Texture) -> Self {
+    pub fn new_prerendered(context: Context, size: Size<u32>, texture: Texture, scale: f32) -> Self {
         Layer {
             context: context,
             size: size,
             needs_display: Cell::new(false),
             texture: Rc::new(RefCell::new(texture)),
             delegate: Box::new(EmptyLayerDelegate {}),
+            scale: scale,
             source_rectangle: None
         }
     }
@@ -99,13 +119,16 @@ impl Layer {
     /// The underlying texture itself is shared between all the layer from this
     /// instance and all the layers that are created from this instance.
     pub fn new_partial(&self, portion: Rectangle<i32, u32>) -> Self {
+        let scaled_portion = &portion * self.scale;
+
         Layer {
             context: self.context.clone(),
             size: portion.size.clone(),
-            needs_display: Cell::new(true),
+            needs_display: Cell::new(false),
             texture: self.texture.clone(),
             delegate: Box::new(EmptyLayerDelegate {}),
-            source_rectangle: Some(portion)
+            scale: self.scale,
+            source_rectangle: Some(scaled_portion)
         }
     }
 
@@ -128,27 +151,36 @@ impl Layer {
         self.needs_display.set(true)
     }
 
-    /// To be used when the layer is already a higher resolution. Examples:
-    /// * Rendering text (e.g. at twice the font size than specified)
-    /// * Rendering a "@2x" image
+    /// Note: The destination at this point is using the (unscaled) point
+    /// system, not the real pixel size. The size of the real texture itself is
+    /// determined by this method; the difference in quality being the source
+    /// picture size.
+    pub fn draw_child_layer(&self, child_layer: &Layer, destination: &Rectangle<i32, u32>) {
+        let mut parent_texture = self.texture.borrow_mut();
+        let child_texture = child_layer.texture.borrow();
+        let context = &self.context;
+
+        // Source is prescaled in `new_partial`.
+        let source = child_layer.source_rectangle.as_ref();
+
+        let destination = destination * context.render_scale();
+
+        // An example at this point, after multiplying destination:
+        // if the image was 1x, the src could be 55 and the dest 110
+        // if the image was 2x, the equivalent src would be 110 and the dest
+        // still 110
+        context.draw_texture_in_texture(&mut parent_texture, &child_texture, source, &destination);
+    }
+
+    /// To be used when the layer is already declared at the native resolution.
+    /// Used by rendering text (e.g. at twice the font size than specified)
+    /// because each character is drawn separately to a layer first.
     pub fn draw_child_layer_without_scaling(&self, child_layer: &Layer, destination: &Rectangle<i32, u32>) {
         let mut parent_texture = self.texture.borrow_mut();
         let child_texture = child_layer.texture.borrow();
         let context = &self.context;
 
         context.draw_texture_in_texture(&mut parent_texture, &child_texture, None, &destination);
-    }
-
-    // TODO: pub(crate)
-    pub fn draw_child_layer(&self, child_layer: &Layer, destination: &Rectangle<i32, u32>) {
-        let mut parent_texture = self.texture.borrow_mut();
-        let child_texture = child_layer.texture.borrow();
-        let context = &self.context;
-
-        let destination = destination * self.context.render_scale();
-        let source = child_layer.source_rectangle.as_ref();
-
-        context.draw_texture_in_texture(&mut parent_texture, &child_texture, source, &destination);
     }
 
     // Actually copies this layer's texture to the context canvas.
@@ -179,6 +211,11 @@ impl Layer {
 
     pub fn context(&self) -> &Context {
         &self.context
+    }
+
+    /// Only to be used by tests
+    pub fn _raw_texture(&self) -> std::cell::Ref<'_, Texture> {
+        self.texture.borrow()
     }
 }
 

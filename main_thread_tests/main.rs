@@ -3,6 +3,8 @@ use pelican::ui::View;
 use pelican::graphics::Rectangle;
 use pelican::graphics::Point;
 use pelican::graphics::Size;
+use pelican::graphics::Image;
+use pelican::ui::ImageView;
 use pelican::ui::{ViewController, ViewControllerBehavior};
 use pelican::ui::run_loop::RunLoop;
 use pelican::ui::timer::Timer;
@@ -24,6 +26,9 @@ pub fn main() -> Result<(), String> {
 
     println!("custom test: parent_child_relationship");
     parent_child_relationship();
+
+    println!("custom test: scaled_images");
+    scaled_images();
 
     println!("custom test: application");
     application();
@@ -112,6 +117,54 @@ fn parent_child_relationship() {
     assert_eq!(contains_child, true);
 }
 
+fn scaled_images() {
+    let tree_image = Image::new(example_resources_directory().join("tree.png").to_str().unwrap());
+    let tree = ImageView::new(tree_image, Point::new(10, 10));
+
+    let always2tree = Image::new(example_resources_directory().join("always2tree.png").to_str().unwrap());
+    let tree2 = ImageView::new(always2tree, Point::new(350, 10));
+
+    let always1tree = Image::new(example_resources_directory().join("always1tree.png").to_str().unwrap());
+    let tree3 = ImageView::new(always1tree, Point::new(700, 10));
+
+    assert!(tree.view.frame().size() == tree2.view.frame().size());
+    assert!(tree.view.frame().size() == tree3.view.frame().size());
+
+    let frame = Rectangle {
+        origin: Point { x: 10, y: 10 },
+        size: Size { width: 50, height: 50 }
+    };
+
+    let view_controller = ViewController::new(ExampleViewController {});
+    let window = Window::new("test", frame.clone(), view_controller);
+    let context = window.context();
+
+    let mut tree_image = Image::new(example_resources_directory().join("tree.png").to_str().unwrap());
+    let layer0 = tree_image.layer_for(&context);
+
+    let mut always2tree = Image::new(example_resources_directory().join("always2tree.png").to_str().unwrap());
+    let layer2 = always2tree.layer_for(&context);
+
+    let mut always1tree = Image::new(example_resources_directory().join("always1tree.png").to_str().unwrap());
+    let layer1 = always1tree.layer_for(&context);
+
+    assert_eq!(layer0.size(), layer1.size());
+    assert_eq!(layer1.size(), layer2.size());
+
+    let raw0 = layer0._raw_texture();
+    let raw1 = layer1._raw_texture();
+    let raw2 = layer2._raw_texture();
+
+    if context.render_scale() == 1.0 {
+        assert_eq!(raw0.query().width, raw1.query().width);
+    } else {
+        assert_eq!(raw0.query().width, raw2.query().width);
+    }
+
+    assert_ne!(raw1.query().width, raw2.query().width);
+    assert_ne!(raw1.query().height, raw2.query().height);
+}
+
 fn application() {
     let frame = Rectangle {
         origin: Point { x: 10, y: 10 },
@@ -128,4 +181,14 @@ fn application() {
     let _ = Window::new("test", frame, view_controller);
     let application = Application::borrow();
     assert_eq!(application.windows().len(), start_window_count + 1);
+}
+
+fn example_resources_directory() -> std::path::PathBuf {
+    let mut path = std::env::current_exe().unwrap();
+    path.pop();
+    path.pop();
+    path.pop();
+    path.pop();
+    path.push("examples/resources");
+    path
 }

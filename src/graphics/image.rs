@@ -50,9 +50,22 @@ impl<'a> Image<'a> {
         if Image::is_file(&image_path_2x) {
             // By default, we load the 2x image if there is one. There's just
             // going to be a higher chance that modern displays are scaled.
-            surface = Surface::from_file(image_path_2x).unwrap();
-            width = (surface.width() as f32 * 0.5).round() as u32;
-            height = (surface.height() as f32 * 0.5).round() as u32;
+            surface = Surface::from_file(&image_path_2x).unwrap();
+
+            let widthf32 = surface.width() as f32 * 0.5;
+            let heightf32 = surface.height() as f32 * 0.5;
+
+            if widthf32.floor() != widthf32.ceil() {
+                panic!("An error occurred loading {}. A @2x image must be cleanly divisible by 2 but got {}", &image_path_2x, widthf32);
+            }
+
+            if heightf32.floor() != heightf32.ceil() {
+                panic!("An error occurred loading {}. A @2x image must be cleanly divisible by 2 but got {}", &image_path_2x, heightf32);
+            }
+
+            width = widthf32 as u32;
+            height = heightf32 as u32;
+
             scale_loaded = 2;
         } else if Image::is_file(&image_path) {
             // We load the regular image if there is no 2x image.
@@ -103,7 +116,7 @@ impl<'a> Image<'a> {
 
         if self.layers.get(&id).is_none() {
             let texture = self.surface.as_texture(context.texture_creator()).unwrap();
-            let layer = Layer::new_prerendered(context.clone(), self.size.clone(), texture);
+            let layer = Layer::new_prerendered(context.clone(), self.size.clone(), texture, self.scale_loaded as f32);
             let layers = &mut self.layers;
             layers.insert(id, Rc::new(layer));
         }

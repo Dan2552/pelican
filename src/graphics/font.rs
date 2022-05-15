@@ -78,7 +78,8 @@ impl Font {
         Layer::new_prerendered(
             context.clone(),
             Size { width, height },
-            texture
+            texture,
+            context.render_scale()
         )
     }
 

@@ -8,14 +8,15 @@ impl ViewControllerBehavior for ExampleViewController {
     fn view_did_load(&self, view: View) {
         let tree_image = Image::new("tree.png");
         let tree = ImageView::new(tree_image, Point::new(10, 10));
-        view.add_subview(tree.view);
 
         let always2tree = Image::new("always2tree.png");
         let tree2 = ImageView::new(always2tree, Point::new(350, 10));
-        view.add_subview(tree2.view);
 
         let always1tree = Image::new("always1tree.png");
         let tree3 = ImageView::new(always1tree, Point::new(700, 10));
+
+        view.add_subview(tree.view);
+        view.add_subview(tree2.view);
         view.add_subview(tree3.view);
     }
 }
