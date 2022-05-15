@@ -153,7 +153,19 @@ impl Context {
         canvas.copy(child, None, destination).unwrap();
     }
 
-    pub(crate) fn draw_texture_in_texture(&self, parent: &mut Texture, child: &Texture, destination: &Rectangle<i32, u32>) {
+    pub(crate) fn draw_texture_in_texture(&self, parent: &mut Texture, child: &Texture, source: Option<&Rectangle<i32, u32>>, destination: &Rectangle<i32, u32>) {
+        let source_rect;
+        if let Some(source) = source {
+            source_rect = Some(Rect::new(
+                source.origin.x.try_into().unwrap(),
+                source.origin.y.try_into().unwrap(),
+                source.size.width,
+                source.size.height
+            ));
+        } else {
+            source_rect = None;
+        }
+
         let destination = Rect::new(
             destination.origin.x.try_into().unwrap(),
             destination.origin.y.try_into().unwrap(),
@@ -164,7 +176,7 @@ impl Context {
         let mut canvas = self.inner.canvas.borrow_mut();
 
         canvas.with_texture_canvas(parent, |canvas| {
-            canvas.copy(&child, None, destination).unwrap();
+            canvas.copy(&child, source_rect, destination).unwrap();
         }).unwrap();
     }
 

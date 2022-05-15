@@ -23,6 +23,11 @@ pub struct Layer {
     context: Context, // e.g. the window this layer is in
     texture: Rc<RefCell<Texture>>, // the texture this layer is drawn with
 
+    /// This is the portion of the underlying texture that is actually drawn.
+    ///
+    /// See `new_partial`.
+    source_rectangle: Option<Rectangle<i32, u32>>,
+
     // TODO: should the size be updated using the following somewhere? Maybe it cannot change though without layer changing it?
     // SDL_QueryTexture(texture, NULL, NULL, &width, &height);
     size: Size<u32>,
@@ -63,7 +68,8 @@ impl Layer {
             size: size,
             needs_display: Cell::new(true),
             texture: Rc::new(RefCell::new(texture)),
-            delegate: delegate
+            delegate: delegate,
+            source_rectangle: None
         }
     }
 
@@ -76,7 +82,8 @@ impl Layer {
             size: size,
             needs_display: Cell::new(false),
             texture: Rc::new(RefCell::new(texture)),
-            delegate: Box::new(EmptyLayerDelegate {})
+            delegate: Box::new(EmptyLayerDelegate {}),
+            source_rectangle: None
         }
     }
 
@@ -84,6 +91,22 @@ impl Layer {
     /// creating a layer that can be used as a container for other layers.
     pub fn new_no_render(context: Context, size: Size<u32>) -> Self {
         Layer::new(context, size, Box::new(EmptyLayerDelegate {}))
+    }
+
+    /// Creates a layer that can draw a partial portion of the underlying
+    /// texture.
+    ///
+    /// The underlying texture itself is shared between all the layer from this
+    /// instance and all the layers that are created from this instance.
+    pub fn new_partial(&self, portion: Rectangle<i32, u32>) -> Self {
+        Layer {
+            context: self.context.clone(),
+            size: portion.size.clone(),
+            needs_display: Cell::new(true),
+            texture: self.texture.clone(),
+            delegate: Box::new(EmptyLayerDelegate {}),
+            source_rectangle: Some(portion)
+        }
     }
 
     // Requests for the delegate to draw on this layer.
@@ -113,7 +136,7 @@ impl Layer {
         let child_texture = child_layer.texture.borrow();
         let context = &self.context;
 
-        context.draw_texture_in_texture(&mut parent_texture, &child_texture, &destination);
+        context.draw_texture_in_texture(&mut parent_texture, &child_texture, None, &destination);
     }
 
     // TODO: pub(crate)
@@ -123,8 +146,9 @@ impl Layer {
         let context = &self.context;
 
         let destination = destination * self.context.render_scale();
+        let source = child_layer.source_rectangle.as_ref();
 
-        context.draw_texture_in_texture(&mut parent_texture, &child_texture, &destination);
+        context.draw_texture_in_texture(&mut parent_texture, &child_texture, source, &destination);
     }
 
     // Actually copies this layer's texture to the context canvas.
