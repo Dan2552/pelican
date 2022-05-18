@@ -9,6 +9,8 @@ pub(crate) fn update(sdl: &sdl2::Sdl) {
     let mut event_arena = EventArena::borrow_mut();
 
     event_arena.cleanup_ended_touches();
+    event_arena.update_began_to_stationary();
+
     #[allow(unused_mut)]
     let mut timeout = 0;
     #[cfg(target_os = "emscripten")]

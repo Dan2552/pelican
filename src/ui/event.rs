@@ -160,7 +160,7 @@ impl EventArena {
 
         for t in event.inner.borrow_mut().touches.iter_mut() {
             if t.id() == touch_id {
-                if t.phase() == TouchPhase::Began || t.phase() == TouchPhase::Moved {
+                if t.phase() == TouchPhase::Began || t.phase() == TouchPhase::Moved || t.phase() == TouchPhase::Stationary {
                     t.set_phase(TouchPhase::Moved);
                     t.set_position(position);
                 }
@@ -198,6 +198,19 @@ impl EventArena {
     pub(crate) fn cleanup_ended_touches(&mut self) {
         let event = self.touch_event();
         event.inner.borrow_mut().touches.retain(|t| t.phase() != TouchPhase::Ended);
+    }
+
+    /// Updates any touches that are set as "Began" to "Stationary".
+    ///
+    /// This is called by the start of the event loop. Afterwards, the value
+    /// can be overridden by the incoming events.
+    pub(crate) fn update_began_to_stationary(&mut self) {
+        let event = self.touch_event();
+        for t in event.inner.borrow_mut().touches.iter_mut() {
+            if t.phase() == TouchPhase::Began {
+                t.set_phase(TouchPhase::Stationary);
+            }
+        }
     }
 }
 
@@ -290,5 +303,17 @@ mod tests {
         arena.touch_ended(0, Point::new(10, 50));
         arena.cleanup_ended_touches();
         assert_eq!(arena.touch_event().touches().len(), 1);
+    }
+
+    #[test]
+    fn test_event_arena_began_to_stationary() {
+        let mut arena = EventArena { touch_event: None, scroll_event: None, press_events: Vec::new() };
+        let touch = Touch::new(0, Point::new(0, 0));
+        arena.touch_began(touch);
+        assert_eq!(arena.touch_event().touches().len(), 1);
+        assert_eq!(arena.touch_event().touches()[0].phase(), TouchPhase::Began);
+        arena.update_began_to_stationary();
+        assert_eq!(arena.touch_event().touches().len(), 1);
+        assert_eq!(arena.touch_event().touches()[0].phase(), TouchPhase::Stationary);
     }
 }

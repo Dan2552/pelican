@@ -24,6 +24,7 @@ pub struct Touch {
 pub enum TouchPhase {
     Began,
     Moved,
+    Stationary,
     Ended,
     Cancelled
 }
