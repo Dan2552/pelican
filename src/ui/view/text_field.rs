@@ -841,19 +841,19 @@ custom_view!(
                     if key.modifier_flags().contains(&ModifierFlag::Control) || key.modifier_flags().contains(&ModifierFlag::Command) {
                         let text_to_copy = text_field.selected_text().join("\n");
                         clipboard::set_string(&text_to_copy);
+
+                        let mut text_backspace = TextBackspace::new(
+                            self.view.clone(),
+                            1,
+                            CursorMovement::Character,
+                            text_field.carat_snapshots()
+                        );
+
+                        text_backspace.forward();
+
+                        let mut history = self.history.borrow_mut();
+                        history.add(Box::new(text_backspace));
                     }
-
-                    let mut text_backspace = TextBackspace::new(
-                        self.view.clone(),
-                        1,
-                        CursorMovement::Character,
-                        text_field.carat_snapshots()
-                    );
-
-                    text_backspace.forward();
-
-                    let mut history = self.history.borrow_mut();
-                    history.add(Box::new(text_backspace));
                 },
                 KeyCode::Z => {
                     if key.modifier_flags().contains(&ModifierFlag::Control) || key.modifier_flags().contains(&ModifierFlag::Command) {
@@ -863,7 +863,7 @@ custom_view!(
                         } else {
                             history.undo();
                         }
-                        
+
                         if let Some(text_change) = self.text_change.borrow().as_ref() {
                             text_change(&text_field);
                         }
@@ -1073,6 +1073,10 @@ custom_view!(
 
                     let mut history = self.history.borrow_mut();
                     history.add(Box::new(text_insertion));
+
+                    if let Some(text_change) = self.text_change.borrow().as_ref() {
+                        text_change(&text_field);
+                    }
                 }
                 _ => ()
             }
@@ -1446,7 +1450,7 @@ mod tests {
         let press = Press::new(key);
         behavior.press_began(&press);
         behavior.press_ended(&press);
-        
+
         assert_eq!(*test.borrow(), "hell");
 
         let key = Key::new(KeyCode::Z, vec![ModifierFlag::Command]);
@@ -1461,6 +1465,13 @@ mod tests {
         behavior.press_began(&press);
         behavior.press_ended(&press);
 
-        assert_eq!(*test.borrow(), "hell");        
+        assert_eq!(*test.borrow(), "hell");
+
+        let key = Key::new(KeyCode::Return, vec![]);
+        let press = Press::new(key);
+        behavior.press_began(&press);
+        behavior.press_ended(&press);
+
+        assert_eq!(*test.borrow(), "hell\n");
     }
 }
