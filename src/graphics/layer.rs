@@ -151,6 +151,30 @@ impl Layer {
         self.needs_display.set(true)
     }
 
+    /// Set the color factor of the texture for the next render.
+    pub fn set_color_factor(&self, color: Color, blend_factor: f32) {
+        let mut texture = self.texture.borrow_mut();
+
+        if blend_factor == 0.0 {
+            texture.set_color_mod(255, 255, 255);
+            return;
+        }
+
+        let red = color.r as f32;
+        let green = color.g as f32;
+        let blue = color.b as f32;
+
+        let red = ((255.0 - red) * (1.0 - blend_factor)) + red;
+        let green = ((255.0 - green) * (1.0 - blend_factor)) + green;
+        let blue = ((255.0 - blue) * (1.0 - blend_factor)) + blue;
+
+        let red = red.round() as u8;
+        let green = green.round() as u8;
+        let blue = blue.round() as u8;
+
+        texture.set_color_mod(red, green, blue);
+    }
+
     /// Note: The destination at this point is using the (unscaled) point
     /// system, not the real pixel size. The size of the real texture itself is
     /// determined by this method; the difference in quality being the source
