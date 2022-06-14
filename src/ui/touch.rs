@@ -86,7 +86,7 @@ impl Touch {
         self.inner.borrow().phase
     }
 
-    pub(crate) fn set_phase(&mut self, phase: TouchPhase) {
+    pub fn set_phase(&mut self, phase: TouchPhase) {
         self.inner.borrow_mut().phase = phase;
     }
 
