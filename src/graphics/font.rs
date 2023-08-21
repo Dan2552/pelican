@@ -18,11 +18,19 @@ pub struct Font {
     font_sizes: Rc<RefCell<HashMap<u16, Rc<sdl2::ttf::Font<'static, 'static>>>>>
 }
 
+#[cfg(not(windows))]
 const PATHS: &[&str] = &[
     "/System/Library/Fonts",
     "/System/Library/Fonts/Cache",
     "/System/Library/Fonts/Supplemental"
 ];
+
+
+#[cfg(windows)]
+const PATHS: &[&str] = &[
+    "c:\\windows\\fonts"
+];
+
 
 const TYPES: &[&str] = &[
     ".ttc",
@@ -58,7 +66,13 @@ impl Font {
     }
 
     pub fn default() -> Font {
-        Font::new("Helvetica", 16)
+        #[cfg(not(windows))] {
+            Font::new("Helvetica", 16)
+        }
+
+        #[cfg(windows)] {
+            Font::new("Tahoma", 16)
+        }   
     }
 
     // Get a drawable layer from the font for the given context.
