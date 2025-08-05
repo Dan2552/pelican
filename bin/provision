@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+set -e
+
+brew install pkg-config
+cargo install cargo-vcpkg
+cargo vcpkg -v build
+cargo run --example image
