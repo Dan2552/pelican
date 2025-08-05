@@ -16,7 +16,7 @@ pub struct ApplicationMain {
 
 #[cfg(target_os = "macos")]
 #[link(name = "CoreFoundation", kind = "framework")]
-extern {
+extern "C" {
     fn objc_enable_momentum_scroll();
 }
 
