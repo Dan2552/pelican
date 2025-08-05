@@ -19,7 +19,7 @@ pub(crate) fn update(sdl: &sdl2::Sdl) {
     if let Some(sdl_event) = event_pump.wait_event_timeout(timeout) { //blocking wait for events
         match sdl_event {
             sdl2::event::Event::Quit { .. } => {
-                let application = Application::borrow();
+                let mut application = Application::borrow_mut();
                 application.exit();
             },
             sdl2::event::Event::MouseButtonDown { window_id, x, y, .. } => {

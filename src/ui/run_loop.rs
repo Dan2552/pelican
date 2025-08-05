@@ -1,20 +1,20 @@
 use crate::ui::timer::Timer;
+use std::sync::{Mutex, RwLock};
 use std::time::Instant;
 use std::thread::sleep;
-use std::cell::{Cell, RefCell};
 use std::time::Duration;
 use crate::macros::*;
 use crate::platform::thread;
 
 singleton!(
     RunLoop,
-    timers: RefCell::new(Vec::new()),
-    state: Cell::new(State::Running)
+    state: Mutex::new(State::Running),
+    timers: RwLock::new(Vec::new())
 );
 
 pub struct RunLoop {
-    timers: RefCell<Vec<Timer>>,
-    state: Cell<State>
+    state: Mutex<State>,
+    timers: RwLock<Vec<Timer>>,
 }
 
 impl RunLoop {
@@ -23,7 +23,7 @@ impl RunLoop {
             println!("Warning: attempted to add timer from non-main thread. The timer has not been added.");
             return;
         }
-        let mut timers = self.timers.borrow_mut();
+        let mut timers = self.timers.write().expect("Failed to lock timers for writing");
         timers.push(timer)
     }
 
@@ -34,7 +34,12 @@ impl RunLoop {
         let mut last_loop_instant = Instant::now();
 
         loop {
-            if self.state.get().is_exit() {
+            let state = {
+                let state = self.state.try_lock().expect("Failed to lock state for reading");
+                *state
+            };
+
+            if state.is_exit() {
                 break;
             }
 
@@ -54,14 +59,15 @@ impl RunLoop {
 
     /// Notify the run loop to break the loop and end.
     pub fn exit(&self) {
-        self.state.set(State::Exit);
+        let mut state = self.state.try_lock().expect("Failed to lock state for writing");
+        *state = State::Exit;
     }
 
     fn run_timers(&self) {
         let mut local_timers: Vec<Timer> = Vec::new();
 
         {
-            let mut timers = self.timers.borrow_mut();
+            let mut timers = self.timers.write().expect("Failed to lock timers for writing");
 
             for timer in timers.drain(..) {
                 if timer.is_valid() {
@@ -72,7 +78,7 @@ impl RunLoop {
             timers.clear();
         }
 
-        for timer in local_timers.iter() {
+        for timer in local_timers.iter_mut() {
             if timer.fire_at() < Instant::now() {
                 timer.fire();
             }

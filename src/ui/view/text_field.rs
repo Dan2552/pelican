@@ -74,9 +74,9 @@ impl Drop for Selection {
 
 impl Drop for TextFieldBehavior {
     fn drop(&mut self) {
-        let carat_animation_timer = self.carat_animation_timer.borrow();
+        let mut carat_animation_timer = self.carat_animation_timer.borrow_mut();
 
-        if let Some(timer) = &*carat_animation_timer {
+        if let Some(timer) = carat_animation_timer.as_mut() {
             timer.invalidate();
         }
     }

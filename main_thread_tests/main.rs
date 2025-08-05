@@ -56,17 +56,21 @@ fn context() {
 
     // Add a second timer to exit the run loop after the first iteration
     {
-        let run_loop = RunLoop::borrow();
+
         // TODO: would this benefit from Window rather than View?
         let dirty_timer = Timer::new_once(move || {
             let run_loop = RunLoop::borrow();
             run_loop.exit();
         });
+
+        let run_loop = RunLoop::borrow();
         run_loop.add_timer(dirty_timer);
     }
 
-    let run_loop = RunLoop::borrow();
-    run_loop.run();
+    {
+        let run_loop = RunLoop::borrow();
+        run_loop.run();
+    }
 
     let layer = window.view.layer().unwrap();
     let context = layer.context();

@@ -48,7 +48,7 @@ impl<'a> Application {
         None
     }
 
-    pub fn exit(&self) {
+    pub fn exit(&mut self) {
         let run_loop = RunLoop::borrow();
         run_loop.exit();
     }
