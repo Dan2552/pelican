@@ -255,5 +255,17 @@ impl std::fmt::Debug for Layer {
     }
 }
 
+impl Drop for Layer {
+    fn drop(&mut self) {
+        // Get the raw pointer to the SDL_Texture
+        let texture_ptr = self.texture.borrow().raw(); // or whatever method gives you the pointer
+
+        unsafe {
+            // Call SDL_DestroyTexture on the pointer
+            sdl2::sys::SDL_DestroyTexture(texture_ptr);
+        }
+    }
+}
+
 struct EmptyLayerDelegate {}
 impl LayerDelegate for EmptyLayerDelegate {}
