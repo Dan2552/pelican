@@ -2,9 +2,11 @@ use crate::ui::Color;
 use crate::ui::Touch;
 use crate::ui::view::{WeakView, Behavior, DefaultBehavior, ViewInner};
 use crate::graphics::{Layer, Rectangle, Point, LayerDelegate};
-use std::rc::{Rc, Weak};
-use std::cell::RefCell;
 use std::cell::Ref;
+use std::sync::Arc;
+use std::sync::RwLock;
+use std::sync::RwLockReadGuard;
+use std::sync::Weak;
 use crate::ui::gesture::recognizer::Recognizer;
 use crate::ui::event::{TouchEvent, PressEvent};
 use crate::ui::window::Window;
@@ -19,14 +21,14 @@ fn next_id() -> usize {
 pub struct View {
     /// The actual view, wrapped in a reference count, so that this `View`
     /// object can easily be copied around (`clone()`).
-    pub(crate) inner_self: Rc<RefCell<ViewInner>>,
+    pub(crate) inner_self: Arc<RwLock<ViewInner>>,
 
     /// The behavior for this view. This is essentially used in order to allow
     /// inheritance-alike functionality while being able to refer to differently
     /// implemented objects all as `View`.
     ///
     /// The default constructor for `View` uses the `DefaultBehavior` struct.
-    pub(crate) behavior: Rc<RefCell<Box<dyn Behavior>>>,
+    pub(crate) behavior: Arc<RwLock<Box<dyn Behavior>>>,
 
     pub debug_name: String
 }
@@ -65,14 +67,17 @@ impl View {
         };
 
         let view = View {
-            inner_self: Rc::new(RefCell::new(inner_self)),
-            behavior: Rc::new(RefCell::new(behavior)),
+            inner_self: Arc::new(RwLock::new(inner_self)),
+            behavior: Arc::new(RwLock::new(behavior)),
             debug_name: String::from(debug_name)
         };
 
         {
             let view = view.clone();
-            let mut behavior = view.behavior.borrow_mut();
+            let mut behavior = view.behavior
+                .write()
+                .unwrap();
+
             behavior.set_view(view.downgrade());
             behavior.set_super_behavior_view(view.clone());
         }
@@ -80,23 +85,34 @@ impl View {
         view
     }
 
-    pub fn behavior(&self) -> Ref<'_, Box<dyn Behavior>> {
-        self.behavior.borrow()
+    pub fn behavior(&self) -> RwLockReadGuard<'_, Box<dyn Behavior>> {
+        self.behavior
+            .read()
+            .unwrap()
     }
 
     /// An optional identifier for the view. Can be used to find the view in
     /// the view hierarchy.
     pub fn tag(&self) -> u32 {
-        self.inner_self.borrow().tag
+        self.inner_self
+            .read()
+            .unwrap()
+            .tag
     }
 
     pub fn id(&self) -> usize {
-        self.inner_self.borrow().id
+        self.inner_self
+            .read()
+            .unwrap()
+            .id
     }
 
     /// Set the tag for this view. See `View::view` and `View::view_with_tag`.
     pub fn set_tag(&self, tag: u32) {
-        self.inner_self.borrow_mut().tag = tag;
+        self.inner_self
+            .write()
+            .unwrap()
+            .tag = tag;
     }
 
     /// Finds the first view in the view hierarchy that matches the given tag.
@@ -109,12 +125,12 @@ impl View {
         stack.push(self.clone());
 
         while let Some(view) = stack.pop() {
-            if view.inner_self.borrow().tag == tag {
+            if view.inner_self.read().unwrap().tag == tag {
                 found = Some(view);
                 break;
             }
 
-            for subview in view.inner_self.borrow().subviews.iter() {
+            for subview in view.inner_self.read().unwrap().subviews.iter() {
                 stack.push(subview.clone());
             }
         }
@@ -128,10 +144,10 @@ impl View {
     /// Also sets the parent (`superview`) of the child view to this `View`.
     pub fn add_subview(&self, child: View) {
         let weak_self = self.downgrade();
-        let mut inner_self = self.inner_self.borrow_mut();
+        let mut inner_self = self.inner_self.write().unwrap();
 
         {
-            let mut child_inner = child.inner_self.borrow_mut();
+            let mut child_inner = child.inner_self.write().unwrap();
 
             // Set the child superview
             child_inner.superview = weak_self;
@@ -144,11 +160,11 @@ impl View {
 
     /// Remove the view from its superview.
     pub fn remove_from_superview(&self) {
-        let inner_self = self.inner_self.borrow();
+        let inner_self = self.inner_self.read().unwrap();
 
         if let Some(superview) = inner_self.superview.upgrade() {
             {
-                let mut superview_inner = superview.inner_self.borrow_mut();
+                let mut superview_inner = superview.inner_self.write().unwrap();
                 superview_inner.subviews.retain(|view| view.id() != self.id());
             }
             superview.set_needs_display();
@@ -159,27 +175,27 @@ impl View {
     /// TODO: Ref here means that inner_self is still borrowed, which means
     /// other things can't borrow mut it.
     pub fn add_gesture_recognizer(&self, gesture_recognizer: Box<dyn Recognizer>) {
-        let mut inner_self = self.inner_self.borrow_mut();
+        let mut inner_self = self.inner_self.write().unwrap();
         gesture_recognizer.set_view(self.downgrade());
-        inner_self.gesture_recognizers.push(Rc::new(gesture_recognizer));
+        inner_self.gesture_recognizers.push(Arc::new(gesture_recognizer));
     }
 
     pub fn gesture_recognizers(&self) -> Vec<Weak<Box<dyn Recognizer>>> {
-        let inner_self = self.inner_self.borrow();
+        let inner_self = self.inner_self.read().unwrap();
         inner_self.gesture_recognizers
             .iter()
             .map(|recognizer| Rc::downgrade(recognizer)).collect()
     }
 
     fn draw(&self) {
-        let behavior = self.behavior.borrow();
+        let behavior = self.behavior.read().unwrap();
         behavior.draw();
     }
 
     /// Change the background color for this view.
     pub fn set_background_color(&self, color: Color) {
         {
-            let mut inner_self = self.inner_self.borrow_mut();
+            let mut inner_self = self.inner_self.write().unwrap();
 
             if inner_self.background_color == color {
                 return;
@@ -196,7 +212,7 @@ impl View {
     /// See `#draw`, which includes the instructions on what would actually be
     /// drawn to screen.
     pub fn set_needs_display(&self) {
-        let behavior = self.behavior.borrow();
+        let behavior = self.behavior.read().unwrap();
         behavior.set_needs_display();
     }
 
@@ -204,14 +220,14 @@ impl View {
     /// then this view will not receive any touch events.
     pub fn set_user_interaction_enabled(&self, enabled: bool) {
         {
-            let mut inner_self = self.inner_self.borrow_mut();
+            let mut inner_self = self.inner_self.write().unwrap();
             inner_self.user_interaction_enabled = enabled;
         }
     }
 
     pub fn set_hidden(&self, value: bool) {
         {
-            let mut inner_self = self.inner_self.borrow_mut();
+            let mut inner_self = self.inner_self.write().unwrap();
 
             if inner_self.hidden == value {
                 return;
@@ -224,38 +240,38 @@ impl View {
     }
 
     pub fn is_hidden(&self) -> bool {
-        self.inner_self.borrow().hidden
+        self.inner_self.read().unwrap().hidden
     }
 
     pub fn touches_began(&self, touches: &Vec<Touch>, _event: &TouchEvent) {
-        let behavior = self.behavior.borrow();
+        let behavior = self.behavior.read().unwrap();
         behavior.touches_began(touches);
     }
 
     pub fn touches_ended(&self, touches: &Vec<Touch>, _event: &TouchEvent) {
-        let behavior = self.behavior.borrow();
+        let behavior = self.behavior.read().unwrap();
         behavior.touches_ended(touches);
     }
 
     pub fn touches_moved(&self, touches: &Vec<Touch>, _event: &TouchEvent) {
-        let behavior = self.behavior.borrow();
+        let behavior = self.behavior.read().unwrap();
         behavior.touches_moved(touches);
     }
 
     pub fn press_began(&self, press: &Press, _event: &PressEvent) {
-        let behavior = self.behavior.borrow();
+        let behavior = self.behavior.read().unwrap();
         behavior.press_began(press);
     }
 
     pub fn press_ended(&self, press: &Press, _event: &PressEvent) {
-        let behavior = self.behavior.borrow();
+        let behavior = self.behavior.read().unwrap();
         behavior.press_ended(press);
     }
 
     /// Returns the location of this view in the highest superview coordinate
     /// space (usually the window).
     pub fn get_location_in_window(&self) -> Point<i32> {
-        let inner_self = self.inner_self.borrow();
+        let inner_self = self.inner_self.read().unwrap();
         let superview = inner_self.superview.upgrade();
 
         if superview.is_none() {
@@ -298,7 +314,7 @@ impl View {
     /// Will not return views that have `user_interaction_enabled` set to
     /// `false`.
     pub fn hit_test(&self, point: &Point<i32>) -> Option<View> {
-        let inner_self = self.inner_self.borrow();
+        let inner_self = self.inner_self.read().unwrap();
 
         if inner_self.hidden {
             return None;
@@ -330,7 +346,7 @@ impl View {
 
     pub fn set_frame(&self, frame: Rectangle<i32, u32>) {
         {
-            let mut inner_self = self.inner_self.borrow_mut();
+            let mut inner_self = self.inner_self.write().unwrap();
 
             let bounds = Rectangle {
                 origin: inner_self.bounds.origin.clone(),
@@ -349,12 +365,12 @@ impl View {
     }
 
     pub fn bounds(&self) -> Rectangle<i32, u32> {
-        self.inner_self.borrow().bounds.clone()
+        self.inner_self.read().unwrap().bounds.clone()
     }
 
     pub fn set_bounds(&self, bounds: Rectangle<i32, u32>) {
         {
-            let mut inner_self = self.inner_self.borrow_mut();
+            let mut inner_self = self.inner_self.write().unwrap();
             inner_self.bounds = bounds;
         }
 
@@ -364,25 +380,25 @@ impl View {
     /// Returns a boolean indicating whether the given point is contained in
     /// this view's bounds.
     pub fn is_point_inside(&self, point: &Point<i32>) -> bool {
-        let inner_self = self.inner_self.borrow();
+        let inner_self = self.inner_self.read().unwrap();
         let bounds = &inner_self.bounds;
         bounds.contains(point)
     }
 
     pub fn is_window(&self) -> bool {
-        let behavior = self.behavior.borrow();
+        let behavior = self.behavior.read().unwrap();
         behavior.is_window()
     }
 
     pub fn frame(&self) -> Rectangle<i32, u32> {
-        let inner_self = self.inner_self.borrow();
+        let inner_self = self.inner_self.read().unwrap();
         inner_self.frame.clone()
     }
 
     pub fn layer(&self) -> Option<Ref<'_, Layer>> {
-        let inner_self = self.inner_self.borrow();
+        let inner_self = self.inner_self.read().unwrap();
         if let Some(_) = inner_self.layer {
-            Some(Ref::map(self.inner_self.borrow(), |inner_self| inner_self.layer.as_ref().unwrap()))
+            Some(Ref::map(self.inner_self.read().unwrap(), |inner_self| inner_self.layer.as_ref().unwrap()))
         } else {
             None
         }
@@ -392,8 +408,8 @@ impl View {
     ///
     /// E.g. used to refer to a superview to not cause a cyclic reference.
     pub fn downgrade(&self) -> WeakView {
-        let weak_inner = Rc::downgrade(&self.inner_self);
-        let weak_behavior = Rc::downgrade(&self.behavior);
+        let weak_inner = Arc::downgrade(&self.inner_self);
+        let weak_behavior = Arc::downgrade(&self.behavior);
 
         WeakView {
             inner_self: weak_inner,
@@ -403,7 +419,7 @@ impl View {
     }
 
     pub fn superview(&self) -> WeakView {
-        let inner_self = self.inner_self.borrow();
+        let inner_self = self.inner_self.read().unwrap();
 
         if let Some(superview) = inner_self.superview.upgrade() {
             superview.downgrade()
@@ -413,7 +429,7 @@ impl View {
     }
 
     pub fn subviews(&self) -> Vec<View> {
-        let inner_self = self.inner_self.borrow();
+        let inner_self = self.inner_self.read().unwrap();
         inner_self.subviews.clone()
     }
 
@@ -447,12 +463,12 @@ impl View {
     }
 
     pub fn can_resign_first_responder(&self) -> bool {
-        let behavior = self.behavior.borrow();
+        let behavior = self.behavior.read().unwrap();
         behavior.can_resign_first_responder()
     }
 
     pub fn text_input_did_receive(&self, text: &str) {
-        let behavior = self.behavior.borrow();
+        let behavior = self.behavior.read().unwrap();
         behavior.text_input_did_receive(text);
     }
 }
@@ -485,7 +501,7 @@ impl PartialEq for View {
 
 impl std::fmt::Debug for View {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let behavior = self.behavior.borrow();
+        let behavior = self.behavior.read().unwrap();
         write!(f, "View({:?})", behavior.name())
     }
 }

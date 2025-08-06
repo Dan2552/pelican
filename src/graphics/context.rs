@@ -19,6 +19,7 @@ pub struct SdlContainer {
 }
 
 impl SdlContainer {
+    // TODO: this can probably be a lazy_static! or similar.
     pub fn lazy(&mut self) -> &sdl2::Sdl {
         if self.sdl.is_some() {
             self.sdl.as_ref().unwrap()

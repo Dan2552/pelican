@@ -153,7 +153,7 @@ custom_view!(
                     text_field.animate_carats();
                 }
             });
-            let run_loop = RunLoop::borrow();
+            let run_loop = RunLoop::read();
             run_loop.add_timer(carat_animation_timer.clone());
 
             let behavior = text_field.behavior();

@@ -11,7 +11,7 @@ pub struct Timer {
 struct TimerInner {
     interval: Duration,
     repeats: bool,
-    action: Box<dyn Fn() -> ()>,
+    action: Box<dyn Fn() + Send + Sync>,
 
     // If set to invalid, the timer will no longer run, and the main loop will
     // recognise it should be removed. In addition, an invalid timer cannot be
@@ -30,7 +30,7 @@ struct TimerInner {
 }
 
 impl Timer {
-    pub fn new(interval: Duration, repeats: bool, action: impl Fn() -> () + 'static) -> Self {
+    pub fn new(interval: Duration, repeats: bool, action: impl Fn() + Send + Sync + 'static) -> Self {
         let now = Instant::now();
         Self {
             inner: Arc::new(RwLock::new(TimerInner {
@@ -44,15 +44,15 @@ impl Timer {
         }
     }
 
-    pub fn new_once(action: impl Fn() -> () + 'static) -> Self {
+    pub fn new_once(action: impl Fn() + Send + Sync + 'static) -> Self {
         Timer::new(Duration::new(0, 0), false, action)
     }
 
-    pub fn new_once_delayed(delay: Duration, action: impl Fn() -> () + 'static) -> Self {
+    pub fn new_once_delayed(delay: Duration, action: impl Fn() + Send + Sync + 'static) -> Self {
         Timer::new(delay, false, action)
     }
 
-    pub fn new_repeating(interval: Duration, action: impl Fn() -> () + 'static) -> Self {
+    pub fn new_repeating(interval: Duration, action: impl Fn() + Send + Sync + 'static) -> Self {
         Timer::new(interval, true, action)
     }
 

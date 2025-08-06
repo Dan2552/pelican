@@ -7,17 +7,18 @@ use crate::ui::Color;
 use crate::ui::timer::Timer;
 use crate::ui::run_loop::RunLoop;
 use std::option::Option;
-use std::cell::RefCell;
+use std::sync::RwLock;
 
 pub struct WindowBehavior {
     view: WeakView,
     super_behavior: Box<dyn Behavior>,
     context: Context,
+    // TODO: this shouldn't be static...
     pub(crate) view_controller: ViewController<'static>,
 
     /// The window's first responder. Default to the window itself. Overriden
     /// by a view calling `become_first_responder`.
-    first_responder: RefCell<WeakView>,
+    first_responder: RwLock<WeakView>,
 }
 
 pub struct Window {
@@ -50,7 +51,7 @@ impl Window {
             super_behavior: Box::new(default_behavior),
             context: context,
             view_controller: view_controller,
-            first_responder: RefCell::new(WeakView::none())
+            first_responder: RwLock::new(WeakView::none())
         };
 
         let view = View::new_with_behavior(Box::new(window_behavior), frame, "window");
@@ -58,12 +59,12 @@ impl Window {
         let window = Window { view: view.clone() };
 
         {
-            let mut application = Application::borrow_mut();
+            let mut application = Application::write();
             application.add_window(window.clone());
         }
 
         {
-            let behavior = window.view.behavior.borrow();
+            let behavior = window.view.behavior.read().unwrap();
             let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().unwrap();
             behavior.first_responder.replace(window.view.downgrade());
             let view_controller = &behavior.view_controller;
@@ -78,19 +79,19 @@ impl Window {
 
     pub fn from_view(view: View) -> Window {
         // Downcast the behavior to essentially verify the view is a window.
-        let _ = view.behavior.borrow().as_any().downcast_ref::<WindowBehavior>().unwrap();
+        let _ = view.behavior.read().unwrap().as_any().downcast_ref::<WindowBehavior>().unwrap();
 
         Window { view }
     }
 
     pub fn make_key_and_visible(&self) {
-        let mut application = Application::borrow_mut();
+        let mut application = Application::write();
         application.set_key_window(&self);
         self.set_hidden(false);
     }
 
     pub fn context(&self) -> Context {
-        let behavior = self.view.behavior.borrow();
+        let behavior = self.view.behavior.read().unwrap();
         let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().unwrap();
         behavior.context.clone()
     }
@@ -99,9 +100,9 @@ impl Window {
     ///
     /// If there is no first responder, the window itself is returned.
     pub(crate) fn first_responder(&self) -> View {
-        let behavior = self.view.behavior.borrow();
+        let behavior = self.view.behavior.read().unwrap();
         let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().unwrap();
-        let first_responder = behavior.first_responder.borrow();
+        let first_responder = behavior.first_responder.read().unwrap();
 
         if let Some(first_responder) = first_responder.upgrade() {
             first_responder
@@ -117,7 +118,7 @@ impl Window {
             return false;
         }
 
-        let behavior = self.view.behavior.borrow();
+        let behavior = self.view.behavior.read().unwrap();
         let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().unwrap();
         behavior.first_responder.replace(view.downgrade());
         return true;
@@ -156,13 +157,13 @@ impl Behavior for WindowBehavior {
 
         let window_view = self.view.upgrade().unwrap();
         {
-            let behavior = window_view.behavior.borrow();
+            let behavior = window_view.behavior.read().unwrap();
             let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().unwrap();
             let vc = &behavior.view_controller;
             vc.window_set_needs_display(window_view.clone());
         }
 
-        let run_loop = RunLoop::borrow();
+        let run_loop = RunLoop::read();
         // TODO: would this benefit from Window rather than View?
         let dirty_timer = Timer::new_once(move || render::window_display(window_view.clone()));
         run_loop.add_timer(dirty_timer);

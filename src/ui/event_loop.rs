@@ -19,7 +19,7 @@ pub(crate) fn update(sdl: &sdl2::Sdl) {
     if let Some(sdl_event) = event_pump.wait_event_timeout(timeout) { //blocking wait for events
         match sdl_event {
             sdl2::event::Event::Quit { .. } => {
-                let mut application = Application::borrow_mut();
+                let mut application = Application::write();
                 application.exit();
             },
             sdl2::event::Event::MouseButtonDown { window_id, x, y, .. } => {
@@ -28,7 +28,7 @@ pub(crate) fn update(sdl: &sdl2::Sdl) {
                     Point { x, y },
                 );
 
-                let application = Application::borrow();
+                let application = Application::read();
                 application.assign_targets_to_touch(window_id, &touch);
                 let event = event_arena.touch_began(touch.clone());
 
@@ -85,7 +85,7 @@ pub(crate) fn update(sdl: &sdl2::Sdl) {
                 let event = event_arena.scroll_event();
                 let touch = event.touch();
 
-                let application = Application::borrow();
+                let application = Application::read();
                 application.assign_targets_to_touch(window_id, &touch);
 
                 event_arena.scroll_did_translate(Point::new(x, y));
@@ -98,7 +98,7 @@ pub(crate) fn update(sdl: &sdl2::Sdl) {
             },
 
             sdl2::event::Event::TextInput { window_id, text, .. } => {
-                let application = Application::borrow();
+                let application = Application::read();
                 let window = application.get_window(window_id);
                 if let Some(window) = window {
                     let first_responder = window.first_responder();
@@ -107,7 +107,7 @@ pub(crate) fn update(sdl: &sdl2::Sdl) {
             },
 
             sdl2::event::Event::KeyDown { window_id, keycode, keymod, .. } => {
-                let application = Application::borrow();
+                let application = Application::read();
                 let window = application.get_window(window_id);
 
                 // let event = event_arena.key_down_event();

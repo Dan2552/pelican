@@ -21,8 +21,8 @@ custom_view!(
     impl Behavior {
         fn draw(&self) {
             let view = self.view.upgrade().unwrap().clone();
-            let inner_self = view.inner_self.borrow();
-            let behavior = view.behavior.borrow();
+            let inner_self = view.inner_self.read().unwrap();
+            let behavior = view.behavior.read().unwrap();
             let behavior = behavior.as_any().downcast_ref::<ImageViewBehavior>().unwrap();
 
             if let Some(layer) = &inner_self.layer {

@@ -1,10 +1,10 @@
 use crate::ui::view::{View, Behavior, ViewInner};
-use std::rc::Weak;
-use std::cell::RefCell;
+use std::sync::Weak;
+use std::sync::RwLock;
 
 pub struct WeakView {
-    pub(crate) inner_self: Weak<RefCell<ViewInner>>,
-    pub(crate) behavior: Weak<RefCell<Box<dyn Behavior>>>,
+    pub(crate) inner_self: Weak<RwLock<ViewInner>>,
+    pub(crate) behavior: Weak<RwLock<Box<dyn Behavior>>>,
     pub debug_name: String
 }
 
@@ -45,7 +45,7 @@ impl WeakView {
 
     pub fn id(&self) -> Option<usize> {
         if let Some(inner_self) = self.inner_self.upgrade() {
-            Some(inner_self.borrow().id)
+            Some(inner_self.read().unwrap().id)
         } else {
             None
         }

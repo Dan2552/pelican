@@ -1,23 +1,28 @@
 #[macro_export]
 macro_rules! singleton {
     ($singleton_name:ident$(, $key:ident: $value:expr)*) => {
-        struct SingletonOwner {
-            value: std::cell::RefCell<$singleton_name>,
-        }
-        impl SingletonOwner {
-        }
-        static mut SINGLETON_OWNER: SingletonOwner = SingletonOwner {
-            value: std::cell::RefCell::new($singleton_name { $($key: $value),* }),
-        };
+        static SINGLETON_OWNER: std::sync::OnceLock<
+            std::sync::Arc<::std::sync::RwLock<$singleton_name>>
+        > = std::sync::OnceLock::new();
 
         impl $singleton_name {
             #![allow(dead_code)]
-            pub fn borrow<'a>() -> std::cell::Ref<'a, $singleton_name> {
-                unsafe { SINGLETON_OWNER.value.borrow() }
+            fn instance() -> &'static ::std::sync::Arc<::std::sync::RwLock<$singleton_name>> {
+                SINGLETON_OWNER.get_or_init(|| {
+                    ::std::sync::Arc::new(::std::sync::RwLock::new($singleton_name { $($key: $value),* }))
+                })
             }
 
-            pub fn borrow_mut<'a>() -> std::cell::RefMut<'a, $singleton_name> {
-                unsafe { SINGLETON_OWNER.value.borrow_mut() }
+            pub fn read<'a>() -> ::std::sync::RwLockReadGuard<'a, $singleton_name> {
+                Self::instance().read().unwrap()
+            }
+
+            pub fn write<'a>() -> ::std::sync::RwLockWriteGuard<'a, $singleton_name> {
+                Self::instance().write().unwrap()
+            }
+
+            pub fn arc() -> ::std::sync::Arc<::std::sync::RwLock<$singleton_name>> {
+                Self::instance().clone()
             }
         }
     };

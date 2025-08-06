@@ -1,9 +1,10 @@
+use std::sync::Weak;
+
 use crate::ui::{Window, WeakView};
 use crate::macros::*;
 use crate::ui::touch::Touch;
 use crate::ui::run_loop::RunLoop;
 use crate::ui::gesture::recognizer::Recognizer;
-use std::rc::Weak;
 
 singleton!(
     Application,
@@ -16,7 +17,7 @@ pub struct Application {
     pub(crate) windows: Vec<Window>
 }
 
-impl<'a> Application {
+impl Application {
     pub(crate) fn add_window(&mut self, window: Window) {
         self.windows.push(window);
     }
@@ -49,7 +50,7 @@ impl<'a> Application {
     }
 
     pub fn exit(&mut self) {
-        let run_loop = RunLoop::borrow();
+        let run_loop = RunLoop::read();
         run_loop.exit();
     }
 
@@ -85,7 +86,7 @@ mod tests {
 
     #[test]
     fn test_application_singleton() {
-        let application = Application::borrow();
+        let application = Application::read();
         assert_eq!(application.windows.len(), 0);
     }
 }

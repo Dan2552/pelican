@@ -2,7 +2,7 @@ use crate::graphics::{Layer, Rectangle};
 use crate::ui::Color;
 use crate::ui::view::{View, WeakView};
 use crate::ui::gesture::recognizer::Recognizer;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub(crate) struct ViewInner {
     /// Some way to compare `View`s (`==`) and `WeakView`s
@@ -64,7 +64,7 @@ pub(crate) struct ViewInner {
     pub subviews: Vec<View>,
 
     /// Gesture recognizers that are attached to this view.
-    pub gesture_recognizers: Vec<Rc<Box<dyn Recognizer>>>,
+    pub gesture_recognizers: Vec<Arc<Box<dyn Recognizer + Send + Sync>>>,
 
     /// Whether this view is visible or not. When hidden at the next render to
     /// screen, it'll behave the same as if it were not in the view hierarchy at

@@ -15,13 +15,13 @@ pub(crate) fn window_display(window_view: View) {
     // Additional reference for view controller notification.
     let window1 = window_view.clone();
 
-    let behavior = window_view.behavior.borrow();
+    let behavior = window_view.behavior.read().unwrap();
     let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().unwrap();
 
     // Recursively draw the texture for each layer that needs redisplay.
     draw_view(&window_view, behavior, &window.context());
 
-    let inner_view = window_view.inner_self.borrow();
+    let inner_view = window_view.inner_self.read().unwrap();
 
     // If layer was not present before this function was invoked, the leading
     // `draw_view` will have lazily created the layer, so we can be certain it
@@ -42,7 +42,7 @@ fn draw_view(view: &View, behavior: &WindowBehavior, context: &Context) {
 
     {
         {
-            let mut inner_view = view.inner_self.borrow_mut();
+            let mut inner_view = view.inner_self.write().unwrap();
 
             // TODO: lazily recreate layer if mismatch contexts
             if inner_view.layer.as_ref().is_none() {
@@ -63,13 +63,13 @@ fn draw_view(view: &View, behavior: &WindowBehavior, context: &Context) {
             }
         }
 
-        let inner_view = view.inner_self.borrow();
+        let inner_view = view.inner_self.read().unwrap();
         let layer = inner_view.layer.as_ref().unwrap();
 
         layer.draw();
     }
 
-    let inner_view = view.inner_self.borrow();
+    let inner_view = view.inner_self.read().unwrap();
     let layer = inner_view.layer.as_ref().unwrap();
 
     for subview in view.subviews().iter() {
@@ -80,7 +80,7 @@ fn draw_view(view: &View, behavior: &WindowBehavior, context: &Context) {
             continue;
         }
 
-        let sub_inner_view = subview.inner_self.borrow();
+        let sub_inner_view = subview.inner_self.read().unwrap();
         let subview_layer = sub_inner_view.layer.as_ref().unwrap();
 
         let frame = subview.frame();

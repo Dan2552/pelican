@@ -97,12 +97,12 @@ mod tests {
         view_parent.add_subview(view_child.clone());
 
         let view_child1 = view_child.clone();
-        let child_inner_self = &view_child1.inner_self.borrow();
+        let child_inner_self = &view_child1.inner_self.read();
         let childs_parent = &child_inner_self.superview;
 
         assert_eq!(view_parent, childs_parent.upgrade().unwrap());
 
-        let inner_self = view_parent.inner_self.borrow();
+        let inner_self = view_parent.inner_self.read();
         let contains_child = inner_self.subviews.contains(&view_child);
         assert_eq!(contains_child, true);
     }

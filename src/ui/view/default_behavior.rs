@@ -1,6 +1,5 @@
 use crate::ui::view::{WeakView, Behavior};
-use std::rc::Rc;
-use std::cell::RefCell;
+use std::sync::{Arc, RwLock};
 
 pub struct DefaultBehavior {
     pub view: WeakView
@@ -26,7 +25,7 @@ impl Behavior for DefaultBehavior {
         None
     }
 
-    fn next_responder(&self) -> Option<Rc<RefCell<Box<dyn Behavior>>>> {
+    fn next_responder(&self) -> Option<Arc<RwLock<Box<dyn Behavior>>>> {
         let view = self.get_view();
         if let Some(view) = view.upgrade() {
             if let Some(superview) = view.superview().upgrade() {
@@ -44,7 +43,7 @@ impl Behavior for DefaultBehavior {
     fn set_needs_display(&self) {
         let view = self.view.upgrade().unwrap().clone();
 
-        let inner_self = view.inner_self.borrow();
+        let inner_self = view.inner_self.read().unwrap();
 
         // The layer may not yet exist for this view if it's not drawn to the
         // context at least once. But this is ok, because when a layer is set
@@ -70,7 +69,7 @@ impl Behavior for DefaultBehavior {
     fn draw(&self) {
         let view = self.view.upgrade().unwrap().clone();
 
-        let inner_self = view.inner_self.borrow();
+        let inner_self = view.inner_self.read().unwrap();
 
         let color = inner_self.background_color.to_graphics_color();
 

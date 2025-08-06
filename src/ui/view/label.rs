@@ -1,37 +1,37 @@
+
 use crate::graphics::{Rectangle, Font, Size};
 use crate::ui::Color;
 use crate::ui::view::{Behavior, DefaultBehavior};
-use std::cell::{Cell, RefCell, Ref};
 use crate::text::attributed_string::{AttributedString, Key, Attribute};
 use crate::text::rendering;
 use crate::macros::*;
 use crate::text::{VerticalAlignment, HorizontalAlignment};
 use std::ops::Range;
-use std::rc::Rc;
 use crate::text::Text;
+use std::sync::{Arc, RwLock, Mutex};
 
 custom_view!(
     Label subclasses DefaultBehavior
 
     struct LabelBehavior {
-        attributed_text: Rc<RefCell<AttributedString>>,
-        text_alignment: Cell<HorizontalAlignment>,
-        text_vertical_alignment: Cell<VerticalAlignment>,
-        rendering_result: RefCell<Option<rendering::Result>>
+        attributed_text: Arc<RwLock<AttributedString>>,
+        text_alignment: Mutex<HorizontalAlignment>,
+        text_vertical_alignment: Mutex<VerticalAlignment>,
+        rendering_result: RwLock<Option<rendering::Result>>
     }
 
     impl Self {
         pub fn new(frame: Rectangle<i32, u32>, text: String) -> Label {
-            let text = Rc::new(RefCell::new(AttributedString::new(text)));
-            let text_alignment = Cell::new(HorizontalAlignment::Left);
-            let text_vertical_alignment = Cell::new(VerticalAlignment::Top);
+            let text = Arc::new(RwLock::new(AttributedString::new(text)));
+            let text_alignment = Mutex::new(HorizontalAlignment::Left);
+            let text_vertical_alignment = Mutex::new(VerticalAlignment::Top);
 
             let label = Self::new_all(
                 frame,
                 text,
                 text_alignment,
                 text_vertical_alignment,
-                RefCell::new(None)
+                RwLock::new(None)
             );
             label.view.set_background_color(Color::clear());
             label
@@ -43,7 +43,7 @@ custom_view!(
         /// from the attributed string.
         pub fn copy_text(&self) -> String {
             let behavior = self.behavior();
-            let attributed_text = behavior.attributed_text.borrow();
+            let attributed_text = behavior.attributed_text.read().unwrap();
             String::from(attributed_text.text().string())
         }
 
@@ -55,7 +55,7 @@ custom_view!(
         }
 
         pub fn text_len(&self) -> usize {
-            self.behavior().attributed_text.borrow().len()
+            self.behavior().attributed_text.read().unwrap().len()
         }
 
         /// Sets the text and removes any styling currently set via
@@ -64,7 +64,7 @@ custom_view!(
             let behavior = self.behavior();
             let attributed_text: AttributedString;
             {
-                let existing = behavior.attributed_text.borrow();
+                let existing = behavior.attributed_text.read().unwrap();
                 // TODO: spec
                 attributed_text = AttributedString::new_matching_default_style(text, &existing);
             }
@@ -104,7 +104,7 @@ custom_view!(
             let behavior = self.behavior();
 
             {
-                let attributed_text = behavior.attributed_text.borrow();
+                let attributed_text = behavior.attributed_text.read().unwrap();
                 attributed_text.set_default_attribute(
                     Key::Color,
                     Attribute::Color { color: text_color.to_graphics_color() }
@@ -117,7 +117,7 @@ custom_view!(
         pub fn text_color(&self) -> Color {
             let behavior = self.behavior();
 
-            let attributed_text = behavior.attributed_text.borrow();
+            let attributed_text = behavior.attributed_text.read().unwrap();
             let attribute = attributed_text.default_attribute(Key::Color);
             let graphics_color = attribute.color();
 
@@ -128,7 +128,7 @@ custom_view!(
             let behavior = self.behavior();
 
             {
-                let attributed_text = behavior.attributed_text.borrow();
+                let attributed_text = behavior.attributed_text.read().unwrap();
                 attributed_text.set_default_attribute(
                     Key::Font,
                     Attribute::Font { font }
@@ -141,7 +141,7 @@ custom_view!(
         pub fn font(&self) -> Font {
             let behavior = self.behavior();
 
-            let attributed_text = behavior.attributed_text.borrow();
+            let attributed_text = behavior.attributed_text.read().unwrap();
             let attribute = attributed_text.default_attribute(Key::Font);
             attribute.font().clone()
         }
@@ -168,8 +168,8 @@ custom_view!(
             // TODO: add size to rendering_result
 
             // let behavior = self.behavior();
-            // let text = behavior.text.borrow().clone();
-            // let font = behavior.font.borrow();
+            // let text = behavior.text.read().unwrap().clone();
+            // let font = behavior.font.read().unwrap();
 
             // let size = font.size_for(&text);
 
@@ -180,9 +180,9 @@ custom_view!(
         }
 
         fn generate_rendering_result(&self) {
-            let inner_self = self.view.inner_self.borrow();
+            let inner_self = self.view.inner_self.read().unwrap();
             let behavior = self.behavior();
-            let attributed_string = behavior.attributed_text.borrow();
+            let attributed_string = behavior.attributed_text.read().unwrap();
 
             let render_scale: f32;
             if let Some(parent_layer) = &inner_self.layer {
@@ -215,11 +215,11 @@ custom_view!(
 
 
             let view = self.view.upgrade().unwrap().clone();
-            let inner_self = view.inner_self.borrow();
+            let inner_self = view.inner_self.read().unwrap();
 
             let mut needs_generation = false;
 
-            if let Some(rendering_result) = self.rendering_result.borrow().as_ref() {
+            if let Some(rendering_result) = self.rendering_result.read().unwrap().as_ref() {
                 if let Some(parent_layer) = &inner_self.layer {
                     let context = parent_layer.context();
 
@@ -235,10 +235,10 @@ custom_view!(
                 label.generate_rendering_result();
             }
 
-            let attributed_string = self.attributed_text.borrow();
+            let attributed_string = self.attributed_text.read().unwrap();
 
             if let Some(parent_layer) = &inner_self.layer {
-                let rendering_result = self.rendering_result.borrow();
+                let rendering_result = self.rendering_result.read().unwrap();
                 let rendering_result = rendering_result.as_ref().unwrap();
 
                 for (index, character) in attributed_string.chars().enumerate() {
@@ -275,12 +275,12 @@ custom_view!(
 impl LabelBehavior {
     pub fn rendering(&self) -> Ref<'_, rendering::Result> {
         let label = Label::from_view(self.view.upgrade().unwrap());
-        let rendering_result = self.rendering_result.borrow();
+        let rendering_result = self.rendering_result.read().unwrap();
         if rendering_result.is_none() {
             label.generate_rendering_result();
         };
 
-        Ref::map(self.rendering_result.borrow(), |rendering_result| rendering_result.as_ref().unwrap())
+        Ref::map(self.rendering_result.read().unwrap(), |rendering_result| rendering_result.as_ref().unwrap())
     }
 }
 

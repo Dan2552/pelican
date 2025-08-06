@@ -1,9 +1,8 @@
 use crate::graphics::Point;
 use crate::ui::{View, Window};
+use std::sync::{Arc, RwLock, RwLockReadGuard, Weak};
 use std::time::Instant;
 use crate::ui::gesture::recognizer::Recognizer;
-use std::rc::{Rc, Weak};
-use std::cell::{Ref, RefCell};
 
 struct TouchInner {
     id: usize,
@@ -16,7 +15,7 @@ struct TouchInner {
 }
 
 pub struct Touch {
-    inner: Rc<RefCell<TouchInner>>
+    inner: Arc<RwLock<TouchInner>>
 }
 
 /// A touch phase describes the lifecycle of a touch event.
@@ -32,7 +31,7 @@ pub enum TouchPhase {
 impl Touch {
     pub fn new(id: usize, position: Point<i32>) -> Touch {
         Touch {
-            inner: Rc::new(RefCell::new(TouchInner {
+            inner: Arc::new(RwLock::new(TouchInner {
                 id,
                 timestamp: Instant::now(),
                 position,
@@ -45,19 +44,19 @@ impl Touch {
     }
 
     pub fn position(&self) -> Point<i32> {
-        self.inner.borrow().position.clone()
+        self.inner.read().unwrap().position.clone()
     }
 
     pub(crate) fn set_position(&self, position: Point<i32>) {
-        self.inner.borrow_mut().position = position;
+        self.inner.write().unwrap().position = position;
     }
 
     pub(crate) fn set_view(&self, view: View) {
-        self.inner.borrow_mut().view = Some(view);
+        self.inner.write().unwrap().view = Some(view);
     }
 
     pub fn view(&self) -> Option<View> {
-        let inner = self.inner.borrow();
+        let inner = self.inner.read().unwrap();
         if let Some(view) = &inner.view {
             Some(view.clone())
         } else {
@@ -66,36 +65,35 @@ impl Touch {
     }
 
     pub(crate) fn set_window(&self, window: Window) {
-        self.inner.borrow_mut().window = Some(window);
+        self.inner.write().unwrap().window = Some(window);
     }
 
-    pub(crate) fn gesture_recognizers(&self) -> Ref<'_, Vec<Weak<Box<dyn Recognizer>>>> {
-        // &self.inner.borrow().gesture_recognizers
-        Ref::map(self.inner.borrow(), |inner| &inner.gesture_recognizers)
+    pub(crate) fn gesture_recognizers(&self) -> RwLockReadGuard<'_, Vec<Weak<Box<dyn Recognizer>>>> {
+        RwLockReadGuard::map(self.inner.read().unwrap(), |inner| &inner.gesture_recognizers)
     }
 
     pub(crate) fn set_gesture_recognizers(&self, recognizers: Vec<Weak<Box<dyn Recognizer>>>) {
-        self.inner.borrow_mut().gesture_recognizers = recognizers;
+        self.inner.write().unwrap().gesture_recognizers = recognizers;
     }
 
     pub fn window(&self) -> Option<Window> {
-        self.inner.borrow().window.clone()
+        self.inner.read().unwrap().window.clone()
     }
 
     pub fn phase(&self) -> TouchPhase {
-        self.inner.borrow().phase
+        self.inner.read().unwrap().phase
     }
 
     pub fn set_phase(&mut self, phase: TouchPhase) {
-        self.inner.borrow_mut().phase = phase;
+        self.inner.write().unwrap().phase = phase;
     }
 
     pub fn timestamp(&self) -> Instant {
-        self.inner.borrow().timestamp
+        self.inner.read().unwrap().timestamp
     }
 
     pub fn id(&self) -> usize {
-        self.inner.borrow().id
+        self.inner.read().unwrap().id
     }
 }
 
