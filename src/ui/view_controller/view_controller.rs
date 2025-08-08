@@ -19,21 +19,19 @@ enum State {
     // DidDisappear
 }
 
-pub struct ViewController<'a> {
+pub struct ViewController {
     state: Cell<State>,
-    behavior: Box<dyn ViewControllerBehavior + 'a>,
+    behavior: Box<dyn ViewControllerBehavior + 'static>,
 }
 
-impl<'a> ViewController<'a> {
-    pub fn new<T>(behavior: T) -> Self where T: ViewControllerBehavior + 'a {
+impl ViewController {
+    pub fn new<T>(behavior: T) -> Self where T: ViewControllerBehavior + 'static {
         Self {
             state: Cell::new(State::WillLoad),
             behavior: Box::new(behavior),
         }
     }
-}
 
-impl ViewController<'_> {
     /// Called at the end of window construction (`Window::new`).
     ///
     /// This is the time for the application itself to start building up the

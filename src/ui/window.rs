@@ -13,7 +13,7 @@ pub struct WindowBehavior {
     view: WeakView,
     super_behavior: Box<dyn Behavior>,
     context: Context,
-    pub(crate) view_controller: ViewController<'static>,
+    pub(crate) view_controller: ViewController,
 
     /// The window's first responder. Default to the window itself. Overriden
     /// by a view calling `become_first_responder`.
@@ -32,7 +32,7 @@ impl std::ops::Deref for Window {
 }
 
 impl Window {
-    pub fn new(title: &str, frame: Rectangle<i32, u32>, view_controller: ViewController<'static>) -> Window {
+    pub fn new(title: &str, frame: Rectangle<i32, u32>, view_controller: ViewController) -> Window {
         let default_behavior = DefaultBehavior {
             view: WeakView::none()
         };
