@@ -3,7 +3,6 @@ pub mod default_behavior;
 pub mod view_inner;
 pub mod view;
 pub mod weak_view;
-pub mod delegate;
 pub mod image_view;
 pub mod label;
 pub mod scroll_view;
