@@ -48,11 +48,8 @@ impl ApplicationMain {
         // The event loop will handle all OS events; any user or device input
         // and propagate to the appropriate areas of the application.
         {
-            let sdl: &sdl2::Sdl;
-            unsafe { sdl = crate::graphics::SDL_CONTAINER.lazy(); }
-
             let duration = Duration::from_millis(0);
-            let timer = Timer::new_repeating(duration, move || event_loop::update(sdl));
+            let timer = Timer::new_repeating(duration, move || event_loop::update());
             run_loop.add_timer(timer);
         }
 

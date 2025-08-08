@@ -1,4 +1,5 @@
 use crate::platform::bundle::Bundle;
+use std::ops::Deref;
 use std::path::Path;
 use crate::graphics::Context;
 use crate::graphics::Layer;
@@ -7,6 +8,7 @@ use crate::graphics::Color;
 use std::rc::Rc;
 use std::collections::HashMap;
 use std::cell::RefCell;
+use crate::macros::singleton;
 
 pub struct Font {
     path: String,
@@ -40,23 +42,31 @@ const TYPES: &[&str] = &[
 ];
 
 pub(crate) struct SdlTtfContainer {
-    ttf: Option<Rc<sdl2::ttf::Sdl2TtfContext>>,
+   ttf: Rc<sdl2::ttf::Sdl2TtfContext>,
 }
 
 impl SdlTtfContainer {
-    pub fn lazy(&mut self) -> &sdl2::ttf::Sdl2TtfContext {
-        if self.ttf.is_some() {
-            self.ttf.as_ref().unwrap()
-        } else {
-            self.ttf = Some(Rc::new(sdl2::ttf::init().unwrap()));
-            self.ttf.as_ref().unwrap()
-        }
+    // fn get() -> &'static sdl2::ttf::Sdl2TtfContext {
+    //     &SdlTtfContainer::borrow().ttf
+    // }
+}
+
+impl Default for SdlTtfContainer {
+    fn default() -> Self {
+        let ttf = sdl2::ttf::init().unwrap();
+        Self { ttf: Rc::new(ttf) }
     }
 }
 
-static mut TTF_CONTAINER: SdlTtfContainer = SdlTtfContainer {
-    ttf: None
-};
+impl Deref for SdlTtfContainer {
+    type Target = sdl2::ttf::Sdl2TtfContext;
+
+    fn deref(&self) -> &Self::Target {
+        &self.ttf
+    }
+}
+
+singleton!(SdlTtfContainer + Default);
 
 impl Font {
     pub fn new(font_name: &str, size: u16) -> Font {
@@ -72,7 +82,7 @@ impl Font {
 
         #[cfg(windows)] {
             Font::new("Tahoma", 16)
-        }   
+        }
     }
 
     // Get a drawable layer from the font for the given context.
@@ -110,8 +120,9 @@ impl Font {
     fn load_font_for_size(&self, font_size: u16) -> Rc<sdl2::ttf::Font> {
         let mut font_sizes = self.font_sizes.borrow_mut();
 
+        let ttf_context = SdlTtfContainer::leak_static();
+
         if font_sizes.get(&font_size).is_none() {
-            let ttf_context = unsafe { TTF_CONTAINER.lazy() };
             let mut font = ttf_context.load_font(&self.path, font_size).unwrap();
             font.set_kerning(false);
             font_sizes.insert(font_size, Rc::new(font));

@@ -1,10 +1,11 @@
 use crate::ui::application::Application;
 use crate::ui::touch::Touch;
-use crate::graphics::Point;
+use crate::graphics::{Point, SdlContainer};
 use crate::ui::event::EventArena;
 use crate::ui::key::{Key, ModifierFlag};
 
-pub(crate) fn update(sdl: &sdl2::Sdl) {
+pub(crate) fn update() {
+    let sdl = SdlContainer::borrow();
     let mut event_pump = sdl.event_pump().unwrap();
     let mut event_arena = EventArena::borrow_mut();
 

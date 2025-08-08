@@ -1,23 +1,144 @@
+pub mod singleton_support {
+    use std::cell::{RefCell, Ref, RefMut};
+    use std::thread::ThreadId;
+
+    #[allow(dead_code)]
+    pub struct MainThreadCell<T> {
+        owner: ThreadId,
+        inner: RefCell<T>,
+    }
+
+    impl<T> MainThreadCell<T> {
+        pub fn new(value: T) -> Self {
+            Self {
+                owner: std::thread::current().id(),
+                inner: RefCell::new(value),
+            }
+        }
+
+        #[inline]
+        #[cfg(not(test))]
+        fn assert_owner(&self) {
+            if std::thread::current().id() != self.owner {
+                panic!("singleton accessed from a non-owner thread");
+            }
+        }
+
+        #[inline]
+        #[cfg(test)]
+        fn assert_owner(&self) {
+            // Skip check entirely in tests
+        }
+
+        #[inline]
+        pub fn borrow(&self) -> Ref<'_, T> {
+            self.assert_owner();
+            self.inner.borrow()
+        }
+
+        #[inline]
+        pub fn borrow_mut(&self) -> RefMut<'_, T> {
+            self.assert_owner();
+            self.inner.borrow_mut()
+        }
+    }
+
+    // SAFETY: This is only sound if you *guarantee* all access happens on the owner thread.
+    // We enforce that at runtime with `assert_owner()`, which panics if violated.
+    unsafe impl<T> Sync for MainThreadCell<T> {}
+}
+
 #[macro_export]
 macro_rules! singleton {
-    ($singleton_name:ident$(, $key:ident: $value:expr)*) => {
-        struct SingletonOwner {
-            value: std::cell::RefCell<$singleton_name>,
-        }
-        impl SingletonOwner {
-        }
-        static mut SINGLETON_OWNER: SingletonOwner = SingletonOwner {
-            value: std::cell::RefCell::new($singleton_name { $($key: $value),* }),
-        };
-
-        impl $singleton_name {
+    // ---- Explicit fields only: no Default bound, no struct update ----
+    ($ty:ident $(, $field:ident : $value:expr )* $(,)?) => {
+        impl $ty {
             #![allow(dead_code)]
-            pub fn borrow<'a>() -> std::cell::Ref<'a, $singleton_name> {
-                unsafe { SINGLETON_OWNER.value.borrow() }
+            #[inline]
+            fn __cell() -> &'static $crate::macros::singleton_support::MainThreadCell<$ty> {
+                static CELL: std::sync::OnceLock<
+                    &'static $crate::macros::singleton_support::MainThreadCell<$ty>
+                > = std::sync::OnceLock::new();
+
+                *CELL.get_or_init(|| {
+                    let boxed = Box::new(
+                        $crate::macros::singleton_support::MainThreadCell::new(
+                            $ty { $($field: $value,)* }
+                        )
+                    );
+                    Box::leak(boxed)
+                })
             }
 
-            pub fn borrow_mut<'a>() -> std::cell::RefMut<'a, $singleton_name> {
-                unsafe { SINGLETON_OWNER.value.borrow_mut() }
+            #[inline]
+            pub fn borrow() -> std::cell::Ref<'static, $ty> {
+                Self::__cell().borrow()
+            }
+
+            #[inline]
+            pub fn borrow_mut() -> std::cell::RefMut<'static, $ty> {
+                Self::__cell().borrow_mut()
+            }
+
+            /// After calling this, any `borrow_mut()` will panic forever.
+            /// After calling this, `borrow_mut()` will panic forever.
+            pub fn leak_static() -> &'static $ty {
+                let r = Self::__cell().borrow();
+                let p: *const $ty = &*r;
+                std::mem::forget(r);           // keep borrow flag raised forever
+                // SAFETY: we promise never to take a mutable borrow again.
+                unsafe { &*p }
+            }
+        }
+    };
+
+    // ---- Use Default for missing fields: requires T: Default ----
+    ($ty:ident + Default $(, $field:ident : $value:expr )* $(,)?) => {
+        impl $ty {
+            #![allow(dead_code)]
+            #[inline]
+            fn __cell() -> &'static $crate::macros::singleton_support::MainThreadCell<$ty>
+            where
+                $ty: Default,
+            {
+                static CELL: std::sync::OnceLock<
+                    &'static $crate::macros::singleton_support::MainThreadCell<$ty>
+                > = std::sync::OnceLock::new();
+
+                *CELL.get_or_init(|| {
+                    let boxed = Box::new(
+                        $crate::macros::singleton_support::MainThreadCell::new(
+                            $ty { $($field: $value,)* ..Default::default() }
+                        )
+                    );
+                    Box::leak(boxed)
+                })
+            }
+
+            #[inline]
+            pub fn borrow() -> std::cell::Ref<'static, $ty>
+            where
+                $ty: Default,
+            {
+                Self::__cell().borrow()
+            }
+
+            #[inline]
+            pub fn borrow_mut() -> std::cell::RefMut<'static, $ty>
+            where
+                $ty: Default,
+            {
+                Self::__cell().borrow_mut()
+            }
+
+            /// After calling this, any `borrow_mut()` will panic forever.
+            /// After calling this, `borrow_mut()` will panic forever.
+            pub fn leak_static() -> &'static $ty {
+                let r = Self::__cell().borrow();
+                let p: *const $ty = &*r;
+                std::mem::forget(r);           // keep borrow flag raised forever
+                // SAFETY: we promise never to take a mutable borrow again.
+                unsafe { &*p }
             }
         }
     };

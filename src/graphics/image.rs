@@ -125,11 +125,10 @@ impl<'a> Image<'a> {
     }
 
     fn scale_2x_name(name: &str) -> String {
-        let name2x = name.clone();
-        let name2x = Regex::new(r"\.png$").unwrap().replace_all(&name2x, "@2x.png");
-        let name2x = Regex::new(r"\.jpg$").unwrap().replace_all(&name2x, "@2x.jpg");
-        let name2x = Regex::new(r"\.jpeg$").unwrap().replace_all(&name2x, "@2x.jpeg");
-        Bundle::path_for_resource(&name2x)
+        let name = Regex::new(r"\.png$").unwrap().replace_all(&name, "@2x.png");
+        let name = Regex::new(r"\.jpg$").unwrap().replace_all(&name, "@2x.jpg");
+        let name = Regex::new(r"\.jpeg$").unwrap().replace_all(&name, "@2x.jpeg");
+        Bundle::path_for_resource(&name)
     }
 
     fn is_file(path: &str) -> bool {

@@ -1,3 +1,4 @@
+use crate::graphics::SdlContainer;
 use crate::graphics::Size;
 use crate::graphics::Point;
 use crate::graphics::Rectangle;
@@ -13,25 +14,6 @@ use sdl2::pixels::Color;
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::convert::TryInto;
-
-pub struct SdlContainer {
-    sdl: Option<Rc<sdl2::Sdl>>,
-}
-
-impl SdlContainer {
-    pub fn lazy(&mut self) -> &sdl2::Sdl {
-        if self.sdl.is_some() {
-            self.sdl.as_ref().unwrap()
-        } else {
-            self.sdl = Some(Rc::new(sdl2::init().unwrap()));
-            self.sdl.as_ref().unwrap()
-        }
-    }
-}
-
-pub static mut SDL_CONTAINER: SdlContainer = SdlContainer {
-    sdl: None
-};
 
 /// `Context` for a graphics render target. E.g. a window.
 ///
@@ -68,10 +50,7 @@ struct ContextInner {
 
 impl Context {
     pub fn new(title: &str, position: Point<i32>, size: Size<u32>) -> Context {
-        let sdl: &sdl2::Sdl;
-
-        unsafe { sdl = SDL_CONTAINER.lazy(); }
-
+        let sdl = SdlContainer::borrow();
         let video_subsystem = sdl.video().unwrap();
 
         let window = video_subsystem

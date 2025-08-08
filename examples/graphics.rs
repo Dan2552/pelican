@@ -59,8 +59,7 @@ pub fn main() -> Result<(), String> {
 
     window1.draw();
 
-    let sdl: &sdl2::Sdl;
-    unsafe { sdl = pelican::graphics::SDL_CONTAINER.lazy(); }
+    let sdl = pelican::graphics::SdlContainer::borrow();
 
     let mut event_pump = sdl.event_pump()?;
 
