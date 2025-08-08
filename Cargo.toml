@@ -41,9 +41,6 @@ name = "text_field"
 [[example]]
 name = "pan_gesture"
 
-[[example]]
-name = "debug_textbychar"
-
 [[test]]
 name = "main_thread_tests"
 path = "main_thread_tests/main.rs"
