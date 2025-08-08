@@ -12,11 +12,14 @@ cc = "1"
 uuid = { version = "0.8", features = ["v4"] }
 unicode-segmentation = "1.8.0"
 regex = "1.5.5"
+wry = "0.52.1"
+dpi = "0.1.2"
+objc = "0.2.7"
 
 [dependencies.sdl2]
 version = "0.38"
 default-features = false
-features = ["unsafe_textures", "ttf", "image", "gfx", "mixer", "static-link","use-vcpkg"]
+features = ["unsafe_textures", "ttf", "image", "gfx", "mixer", "static-link","use-vcpkg", "raw-window-handle"]
 
 [package.metadata.vcpkg]
 dependencies = ["sdl2", "sdl2-image[libjpeg-turbo,tiff,libwebp]", "sdl2-ttf", "sdl2-gfx", "sdl2-mixer"]
