@@ -6,7 +6,7 @@ use crate::ui::key::{Key, ModifierFlag};
 
 pub(crate) fn update(sdl: &sdl2::Sdl) {
     let mut event_pump = sdl.event_pump().unwrap();
-    let mut event_arena = EventArena::default();
+    let mut event_arena = EventArena::borrow_mut();
 
     event_arena.cleanup_ended_touches();
     event_arena.update_began_to_stationary();

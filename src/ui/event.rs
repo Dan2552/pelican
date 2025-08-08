@@ -1,4 +1,5 @@
 use crate::ui::Touch;
+use crate::macros::*;
 use std::rc::Rc;
 use std::cell::{Ref, RefCell};
 use crate::ui::touch::TouchPhase;
@@ -110,20 +111,12 @@ impl Clone for PressEvent {
     }
 }
 
+singleton!(EventArena, touch_event: None, scroll_event: None, press_events: Vec::new());
+
 pub(crate) struct EventArena {
     touch_event: Option<TouchEvent>,
     scroll_event: Option<ScrollEvent>,
     press_events: Vec<PressEvent>
-}
-
-impl Default for EventArena {
-    fn default() -> Self {
-        EventArena {
-            touch_event: None,
-            scroll_event: None,
-            press_events: Vec::new()
-        }
-    }
 }
 
 impl EventArena {
