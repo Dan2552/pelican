@@ -1,13 +1,10 @@
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
-use sdl2::video::Window;
 use std::time::Duration;
-use wry::{WebView, WebViewBuilder};
-
+use wry::WebViewBuilder;
 
 fn main() -> wry::Result<()> {
-    // SDL setup
     let sdl = sdl2::init().expect("Failed to init SDL");
     let video = sdl.video().expect("Failed to init SDL video");
 
@@ -20,41 +17,31 @@ fn main() -> wry::Result<()> {
         .build()
         .expect("Failed to create SDL window");
 
-    // Simple SDL render stuff just so you can see the background “beneath” the webview
     let mut canvas = window.clone()
         .into_canvas()
         .present_vsync()
         .build()
         .expect("Failed to get canvas");
 
-    // Create the webview as a CHILD of the SDL window
-    // `sdl2::video::Window` implements `HasWindowHandle`, which WRY accepts.
-    let webview = attach_webview_to_sdl_window(&window)?;
-    let (render_width, render_height) = window.size();
+    let builder = WebViewBuilder::new()
+        .with_transparent(true)
+        .with_html(
+          r#"<html>
+                <body style="background-color:rgba(87,87,87,0.5);">
+                hello webview
+                <input type="text" placeholder="Type here..." style="width: 200px; padding: 10px; font-size: 16px;"/>
+                </body>
+            </html>"#,
+        )
+        .with_devtools(true);
 
+    let webview = builder.build_as_child(&window)?;
+    webview.focus()?;
 
-    let (pixel_width, _pixel_height) = canvas.output_size().unwrap();
-    let render_scale = pixel_width as f64 / render_width as f64;
-
-
-    // Consider scale
-    let w = (render_width as f64 * render_scale).round() as i32;
-    let h = (render_height as f64 * render_scale).round() as i32;
-
-    // Keep the child webview sized to the SDL window
+    let (w, h) = window.size();
     let _ = webview.set_bounds(wry::Rect {
-        position: dpi::Position::Physical(
-            dpi::PhysicalPosition {
-                x: 0,
-                y: 0,
-            }
-        ),
-        size: dpi::Size::Physical(
-            dpi::PhysicalSize {
-                width: w.max(1) as u32,
-                height: h.max(1) as u32,
-            }
-        ),
+        position: dpi::Position::Logical(dpi::LogicalPosition { x: 0.0, y: 0.0 }),
+        size: dpi::Size::Logical(dpi::LogicalSize { width: w as f64, height: h as f64 }),
     });
 
     // Event loop
@@ -71,24 +58,9 @@ fn main() -> wry::Result<()> {
                     use sdl2::event::WindowEvent;
                     match win_event {
                         WindowEvent::Resized(w, h) | WindowEvent::SizeChanged(w, h) => {
-                            // Consider scale
-                            let w = (w as f64 * render_scale).round() as i32;
-                            let h = (h as f64 * render_scale).round() as i32;
-
-                            // Keep the child webview sized to the SDL window
                             let _ = webview.set_bounds(wry::Rect {
-                                position: dpi::Position::Physical(
-                                    dpi::PhysicalPosition {
-                                        x: 0,
-                                        y: 0,
-                                    }
-                                ),
-                                size: dpi::Size::Physical(
-                                    dpi::PhysicalSize {
-                                        width: w.max(1) as u32,
-                                        height: h.max(1) as u32,
-                                    }
-                                ),
+                                position: dpi::Position::Logical(dpi::LogicalPosition { x: 0.0, y: 0.0 }),
+                                size: dpi::Size::Logical(dpi::LogicalSize { width: w as f64, height: h as f64 }),
                             });
                         }
                         _ => {}
@@ -102,20 +74,11 @@ fn main() -> wry::Result<()> {
         canvas.set_draw_color(Color::RGB(32, 36, 48));
         canvas.clear();
         canvas.present();
+        webview.focus()?;
 
         // Sleep a tad so we’re not pegging a core
         std::thread::sleep(Duration::from_millis(8));
     }
 
     Ok(())
-}
-
-fn attach_webview_to_sdl_window(win: &Window) -> wry::Result<WebView> {
-    let builder = WebViewBuilder::new()
-        .with_url("https://search.brave.com/")
-        .with_devtools(true);
-
-    let webview = builder.build_as_child(win)?;
-
-    Ok(webview)
 }
