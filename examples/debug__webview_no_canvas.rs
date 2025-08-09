@@ -1,7 +1,54 @@
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
+use wry::raw_window_handle::{AppKitWindowHandle, HandleError, HasWindowHandle, RawWindowHandle, WindowHandle};
+use std::ptr::NonNull;
 use std::time::Duration;
 use wry::WebViewBuilder;
+use std::ffi::c_void;
+
+pub struct NsContentViewParent {
+    ns_view: NonNull<c_void>, // NSView* (NSWindow.contentView)
+}
+
+impl HasWindowHandle for NsContentViewParent {
+    fn window_handle(&self) -> Result<WindowHandle, HandleError> {
+        let appkit = AppKitWindowHandle::new(self.ns_view); // takes NSView*
+        let raw = RawWindowHandle::AppKit(appkit);
+        // SAFETY: we're creating a borrowed handle from a stable pointer
+        Ok(unsafe { WindowHandle::borrow_raw(raw) })
+    }
+}
+
+#[cfg(target_os = "macos")]
+unsafe fn ns_window_from_metal(window: &sdl2::video::Window) -> *mut c_void {
+    use sdl2::sys::{SDL_Metal_CreateView, SDL_Metal_DestroyView};
+    use objc::{msg_send, sel, sel_impl};
+    use objc::runtime::Object;
+
+    let mview = SDL_Metal_CreateView(window.raw());
+    if mview.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    let nsview: *mut Object = mview.cast();
+    let nswindow: *mut Object = msg_send![nsview, window];
+
+    SDL_Metal_DestroyView(mview);
+    nswindow.cast() // NSWindow*
+}
+
+#[cfg(target_os = "macos")]
+unsafe fn ns_content_view_from_metal(window: &sdl2::video::Window) -> Option<NonNull<c_void>> {
+    use objc::{msg_send, sel, sel_impl};
+    use objc::runtime::Object;
+
+    let nswindow = ns_window_from_metal(window) as *mut Object;
+    if nswindow.is_null() {
+        return None;
+    }
+    let content_view: *mut Object = msg_send![nswindow, contentView]; // NSView*
+    NonNull::new(content_view.cast())
+}
 
 fn main() -> wry::Result<()> {
     let sdl = sdl2::init().expect("Failed to init SDL");
@@ -28,7 +75,8 @@ fn main() -> wry::Result<()> {
         )
         .with_devtools(true);
 
-    let webview = builder.build_as_child(&window)?;
+    let parent = NsContentViewParent { ns_view: unsafe { ns_content_view_from_metal(&window).unwrap() } };
+    let webview = builder.build_as_child(&parent)?;
 
     webview.focus()?;
 
