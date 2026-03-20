@@ -147,7 +147,7 @@ impl Word {
         self.size.width += character.size.width;
         self.size.height = character.size.height.max(self.size.height);
         self.characters.push(character);
-        self.characters.last().unwrap()
+        self.characters.last().expect("characters list was empty")
     }
 }
 
@@ -505,13 +505,13 @@ impl WholeText<'_> {
         } else {
             fallback_cursor_rectangle = Rectangle::new(0, 0, 0, 0);
 
-            let last_line_result = line_results.last().unwrap();
+            let last_line_result = line_results.last().expect("line_results was empty");
 
             if !last_line_result.ends_with_newline {
                 let after_position: Point<i32>;
                 {
-                    let last_position = positions.last().unwrap();
-                    let last_size = sizes.last().unwrap();
+                    let last_position = positions.last().expect("positions list was empty");
+                    let last_size = sizes.last().expect("sizes list was empty");
 
                     after_position = Point {
                         x: last_position.x + last_size.width as i32,
@@ -594,7 +594,7 @@ impl Result {
                     }
                 }
 
-                let width = self.sizes.get(line_char_index).unwrap().width;
+                let width = self.sizes.get(line_char_index).expect("sizes was missing expected index").width;
                 accrued_width += width as i32;
 
                 // If the position is higher than the current character, and
@@ -635,7 +635,7 @@ impl Result {
         if let Some(height) = self.line_heights.get(index) {
             *height
         } else {
-            self.line_heights.last().unwrap().clone()
+            self.line_heights.last().expect("line_heights was empty").clone()
         }
     }
 
@@ -648,9 +648,9 @@ impl Result {
             return self.fallback_cursor_rectangle.clone();
         }
 
-        let mut position = self.positions.get(index).unwrap_or(&self.positions.last().unwrap());
-        let line_height = self.line_heights.get(index).unwrap_or(&self.line_heights.last().unwrap());
-        let character_size = self.sizes.get(index).unwrap_or(self.sizes.last().unwrap());
+        let mut position = self.positions.get(index).unwrap_or(&self.positions.last().expect("positions list was empty"));
+        let line_height = self.line_heights.get(index).unwrap_or(&self.line_heights.last().expect("line_heights was empty"));
+        let character_size = self.sizes.get(index).unwrap_or(self.sizes.last().expect("sizes list was empty"));
 
         let around_line_height = ((line_height - character_size.height) as f32 * 0.5).round() as i32;
 
@@ -681,7 +681,7 @@ impl Result {
     }
 
     pub fn character_size_for_character_at_index(&self, index: usize) -> Size<u32> {
-        self.sizes.get(index).unwrap().clone()
+        self.sizes.get(index).expect("sizes was missing expected index").clone()
     }
 
     pub fn render_scale(&self) -> f32 {

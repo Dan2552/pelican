@@ -42,7 +42,7 @@ impl Behavior for DefaultBehavior {
     /// See `#draw`, which includes the instructions on what would actually be
     /// drawn to screen.
     fn set_needs_display(&self) {
-        let view = self.view.upgrade().unwrap().clone();
+        let view = self.view.upgrade().expect("view was deallocated").clone();
 
         let inner_self = view.inner_self.borrow();
 
@@ -68,7 +68,7 @@ impl Behavior for DefaultBehavior {
     /// For example, the default `View` implementation simply draws the
     /// background color as a box of the size of the frame.
     fn draw(&self) {
-        let view = self.view.upgrade().unwrap().clone();
+        let view = self.view.upgrade().expect("view was deallocated").clone();
 
         let inner_self = view.inner_self.borrow();
 

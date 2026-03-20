@@ -175,14 +175,14 @@ macro_rules! custom_view {
 
             pub fn from_view(view: $crate::ui::View) -> Self {
                 // Downcast the behavior to essentially verify the view is a window.
-                let _ = view.behavior().as_any().downcast_ref::<$behavior>().unwrap();
+                let _ = view.behavior().as_any().downcast_ref::<$behavior>().expect("unexpected behavior type");
 
                 Self { view }
             }
 
             pub fn behavior(&self) -> std::cell::Ref<'_, $behavior> {
                 std::cell::Ref::map(self.view.behavior(), |behavior| {
-                    behavior.as_any().downcast_ref::<$behavior>().unwrap()
+                    behavior.as_any().downcast_ref::<$behavior>().expect("unexpected behavior type")
                 })
             }
 
@@ -193,7 +193,7 @@ macro_rules! custom_view {
             #![allow(dead_code)]
 
             fn view_type(&self) -> $view {
-                $view::from_view(self.view.upgrade().unwrap())
+                $view::from_view(self.view.upgrade().expect("view was deallocated"))
             }
         }
 

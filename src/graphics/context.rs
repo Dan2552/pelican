@@ -51,7 +51,7 @@ struct ContextInner {
 impl Context {
     pub fn new(title: &str, position: Point<i32>, size: Size<u32>) -> Context {
         let sdl = SdlContainer::borrow();
-        let video_subsystem = sdl.video().unwrap();
+        let video_subsystem = sdl.video().expect("failed to initialize SDL video subsystem");
 
         let window = video_subsystem
             .window(title, size.width, size.height)
@@ -59,19 +59,18 @@ impl Context {
             .opengl()
             .allow_highdpi()
             .build()
-            .unwrap();
+            .expect("failed to create SDL window");
 
         let id = window.id();
         let (render_width, render_height) = window.size();
 
-        let mut canvas = window.into_canvas().build().unwrap();
-
+        let mut canvas = window.into_canvas().build().expect("failed to create SDL canvas");
 
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         canvas.clear();
         canvas.present();
 
-        let (pixel_width, pixel_height) = canvas.output_size().unwrap();
+        let (pixel_width, pixel_height) = canvas.output_size().expect("failed to get canvas output size");
 
         let render_size = Size { width: render_width, height: render_height };
         let pixel_size = Size { width: pixel_width, height: pixel_height  };
@@ -128,15 +127,15 @@ impl Context {
         );
 
         let mut canvas = self.inner.canvas.borrow_mut();
-        canvas.copy(child, None, destination).unwrap();
+        canvas.copy(child, None, destination).expect("failed to copy texture to canvas");
     }
 
     pub(crate) fn draw_texture_in_texture(&self, parent: &mut Texture, child: &Texture, source: Option<&Rectangle<i32, u32>>, destination: &Rectangle<i32, u32>) {
         let source_rect;
         if let Some(source) = source {
             source_rect = Some(Rect::new(
-                source.origin.x.try_into().unwrap(),
-                source.origin.y.try_into().unwrap(),
+                source.origin.x.try_into().expect("source x out of i32 range"),
+                source.origin.y.try_into().expect("source y out of i32 range"),
                 source.size.width,
                 source.size.height
             ));
@@ -145,8 +144,8 @@ impl Context {
         }
 
         let destination = Rect::new(
-            destination.origin.x.try_into().unwrap(),
-            destination.origin.y.try_into().unwrap(),
+            destination.origin.x.try_into().expect("destination x out of i32 range"),
+            destination.origin.y.try_into().expect("destination y out of i32 range"),
             destination.size.width,
             destination.size.height
         );
@@ -154,8 +153,8 @@ impl Context {
         let mut canvas = self.inner.canvas.borrow_mut();
 
         canvas.with_texture_canvas(parent, |canvas| {
-            canvas.copy(&child, source_rect, destination).unwrap();
-        }).unwrap();
+            canvas.copy(&child, source_rect, destination).expect("failed to copy texture");
+        }).expect("failed to render to texture");
     }
 
     pub(crate) fn clear_texture(&self, texture: &mut Texture, color: Color) {
@@ -164,7 +163,7 @@ impl Context {
         canvas.with_texture_canvas(texture, |canvas| {
             canvas.set_draw_color(color);
             canvas.clear();
-        }).unwrap();
+        }).expect("failed to clear texture");
     }
 }
 

@@ -50,7 +50,7 @@ impl<'a> Image<'a> {
         if Image::is_file(&image_path_2x) {
             // By default, we load the 2x image if there is one. There's just
             // going to be a higher chance that modern displays are scaled.
-            surface = Surface::from_file(&image_path_2x).unwrap();
+            surface = Surface::from_file(&image_path_2x).expect("failed to load @2x image");
 
             let widthf32 = surface.width() as f32 * 0.5;
             let heightf32 = surface.height() as f32 * 0.5;
@@ -69,7 +69,7 @@ impl<'a> Image<'a> {
             scale_loaded = 2;
         } else if Image::is_file(&image_path) {
             // We load the regular image if there is no 2x image.
-            surface = Surface::from_file(image_path).unwrap();
+            surface = Surface::from_file(image_path).expect("failed to load image");
             width = surface.width();
             height = surface.height();
             scale_loaded = 1;
@@ -103,31 +103,31 @@ impl<'a> Image<'a> {
 
             if Image::is_file(&image_path) {
                 self.scale_loaded = 1;
-                self.surface = Surface::from_file(image_path).unwrap();
+                self.surface = Surface::from_file(image_path).expect("failed to load image for 1x scale");
             }
         } else if render_scale == 2.0 && self.scale_loaded != 2 {
             let image_path_2x = Image::scale_2x_name(&self.name);
 
             if Image::is_file(&image_path_2x) {
                 self.scale_loaded = 2;
-                self.surface = Surface::from_file(image_path_2x).unwrap();
+                self.surface = Surface::from_file(image_path_2x).expect("failed to load image for 2x scale");
             }
         }
 
         if self.layers.get(&id).is_none() {
-            let texture = self.surface.as_texture(context.texture_creator()).unwrap();
+            let texture = self.surface.as_texture(context.texture_creator()).expect("failed to create texture from image surface");
             let layer = Layer::new_prerendered(context.clone(), self.size.clone(), texture, self.scale_loaded as f32);
             let layers = &mut self.layers;
             layers.insert(id, Rc::new(layer));
         }
 
-        self.layers.get(&id).unwrap().clone()
+        self.layers.get(&id).expect("layer was just inserted but not found").clone()
     }
 
     fn scale_2x_name(name: &str) -> String {
-        let name = Regex::new(r"\.png$").unwrap().replace_all(&name, "@2x.png");
-        let name = Regex::new(r"\.jpg$").unwrap().replace_all(&name, "@2x.jpg");
-        let name = Regex::new(r"\.jpeg$").unwrap().replace_all(&name, "@2x.jpeg");
+        let name = Regex::new(r"\.png$").expect("invalid regex").replace_all(&name, "@2x.png");
+        let name = Regex::new(r"\.jpg$").expect("invalid regex").replace_all(&name, "@2x.jpg");
+        let name = Regex::new(r"\.jpeg$").expect("invalid regex").replace_all(&name, "@2x.jpeg");
         Bundle::path_for_resource(&name)
     }
 

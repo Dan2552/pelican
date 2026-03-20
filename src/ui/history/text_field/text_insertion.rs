@@ -24,7 +24,7 @@ impl TextInsertion {
     }
 
     fn text_field(&self) -> TextField {
-        let view = self.view.upgrade().unwrap();
+        let view = self.view.upgrade().expect("view was deallocated");
         TextField::from_view(view)
     }
 }
@@ -68,7 +68,7 @@ impl Action for TextInsertion {
             return None
         }
 
-        let other = other.as_any().downcast_ref::<TextInsertion>().unwrap();
+        let other = other.as_any().downcast_ref::<TextInsertion>().expect("unexpected action type");
 
         // Return early if the other action cursors don't match
         if self.cursors_after != other.cursors_before {

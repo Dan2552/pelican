@@ -20,10 +20,10 @@ custom_view!(
 
     impl Behavior {
         fn draw(&self) {
-            let view = self.view.upgrade().unwrap().clone();
+            let view = self.view.upgrade().expect("view was deallocated").clone();
             let inner_self = view.inner_self.borrow();
             let behavior = view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<ImageViewBehavior>().unwrap();
+            let behavior = behavior.as_any().downcast_ref::<ImageViewBehavior>().expect("unexpected behavior type");
 
             if let Some(layer) = &inner_self.layer {
                 let mut image = behavior.image.borrow_mut();

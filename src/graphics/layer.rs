@@ -75,7 +75,7 @@ impl Layer {
                 TextureAccess::Target,
                 width.round() as u32,
                 height.round() as u32
-            ).unwrap();
+            ).expect("failed to create texture for layer");
 
         texture.set_blend_mode(BlendMode::Blend);
 

@@ -36,7 +36,7 @@ pub struct SdlContainer {
 
 impl Default for SdlContainer {
     fn default() -> Self {
-        let sdl = sdl2::init().unwrap();
+        let sdl = sdl2::init().expect("failed to initialize SDL");
         SdlContainer { sdl }
     }
 }

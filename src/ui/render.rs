@@ -16,17 +16,15 @@ pub(crate) fn window_display(window_view: View) {
     let window1 = window_view.clone();
 
     let behavior = window_view.behavior.borrow();
-    let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().unwrap();
+    let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().expect("view is not a Window");
 
     // Recursively draw the texture for each layer that needs redisplay.
     draw_view(&window_view, behavior, &window.context());
 
     let inner_view = window_view.inner_self.borrow();
 
-    // If layer was not present before this function was invoked, the leading
-    // `draw_view` will have lazily created the layer, so we can be certain it
-    // can be `unwrapped` here.
-    let layer = inner_view.layer.as_ref().unwrap();
+    // draw_view lazily creates the layer, so it must exist here.
+    let layer = inner_view.layer.as_ref().expect("window layer missing after draw_view");
 
     // Draw window texture to renderer
     layer.draw_into_context();
@@ -66,7 +64,7 @@ fn draw_view(view: &View, behavior: &WindowBehavior, context: &Context) {
                 }
             }
 
-            let layer = inner_view.layer.as_mut().unwrap();
+            let layer = inner_view.layer.as_mut().expect("layer missing after creation");
 
             if hidden {
                 layer.skip_draw();
@@ -79,13 +77,13 @@ fn draw_view(view: &View, behavior: &WindowBehavior, context: &Context) {
         }
 
         let inner_view = view.inner_self.borrow();
-        let layer = inner_view.layer.as_ref().unwrap();
+        let layer = inner_view.layer.as_ref().expect("layer missing");
 
         layer.draw();
     }
 
     let inner_view = view.inner_self.borrow();
-    let layer = inner_view.layer.as_ref().unwrap();
+    let layer = inner_view.layer.as_ref().expect("layer missing");
     let clips = inner_view.clips_to_bounds;
     let bounds = view.bounds();
 

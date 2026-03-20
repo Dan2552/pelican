@@ -29,8 +29,8 @@ impl CaratSnapshot {
             return false;
         }
 
-        let self_range = self.selection.as_ref().unwrap();
-        let other_range = other.selection.as_ref().unwrap();
+        let self_range = self.selection.as_ref().expect("expected selection was None");
+        let other_range = other.selection.as_ref().expect("expected selection was None");
 
         self_range.start < other_range.end && other_range.start < self_range.end
     }

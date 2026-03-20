@@ -171,12 +171,12 @@ custom_view!(
         }
 
         pub fn label(&self) -> Label {
-            let view = self.view.view_with_tag(1).unwrap();
+            let view = self.view.view_with_tag(1).expect("label subview was not found");
             Label::from_view(view)
         }
 
         fn touch_to_index(&self, touch: &Touch) -> usize {
-            let window = touch.window().unwrap();
+            let window = touch.window().expect("touch had no associated window");
             let label = self.label();
             let position = window.view.convert_point_to(&touch.position(), &label.view);
             let label_behavior = label.behavior();
@@ -218,7 +218,7 @@ custom_view!(
                 views: RefCell::new(Vec::new())
             });
 
-            self.position_selection(&carat.selection.as_ref().unwrap());
+            self.position_selection(&carat.selection.as_ref().expect("expected selection was None"));
         }
 
         pub fn remove_carats(&self) {
@@ -265,7 +265,7 @@ custom_view!(
                         if hidden.is_none() {
                             hidden = Some(!view.is_hidden());
                         }
-                        view.set_hidden(hidden.unwrap());
+                        view.set_hidden(hidden.expect("hidden state was not set"));
                     }
                 }
             }
@@ -281,7 +281,7 @@ custom_view!(
             let text_len = self.label().text_len();
             self.spawn_carat(text_len);
             let mut carats = behavior.carats.borrow_mut();
-            self.select(carats.last_mut().unwrap(), 0, text_len);
+            self.select(carats.last_mut().expect("carats list was empty"), 0, text_len);
         }
 
         pub(crate) fn restore_carat_snapshots(&self, snapshot: &Vec<CaratSnapshot>) {
@@ -292,7 +292,7 @@ custom_view!(
             for carat_snapshot in snapshot.iter() {
                 self.spawn_carat(carat_snapshot.character_index());
                 let mut carats = behavior.carats.borrow_mut();
-                let carat = carats.last_mut().unwrap();
+                let carat = carats.last_mut().expect("carats list was empty");
                 if let Some(selection) = carat_snapshot.selection() {
                     self.select_range(carat, selection);
                 }
@@ -428,8 +428,8 @@ custom_view!(
                     carat.character_index.set(new_index as usize);
 
                     if carat.selection.is_some() {
-                        let selection_start = carat.selection.as_ref().unwrap().start as i32 + extra_movement_for_following_carat;
-                        let selection_end = carat.selection.as_ref().unwrap().end as i32 + extra_movement_for_following_carat;
+                        let selection_start = carat.selection.as_ref().expect("expected selection was None").start as i32 + extra_movement_for_following_carat;
+                        let selection_end = carat.selection.as_ref().expect("expected selection was None").end as i32 + extra_movement_for_following_carat;
 
                         text_field.select(carat, selection_start as usize, selection_end as usize);
                     }
@@ -481,7 +481,7 @@ custom_view!(
             for carat in carats.iter() {
                 let character_index = carat.character_index.get();
                 let label_origin = &self.label().view.frame().origin;
-                let carat_view = carat.view.upgrade().unwrap();
+                let carat_view = carat.view.upgrade().expect("carat view was deallocated");
                 let cursor_rectangle = rendering.cursor_rectangle_for_character_at_index(character_index);
 
                 let cursor_rectangle = Rectangle {
@@ -537,10 +537,10 @@ custom_view!(
                 let end_distance = (current_cursor as i32 - selection.end as i32).abs();
                 if start_distance < end_distance {
                     selection.start = target_character_index;
-                    text_field.position_selection(&carat.selection.as_ref().unwrap());
+                    text_field.position_selection(&carat.selection.as_ref().expect("expected selection was None"));
                 } else if end_distance < start_distance {
                     selection.end = target_character_index;
-                    text_field.position_selection(&carat.selection.as_ref().unwrap());
+                    text_field.position_selection(&carat.selection.as_ref().expect("expected selection was None"));
                 } else {
                     let start = previous_character_index;
 
@@ -640,28 +640,28 @@ custom_view!(
                     // Replace the previous carat's selection with one that
                     // encompasses both.
                     {
-                        let last_carat = carats.get_mut(index - 1).unwrap();
-                        let merged_end = current_snapshot.selection().as_ref().unwrap().end;
+                        let last_carat = carats.get_mut(index - 1).expect("carats was missing expected index");
+                        let merged_end = current_snapshot.selection().as_ref().expect("expected selection was None").end;
                         last_carat.selection = Some(Selection {
-                            start: last_snapshot.selection().as_ref().unwrap().start,
+                            start: last_snapshot.selection().as_ref().expect("expected selection was None").start,
                             end: merged_end,
                             views: RefCell::new(Vec::new())
                         });
 
                         // If the cursor wasn't on the left hand side of the
                         // selection, then we need to move it to the new right.
-                        if last_snapshot.character_index() != last_snapshot.selection().as_ref().unwrap().start {
+                        if last_snapshot.character_index() != last_snapshot.selection().as_ref().expect("expected selection was None").start {
                             last_carat.character_index.replace(merged_end);
                             last_snapshot = last_carat.snapshot();
                         }
 
-                        self.position_selection(&last_carat.selection.as_ref().unwrap());
+                        self.position_selection(&last_carat.selection.as_ref().expect("expected selection was None"));
                     }
 
                     // Set the current carat to matching character index, so it
                     // will be removed.
                     {
-                        let current_carat = carats.get_mut(index).unwrap();
+                        let current_carat = carats.get_mut(index).expect("carats was missing expected index");
                         current_carat.character_index.set(last_snapshot.character_index());
                     }
                 }
@@ -683,17 +683,17 @@ custom_view!(
 
     impl Behavior {
         fn draw(&self) {
-            self.super_behavior().unwrap().draw();
-            let text_field = TextField::from_view(self.get_view().upgrade().unwrap());
+            self.super_behavior().expect("super behavior was missing").draw();
+            let text_field = TextField::from_view(self.get_view().upgrade().expect("view was deallocated"));
             text_field.position_cursors();
         }
 
         fn touches_moved(&self, touches: &Vec<Touch>) {
-            let view = self.view.upgrade().unwrap();
+            let view = self.view.upgrade().expect("view was deallocated");
             let text_field = TextField::from_view(view.clone());
 
             if let Some(last_cursor) = self.carats.borrow_mut().last_mut() {
-                let touched_character_index = text_field.touch_to_index(touches.first().unwrap());
+                let touched_character_index = text_field.touch_to_index(touches.first().expect("touches list was empty"));
 
                 let previous_character_index = self.touch_began_at_index.get();
                 text_field.move_carat_selecting(last_cursor, previous_character_index, touched_character_index);
@@ -701,10 +701,10 @@ custom_view!(
         }
 
         fn touches_began(&self, touches: &Vec<Touch>) {
-            let view = self.view.upgrade().unwrap();
+            let view = self.view.upgrade().expect("view was deallocated");
             let text_field = TextField::from_view(view.clone());
 
-            let touched_character_index = text_field.touch_to_index(touches.first().unwrap());
+            let touched_character_index = text_field.touch_to_index(touches.first().expect("touches list was empty"));
 
             self.touch_began_at_index.set(touched_character_index);
 
@@ -746,7 +746,7 @@ custom_view!(
                     let rhs = word_boundary::find_word_boundary(&text, touched_character_index, true);
 
                     let mut carats = self.carats.borrow_mut();
-                    let carat = carats.first_mut().unwrap();
+                    let carat = carats.first_mut().expect("carats list was empty");
                     text_field.select(carat, lhs, rhs);
                     carat.character_index.set(rhs);
                 } else if self.click_count.get() == 3 {
@@ -758,7 +758,7 @@ custom_view!(
                     let rhs = word_boundary::find_line_boundary(&text, touched_character_index, true);
 
                     let mut carats = self.carats.borrow_mut();
-                    let carat = carats.first_mut().unwrap();
+                    let carat = carats.first_mut().expect("carats list was empty");
                     text_field.select(carat, lhs, rhs);
                     carat.character_index.set(rhs);
                 }
@@ -771,7 +771,7 @@ custom_view!(
         }
 
         fn text_input_did_receive(&self, text: &str) {
-            let view = self.view.upgrade().unwrap();
+            let view = self.view.upgrade().expect("view was deallocated");
             let text_field = TextField::from_view(view.clone());
 
             let mut text_insertion = TextInsertion::new(
@@ -791,7 +791,7 @@ custom_view!(
         }
 
         fn press_ended(&self, press: &Press) {
-            let view = self.view.upgrade().unwrap();
+            let view = self.view.upgrade().expect("view was deallocated");
             let text_field = TextField::from_view(view.clone());
             let text_field_behavior = text_field.behavior();
             let key = press.key();
@@ -808,7 +808,7 @@ custom_view!(
         }
 
         fn press_began(&self, press: &Press) {
-            let view = self.view.upgrade().unwrap();
+            let view = self.view.upgrade().expect("view was deallocated");
             let text_field = TextField::from_view(view.clone());
             text_field.consume_and_sort_cursors();
             let label = text_field.label();
@@ -880,7 +880,7 @@ custom_view!(
 
                         let mut distance = 1;
                         if key.modifier_flags().contains(&ModifierFlag::Alternate) || key.modifier_flags().contains(&ModifierFlag::Command) {
-                            let text_field = TextField::from_view(self.view.upgrade().unwrap());
+                            let text_field = TextField::from_view(self.view.upgrade().expect("view was deallocated"));
                             let label = text_field.label();
                             let text = label.text();
                             let boundary: usize;
@@ -922,7 +922,7 @@ custom_view!(
 
                         let mut distance = 1;
                         if key.modifier_flags().contains(&ModifierFlag::Alternate) || key.modifier_flags().contains(&ModifierFlag::Command) {
-                            let text_field = TextField::from_view(self.view.upgrade().unwrap());
+                            let text_field = TextField::from_view(self.view.upgrade().expect("view was deallocated"));
                             let label = text_field.label();
                             let text = label.text();
                             let boundary: usize;
@@ -1030,7 +1030,7 @@ custom_view!(
                     }
                 },
                 KeyCode::Backspace => {
-                    let view = self.view.upgrade().unwrap();
+                    let view = self.view.upgrade().expect("view was deallocated");
                     let text_field = TextField::from_view(view);
 
                     let mut movement_type = CursorMovement::Character;
@@ -1063,7 +1063,7 @@ custom_view!(
                     }
                 },
                 KeyCode::Return => {
-                    let view = self.view.upgrade().unwrap();
+                    let view = self.view.upgrade().expect("view was deallocated");
                     let text_field = TextField::from_view(view.clone());
 
                     let mut text_insertion = TextInsertion::new(

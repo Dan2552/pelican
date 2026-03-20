@@ -38,7 +38,7 @@ custom_view!(
                     return;
                 }
 
-                let view = gesture_recognizer.view().upgrade().unwrap();
+                let view = gesture_recognizer.view().upgrade().expect("gesture recognizer view was deallocated");
                 let scroll_view = ScrollView::from_view(view.clone());
 
                 let translation = gesture_recognizer.translation_in(&view);
@@ -110,7 +110,7 @@ custom_view!(
         }
 
         fn inner_content_view(&self) -> View {
-            self.view.subviews().get(0).unwrap().clone()
+            self.view.subviews().get(0).expect("scroll view missing content subview").clone()
         }
 
         /// Set (or replace) the current content view. This is the view that
@@ -135,12 +135,12 @@ custom_view!(
         }
 
         fn vertical_scroll_bar(&self) -> ScrollBarView {
-            let view = self.view.subviews().get(1).unwrap().clone();
+            let view = self.view.subviews().get(1).expect("scroll view missing vertical scroll bar").clone();
             ScrollBarView::from_view(view)
         }
 
         fn horizontal_scroll_bar(&self) -> ScrollBarView {
-            let view = self.view.subviews().get(2).unwrap().clone();
+            let view = self.view.subviews().get(2).expect("scroll view missing horizontal scroll bar").clone();
             ScrollBarView::from_view(view)
         }
 
@@ -201,7 +201,7 @@ custom_view!(
         }
 
         fn handle(&self) -> View {
-            self.view.subviews().get(0).unwrap().clone()
+            self.view.subviews().get(0).expect("scroll view missing content subview").clone()
         }
 
         fn direction(&self) -> ScrollBarDirection {
@@ -210,7 +210,7 @@ custom_view!(
         }
 
         fn fit_to_superview(&self) {
-            let superview = self.view.superview().upgrade().unwrap();
+            let superview = self.view.superview().upgrade().expect("scroll view missing superview");
             let superview_size = superview.frame().size;
             let frame: Rectangle<i32, u32>;
 
@@ -237,7 +237,7 @@ custom_view!(
         }
 
         fn update_scroll_handle(&self) {
-            let superview = self.view.superview().upgrade().unwrap();
+            let superview = self.view.superview().upgrade().expect("scroll view missing superview");
             let scrollview = ScrollView::from_view(superview);
             let inner_content_view = scrollview.inner_content_view();
             let handle = self.handle();

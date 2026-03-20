@@ -271,7 +271,7 @@ impl View {
             return inner_self.frame.origin.clone();
         }
 
-        let superview = superview.unwrap();
+        let superview = superview.expect("superview was checked but missing");
 
         let superview_location = superview.get_location_in_window();
 
@@ -391,7 +391,7 @@ impl View {
     pub fn layer(&self) -> Option<Ref<'_, Layer>> {
         let inner_self = self.inner_self.borrow();
         if let Some(_) = inner_self.layer {
-            Some(Ref::map(self.inner_self.borrow(), |inner_self| inner_self.layer.as_ref().unwrap()))
+            Some(Ref::map(self.inner_self.borrow(), |inner_self| inner_self.layer.as_ref().expect("layer was checked but missing")))
         } else {
             None
         }
