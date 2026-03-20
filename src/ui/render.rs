@@ -88,6 +88,11 @@ fn draw_view(view: &View, behavior: &WindowBehavior, context: &Context) {
     let bounds = view.bounds();
 
     for subview in view.subviews().iter() {
+        // Always call draw_view so subviews get layers created even when
+        // hidden. Without a layer, set_needs_display is a no-op and the
+        // subview can never trigger a re-render when it becomes visible.
+        draw_view(subview, behavior, context);
+
         if subview.is_hidden() {
             continue;
         }
@@ -105,9 +110,6 @@ fn draw_view(view: &View, behavior: &WindowBehavior, context: &Context) {
                 continue;
             }
         }
-
-        // redraw the subview (if it needs it!)
-        draw_view(subview, behavior, context);
 
         let sub_inner_view = subview.inner_self.borrow();
         let subview_layer = match sub_inner_view.layer.as_ref() {
