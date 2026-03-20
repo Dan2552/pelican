@@ -317,7 +317,7 @@ impl std::fmt::Debug for LineOfText {
 
 impl WholeText<'_> {
     /// Creates a `rendering::WholeText` from an `AttributedString`.
-    pub fn from(attributed_string: &AttributedString, frame: Rectangle<i32, u32>, render_scale: f32) -> WholeText {
+    pub fn from(attributed_string: &AttributedString, frame: Rectangle<i32, u32>, render_scale: f32) -> WholeText<'_> {
         let frame = &frame * render_scale;
         let mut lines: Vec<LineOfText> = Vec::new();
         let mut line_positions = Vec::new();

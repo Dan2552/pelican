@@ -11,7 +11,7 @@ pub struct NsContentViewParent {
 }
 
 impl HasWindowHandle for NsContentViewParent {
-    fn window_handle(&self) -> Result<WindowHandle, HandleError> {
+    fn window_handle(&self) -> Result<WindowHandle<'_>, HandleError> {
         let appkit = AppKitWindowHandle::new(self.ns_view); // takes NSView*
         let raw = RawWindowHandle::AppKit(appkit);
         // SAFETY: we're creating a borrowed handle from a stable pointer

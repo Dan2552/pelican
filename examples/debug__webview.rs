@@ -12,7 +12,7 @@ pub struct NsContentViewParent {
 }
 
 impl HasWindowHandle for NsContentViewParent {
-    fn window_handle(&self) -> Result<WindowHandle, HandleError> {
+    fn window_handle(&self) -> Result<WindowHandle<'_>, HandleError> {
         let appkit = AppKitWindowHandle::new(self.ns_view); // takes NSView*
         let raw = RawWindowHandle::AppKit(appkit);
         // SAFETY: we're creating a borrowed handle from a stable pointer
@@ -88,7 +88,7 @@ fn main() -> wry::Result<()> {
     let webview = builder.build_as_child(&parent)?;
     webview.focus()?;
 
-    let (w, h) = window.size();
+    let (_w, _h) = window.size();
     let _ = webview.set_bounds(wry::Rect {
         position: dpi::Position::Logical(dpi::LogicalPosition { x: 0.0, y: 0.0 }),
         size: dpi::Size::Logical(dpi::LogicalSize { width: 300 as f64, height: 300 as f64 }),

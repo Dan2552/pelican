@@ -113,7 +113,7 @@ impl Font {
     /// Loads a font from the given size. This is a lazy operation, so the
     /// font will only be loaded if it is not already loaded (using
     /// `self.font_sizes`).
-    fn load_font_for_size(&self, font_size: u16) -> Rc<sdl2::ttf::Font> {
+    fn load_font_for_size(&self, font_size: u16) -> Rc<sdl2::ttf::Font<'_, '_>> {
         let mut font_sizes = self.font_sizes.borrow_mut();
 
         let ttf_context = SdlTtfContainer::leak_static();

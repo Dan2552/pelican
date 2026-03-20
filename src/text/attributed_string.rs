@@ -117,7 +117,7 @@ impl AttributedString {
         }
     }
 
-    pub fn lines(&self) -> Vec<AttributedSubstring> {
+    pub fn lines(&self) -> Vec<AttributedSubstring<'_>> {
         let mut lines = Vec::new();
         let mut start = 0;
 
@@ -139,7 +139,7 @@ impl AttributedString {
         lines
     }
 
-    pub fn substring_for_char(&self, char_index: usize) -> AttributedSubstring {
+    pub fn substring_for_char(&self, char_index: usize) -> AttributedSubstring<'_> {
         AttributedSubstring {
             attributed_string: self,
             start: char_index,
@@ -147,7 +147,7 @@ impl AttributedString {
         }
     }
 
-    pub fn chars(&self) -> std::str::Chars {
+    pub fn chars(&self) -> std::str::Chars<'_> {
         self.text.string().chars()
     }
 
@@ -214,7 +214,7 @@ impl AttributedSubstring<'_> {
         &self.attributed_string.text[self.start..self.end]
     }
 
-    pub fn chars(&self) -> std::str::Chars {
+    pub fn chars(&self) -> std::str::Chars<'_> {
         self.text().chars()
     }
 
@@ -226,7 +226,7 @@ impl AttributedSubstring<'_> {
         self.attributed_string.get_attribute_for(self.start + index, key)
     }
 
-    pub fn substring_for_char(&self, char_index: usize) -> AttributedSubstring {
+    pub fn substring_for_char(&self, char_index: usize) -> AttributedSubstring<'_> {
         self.attributed_string.substring_for_char(self.start + char_index)
     }
 }
