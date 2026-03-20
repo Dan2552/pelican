@@ -28,6 +28,13 @@ impl Attribute {
             _ => panic!("Attribute is not a font")
         }
     }
+
+    pub fn key(&self) -> Key {
+        match self {
+            Attribute::Color { .. } => Key::Color,
+            Attribute::Font { .. } => Key::Font,
+        }
+    }
 }
 
 impl Clone for Attribute {
@@ -164,6 +171,13 @@ impl AttributedString {
         }
 
         attributes[index].insert(key, attribute);
+    }
+
+    pub fn set_attribute(&self, range: std::ops::Range<usize>, attribute: Attribute) {
+        let key = attribute.key();
+        for index in range {
+            self.set_attribute_for(index, key.clone(), attribute.clone());
+        }
     }
 
     pub fn get_attribute_for(&self, index: usize, key: Key) -> Ref<'_, Attribute> {

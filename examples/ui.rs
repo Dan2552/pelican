@@ -9,14 +9,14 @@ impl ViewControllerBehavior for ExampleViewController {
     fn view_did_load(&self, view: View) {
         let image = Image::new("/Users/dan2552/Dropbox/experiments/avian/pelican/test_application/resources/pixels_ruler.png");
         let image_view = ImageView::new(image, Point { x: 0, y: 0 });
-        view.add_subview(image_view.view);
+        view.add_subview(image_view);
 
         let frame = Rectangle::new(0, 0, 200, 200);
         let label = Label::new(frame, String::from("hello rusty world\nhello hello\nmultiline\nThe quick brown fox jumps over the lazy dog"));
         label.set_text_alignment(HorizontalAlignment::Center);
         label.set_vertical_alignment(VerticalAlignment::Middle);
-        label.view.set_background_color(Color::red());
-        view.add_subview(label.view);
+        label.set_background_color(Color::red());
+        view.add_subview(label);
 
         let frame = Rectangle::new(0, 40, 50, 50);
         let red_view = View::new(frame);
@@ -38,7 +38,7 @@ impl ViewControllerBehavior for ExampleViewController {
         view.add_subview(red_view);
         view.add_subview(green_view);
         view.add_subview(blue_view);
-        view.add_subview(button.view);
+        view.add_subview(button);
     }
 }
 

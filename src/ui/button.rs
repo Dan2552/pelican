@@ -37,16 +37,16 @@ custom_view!(
             let label_rectangle = Rectangle::new(0, 0, frame.size.width, frame.size.height);
             let label = Label::new(label_rectangle, String::from(text));
             label.set_text_color(DEFAULT_COLOR_NORMAL.clone());
-            label.view.set_user_interaction_enabled(false);
+            label.set_user_interaction_enabled(false);
             label.set_text_alignment(HorizontalAlignment::Center);
             label.set_vertical_alignment(VerticalAlignment::Middle);
-            button.view.add_subview(label.view);
-            button.view.set_background_color(Color::clear());
+            button.add_subview(label);
+            button.set_background_color(Color::clear());
             button
         }
 
         fn label(&self) -> Label {
-            let view = self.view.subviews().get(0).expect("button missing label subview").clone();
+            let view = self.subviews().get(0).expect("button missing label subview").clone();
             Label::from_view(view)
         }
 
@@ -72,7 +72,7 @@ custom_view!(
                 let view = self.view.upgrade().expect("button view was deallocated");
                 let window = touch.window().expect("touch missing window");
 
-                let position = window.view.convert_point_to(&touch.position(), &view);
+                let position = window.convert_point_to(&touch.position(), &view);
 
                 if view.bounds().contains(&position) {
                     (self.action)();
@@ -87,7 +87,7 @@ custom_view!(
                 let view = self.view.upgrade().expect("button view was deallocated");
                 let window = touch.window().expect("touch missing window");
 
-                let position = window.view.convert_point_to(&touch.position(), &view);
+                let position = window.convert_point_to(&touch.position(), &view);
 
                 if view.bounds().contains(&position) {
                     self.set_state(State::Pressed);
@@ -133,7 +133,7 @@ mod tests {
             Box::new(|| {})
         );
 
-        assert_eq!(button.view.frame(), Rectangle::new(0, 0, 100, 100));
+        assert_eq!(button.frame(), Rectangle::new(0, 0, 100, 100));
         assert_eq!(button.label().copy_text(), String::from("Test"));
     }
 }

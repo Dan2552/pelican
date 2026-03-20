@@ -12,14 +12,14 @@ impl ViewControllerBehavior for ExampleViewController {
         view.add_subview(background.clone());
 
         let text_field = TextField::new(Rectangle::new(10, 10, 180, 36 * 2), "".to_string());
-        text_field.view.set_background_color(Color::white());
-        background.add_subview(text_field.clone().view);
+        text_field.set_background_color(Color::white());
+        background.add_subview(text_field.clone());
 
         text_field.on_text_change(|text_field| {
             println!("text changed: {}", text_field.label().text());
         });
 
-        text_field.view.become_first_responder();
+        text_field.become_first_responder();
     }
 }
 

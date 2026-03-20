@@ -127,7 +127,8 @@ impl View {
     /// Adds a child `View` to this `View`.
     ///
     /// Also sets the parent (`superview`) of the child view to this `View`.
-    pub fn add_subview(&self, child: View) {
+    pub fn add_subview(&self, child: impl Into<View>) {
+        let child: View = child.into();
         let weak_self = self.downgrade();
         let mut inner_self = self.inner_self.borrow_mut();
 

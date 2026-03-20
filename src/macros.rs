@@ -226,6 +226,19 @@ macro_rules! custom_view {
                 Self { view: self.view.clone() }
             }
         }
+
+        impl std::ops::Deref for $view {
+            type Target = $crate::ui::View;
+            fn deref(&self) -> &Self::Target {
+                &self.view
+            }
+        }
+
+        impl From<$view> for $crate::ui::View {
+            fn from(widget: $view) -> Self {
+                widget.view
+            }
+        }
     };
 }
 
