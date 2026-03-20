@@ -22,6 +22,7 @@ custom_view!(
 
             let content_view = View::new(Rectangle::new(0, 0, 0, 0));
             content_view.set_background_color(Color::clear());
+            content_view.set_clips_to_bounds(true);
 
             let scroll_view = Self::new_all(frame);
             scroll_view.view.set_background_color(Color::clear());
@@ -146,6 +147,15 @@ custom_view!(
         fn update_content_size(&self, size: Size<u32>) {
             let inner_content_view = self.inner_content_view();
             inner_content_view.set_frame(Rectangle::new(0, 0, size.width, size.height));
+
+            // set_frame resets bounds.size to frame.size. Restore viewport-
+            // sized bounds so the clips_to_bounds layer stays viewport-sized.
+            let viewport_size = self.view.frame().size.clone();
+            inner_content_view.set_bounds(Rectangle::new(
+                0, 0,
+                viewport_size.width,
+                viewport_size.height,
+            ));
 
             self.vertical_scroll_bar().update_scroll_handle();
             self.horizontal_scroll_bar().update_scroll_handle();
