@@ -6,6 +6,8 @@ use std::time::Duration;
 use crate::macros::*;
 use crate::platform::thread;
 
+const MIN_FRAME_DURATION_MS: u64 = 10;
+
 singleton!(
     RunLoop,
     state: Mutex::new(State::Running),
@@ -51,8 +53,8 @@ impl RunLoop {
 
             let delta_milliseconds = delta.as_millis();
 
-            if delta_milliseconds < 10 {
-                sleep(Duration::from_millis(10) - delta)
+            if delta_milliseconds < MIN_FRAME_DURATION_MS as u128 {
+                sleep(Duration::from_millis(MIN_FRAME_DURATION_MS) - delta)
             }
         }
     }

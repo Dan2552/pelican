@@ -119,8 +119,7 @@ impl Context {
         canvas.present();
     }
 
-    // TODO: pub(crate)
-    pub fn draw_texture_in_context(&self, child: &Texture, destination: &Rectangle<i32, u32>) {
+    pub(crate) fn draw_texture_in_context(&self, child: &Texture, destination: &Rectangle<i32, u32>) {
         let destination = Rect::new(
             destination.origin.x,
             destination.origin.y,

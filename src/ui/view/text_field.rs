@@ -24,6 +24,10 @@ use crate::platform::history::History;
 use crate::ui::history::text_field::carat_snapshot::CaratSnapshot;
 use std::collections::HashMap;
 
+const LABEL_PADDING: u32 = 8;
+const CARAT_BLINK_INTERVAL_MS: u64 = 500;
+const CARAT_COLOR: Color = Color::new(226, 175, 10, 255);
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum CursorMovement {
     Character,
@@ -117,12 +121,11 @@ custom_view!(
 
     impl Self {
         pub fn new(frame: Rectangle<i32, u32>, text: String) -> TextField {
-            let label_padding = 8;
             let label_frame = Rectangle::new(
-                label_padding as i32,
-                label_padding as i32,
-                frame.width() - (label_padding * 2),
-                frame.height() - (label_padding * 2)
+                LABEL_PADDING as i32,
+                LABEL_PADDING as i32,
+                frame.width() - (LABEL_PADDING * 2),
+                frame.height() - (LABEL_PADDING * 2)
             );
             let label = Label::new(label_frame, text);
             label.view.set_tag(1);
@@ -147,7 +150,7 @@ custom_view!(
             text_field.spawn_carat(0);
 
             let weak_text_field = text_field.view.downgrade();
-            let carat_animation_timer = Timer::new_repeating(Duration::from_millis(500), move || {
+            let carat_animation_timer = Timer::new_repeating(Duration::from_millis(CARAT_BLINK_INTERVAL_MS), move || {
                 if let Some(view) = weak_text_field.upgrade() {
                     let text_field = TextField::from_view(view);
                     text_field.animate_carats();
@@ -233,7 +236,7 @@ custom_view!(
                 // view draws.
                 let carat_view = View::new(Rectangle::new(0, 0, 1, 1));
 
-                carat_view.set_background_color(Color::new(226, 175, 10, 255));
+                carat_view.set_background_color(CARAT_COLOR);
                 carat_view.set_hidden(true);
                 carat_view.set_user_interaction_enabled(false);
                 self.view.add_subview(carat_view.clone());

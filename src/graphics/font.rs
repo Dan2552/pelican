@@ -45,11 +45,7 @@ pub(crate) struct SdlTtfContainer {
    ttf: Rc<sdl2::ttf::Sdl2TtfContext>,
 }
 
-impl SdlTtfContainer {
-    // fn get() -> &'static sdl2::ttf::Sdl2TtfContext {
-    //     &SdlTtfContainer::borrow().ttf
-    // }
-}
+impl SdlTtfContainer {}
 
 impl Default for SdlTtfContainer {
     fn default() -> Self {

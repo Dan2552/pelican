@@ -687,6 +687,30 @@ impl Result {
     pub fn render_scale(&self) -> f32 {
         self.render_scale
     }
+
+    /// Returns the bounding size of the rendered text.
+    pub fn text_size(&self) -> Size<u32> {
+        if self.positions.is_empty() {
+            return Size::new(0, self.fallback_cursor_rectangle.size.height);
+        }
+
+        let mut max_x: i32 = 0;
+        for (i, position) in self.positions.iter().enumerate() {
+            if let Some(size) = self.sizes.get(i) {
+                let right = position.x + size.width as i32;
+                if right > max_x {
+                    max_x = right;
+                }
+            }
+        }
+
+        let mut total_height: u32 = 0;
+        for line in &self.lines {
+            total_height += line.height;
+        }
+
+        Size::new(max_x as u32, total_height)
+    }
 }
 
 #[cfg(test)]

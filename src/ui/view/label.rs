@@ -165,18 +165,16 @@ custom_view!(
 
         /// Resizes the view's frame to fit the size of the text.
         pub fn fit_to_text(&self) {
-            // TODO: add size to rendering_result
+            self.generate_rendering_result();
 
-            // let behavior = self.behavior();
-            // let text = behavior.text.borrow().clone();
-            // let font = behavior.font.borrow();
-
-            // let size = font.size_for(&text);
-
-            // let origin = self.view.frame().origin;
-            // let frame = Rectangle { origin, size };
-
-            // self.view.set_frame(frame);
+            let behavior = self.behavior();
+            let rendering_result = behavior.rendering_result.borrow();
+            if let Some(result) = rendering_result.as_ref() {
+                let text_size = result.text_size();
+                let origin = self.view.frame().origin;
+                let frame = Rectangle { origin, size: text_size };
+                self.view.set_frame(frame);
+            }
         }
 
         fn generate_rendering_result(&self) {
