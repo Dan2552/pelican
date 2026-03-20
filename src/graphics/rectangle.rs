@@ -51,6 +51,13 @@ impl Rectangle<i32, u32> {
         self.origin.x
     }
 
+    pub fn intersects(&self, other: &Rectangle<i32, u32>) -> bool {
+        self.left() < other.right()
+            && self.right() > other.left()
+            && self.top() < other.bottom()
+            && self.bottom() > other.top()
+    }
+
     pub fn width(&self) -> u32 {
         self.size.width
     }

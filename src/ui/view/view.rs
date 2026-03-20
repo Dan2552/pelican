@@ -61,7 +61,8 @@ impl View {
             subviews: Vec::new(),
             gesture_recognizers: Vec::new(),
             hidden: false,
-            user_interaction_enabled: true
+            user_interaction_enabled: true,
+            clips_to_bounds: false
         };
 
         let view = View {
@@ -207,6 +208,14 @@ impl View {
             let mut inner_self = self.inner_self.borrow_mut();
             inner_self.user_interaction_enabled = enabled;
         }
+    }
+
+    pub fn clips_to_bounds(&self) -> bool {
+        self.inner_self.borrow().clips_to_bounds
+    }
+
+    pub fn set_clips_to_bounds(&self, value: bool) {
+        self.inner_self.borrow_mut().clips_to_bounds = value;
     }
 
     pub fn set_hidden(&self, value: bool) {

@@ -73,5 +73,11 @@ pub(crate) struct ViewInner {
 
     /// Whether the view accepts user input or not. E.g. touches_began will not
     /// be called if this is `false`.
-    pub user_interaction_enabled: bool
+    pub user_interaction_enabled: bool,
+
+    /// When true, the layer is created at `bounds.size` instead of
+    /// `frame.size`, and subviews outside the visible bounds are not rendered.
+    /// Used by ScrollView's inner content view to avoid creating a texture the
+    /// full content size.
+    pub clips_to_bounds: bool
 }
