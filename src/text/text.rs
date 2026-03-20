@@ -157,6 +157,15 @@ impl std::ops::Index<Range<usize>> for Text {
     }
 }
 
+impl Clone for Text {
+    fn clone(&self) -> Self {
+        Text {
+            string: self.string.clone(),
+            grapheme_indices: self.grapheme_indices.clone()
+        }
+    }
+}
+
 impl std::cmp::PartialEq for Text {
     fn eq(&self, other: &Text) -> bool {
         self.string == other.string

@@ -47,11 +47,10 @@ custom_view!(
             String::from(attributed_text.text().string())
         }
 
-        pub fn text(&self) -> &Text {
+        pub fn text(&self) -> Text {
             let behavior = self.behavior();
-            let attributed_text = behavior.attributed_text.clone();
-
-            unsafe { attributed_text.as_ptr().as_ref().unwrap().text() }
+            let attributed_text = behavior.attributed_text.borrow();
+            attributed_text.text().clone()
         }
 
         pub fn text_len(&self) -> usize {

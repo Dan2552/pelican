@@ -359,9 +359,9 @@ custom_view!(
                         let text = label.text();
                         let boundary: usize;
                         if movement == CursorMovement::Word {
-                            boundary = word_boundary::find_word_boundary(text, index, false);
+                            boundary = word_boundary::find_word_boundary(&text, index, false);
                         } else {
-                            boundary = word_boundary::find_line_boundary(text, index, false);
+                            boundary = word_boundary::find_line_boundary(&text, index, false);
                         }
 
                         distance = index as i32 - boundary as i32;
@@ -741,9 +741,9 @@ custom_view!(
                     // go forward, back, and then forward again incase it
                     // started on whitespace (otherwise multiple words would
                     // be selected).
-                    let rhs = word_boundary::find_word_boundary(text, touched_character_index, true);
-                    let lhs = word_boundary::find_word_boundary(text, rhs, false);
-                    let rhs = word_boundary::find_word_boundary(text, touched_character_index, true);
+                    let rhs = word_boundary::find_word_boundary(&text, touched_character_index, true);
+                    let lhs = word_boundary::find_word_boundary(&text, rhs, false);
+                    let rhs = word_boundary::find_word_boundary(&text, touched_character_index, true);
 
                     let mut carats = self.carats.borrow_mut();
                     let carat = carats.first_mut().unwrap();
@@ -753,9 +753,9 @@ custom_view!(
                     // go forward, back, and then forward again incase it
                     // started on whitespace (otherwise multiple words would
                     // be selected).
-                    let rhs = word_boundary::find_line_boundary(text, touched_character_index, true);
-                    let lhs = word_boundary::find_line_boundary(text, rhs, false);
-                    let rhs = word_boundary::find_line_boundary(text, touched_character_index, true);
+                    let rhs = word_boundary::find_line_boundary(&text, touched_character_index, true);
+                    let lhs = word_boundary::find_line_boundary(&text, rhs, false);
+                    let rhs = word_boundary::find_line_boundary(&text, touched_character_index, true);
 
                     let mut carats = self.carats.borrow_mut();
                     let carat = carats.first_mut().unwrap();
@@ -885,9 +885,9 @@ custom_view!(
                             let text = label.text();
                             let boundary: usize;
                             if key.modifier_flags().contains(&ModifierFlag::Alternate) {
-                                boundary = word_boundary::find_word_boundary(text, index, false);
+                                boundary = word_boundary::find_word_boundary(&text, index, false);
                             } else {
-                                boundary = word_boundary::find_line_boundary(text, index, false);
+                                boundary = word_boundary::find_line_boundary(&text, index, false);
                             }
 
                             distance = index as i32 - boundary as i32;
@@ -927,9 +927,9 @@ custom_view!(
                             let text = label.text();
                             let boundary: usize;
                             if key.modifier_flags().contains(&ModifierFlag::Alternate) {
-                                boundary = word_boundary::find_word_boundary(text, index, true);
+                                boundary = word_boundary::find_word_boundary(&text, index, true);
                             } else {
-                                boundary = word_boundary::find_line_boundary(text, index, true);
+                                boundary = word_boundary::find_line_boundary(&text, index, true);
                             }
 
                             distance = boundary as i32 - index as i32;
