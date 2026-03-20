@@ -64,7 +64,7 @@ impl Window {
 
         {
             let behavior = window.view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().unwrap();
+            let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().expect("view is not a Window");
             behavior.first_responder.replace(window.view.downgrade());
             let view_controller = &behavior.view_controller;
             view_controller.window_loaded(view);
@@ -78,7 +78,7 @@ impl Window {
 
     pub fn from_view(view: View) -> Window {
         // Downcast the behavior to essentially verify the view is a window.
-        let _ = view.behavior.borrow().as_any().downcast_ref::<WindowBehavior>().unwrap();
+        let _ = view.behavior.borrow().as_any().downcast_ref::<WindowBehavior>().expect("view is not a Window");
 
         Window { view }
     }
@@ -91,7 +91,7 @@ impl Window {
 
     pub fn context(&self) -> Context {
         let behavior = self.view.behavior.borrow();
-        let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().unwrap();
+        let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().expect("view is not a Window");
         behavior.context.clone()
     }
 
@@ -100,7 +100,7 @@ impl Window {
     /// If there is no first responder, the window itself is returned.
     pub(crate) fn first_responder(&self) -> View {
         let behavior = self.view.behavior.borrow();
-        let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().unwrap();
+        let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().expect("view is not a Window");
         let first_responder = behavior.first_responder.borrow();
 
         if let Some(first_responder) = first_responder.upgrade() {
@@ -118,7 +118,7 @@ impl Window {
         }
 
         let behavior = self.view.behavior.borrow();
-        let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().unwrap();
+        let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().expect("view is not a Window");
         behavior.first_responder.replace(view.downgrade());
         return true;
     }
@@ -152,12 +152,12 @@ impl Behavior for WindowBehavior {
     /// For the `WindowBehavior` specifically, this will actually add a timer to
     /// the main loop to request a render.
     fn set_needs_display(&self) {
-        self.super_behavior().unwrap().set_needs_display();
+        self.super_behavior().expect("window missing super_behavior").set_needs_display();
 
-        let window_view = self.view.upgrade().unwrap();
+        let window_view = self.view.upgrade().expect("window view was deallocated");
         {
             let behavior = window_view.behavior.borrow();
-            let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().unwrap();
+            let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().expect("view is not a Window");
             let vc = &behavior.view_controller;
             vc.window_set_needs_display(window_view.clone());
         }

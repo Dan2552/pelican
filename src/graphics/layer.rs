@@ -46,7 +46,6 @@ pub struct Layer {
     delegate: Box<dyn LayerDelegate>
 }
 
-// TODO: probably pub(crate)
 pub trait LayerDelegate {
     fn layer_will_draw(&self, _layer: &Layer) {}
     fn draw_layer(&self, _layer: &Layer) {}
@@ -58,7 +57,6 @@ pub trait LayerDelegate {
 }
 
 impl Layer {
-    // TODO: probably pub(crate)
     pub fn new(context: Context, size: Size<u32>, delegate: Box<dyn LayerDelegate>) -> Layer {
         let width = size.width as f32 * context.render_scale();
         let height = size.height as f32 * context.render_scale();
@@ -77,7 +75,7 @@ impl Layer {
                 TextureAccess::Target,
                 width.round() as u32,
                 height.round() as u32
-            ).unwrap();
+            ).expect("failed to create texture for layer");
 
         texture.set_blend_mode(BlendMode::Blend);
 

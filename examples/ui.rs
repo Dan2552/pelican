@@ -16,9 +16,6 @@ impl ViewControllerBehavior for ExampleViewController {
         label.set_text_alignment(HorizontalAlignment::Center);
         label.set_vertical_alignment(VerticalAlignment::Middle);
         label.view.set_background_color(Color::red());
-        // TODO: fit_to_text() support multiline
-        // label.fit_to_text();
-
         view.add_subview(label.view);
 
         let frame = Rectangle::new(0, 40, 50, 50);
@@ -34,14 +31,14 @@ impl ViewControllerBehavior for ExampleViewController {
         blue_view.set_background_color(Color::new(0, 0, 255, 100));
 
         let frame = Rectangle::new(200, 200, 200, 200);
-        let _button = Button::new(frame, "this is a button", || {
+        let button = Button::new(frame, "this is a button", || {
             println!("button clicked");
         });
 
-        // view.add_subview(red_view);
-        // view.add_subview(green_view);
-        // view.add_subview(blue_view);
-        // view.add_subview(button.view);
+        view.add_subview(red_view);
+        view.add_subview(green_view);
+        view.add_subview(blue_view);
+        view.add_subview(button.view);
     }
 }
 

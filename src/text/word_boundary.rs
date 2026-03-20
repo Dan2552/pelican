@@ -8,7 +8,7 @@ pub fn find_word_boundary(text: &Text, index: usize, rightwards: bool) -> usize 
 
     if rightwards {
         while index < text.len() {
-            let character = text.nth(index).unwrap().chars().nth(0).unwrap();
+            let character = text.nth(index).expect("character at index was missing").chars().nth(0).expect("character string was empty");
             if !(character.is_alphanumeric() || character == '_') {
                 let whitespace = character.is_whitespace();
 
@@ -34,7 +34,7 @@ pub fn find_word_boundary(text: &Text, index: usize, rightwards: bool) -> usize 
         }
     } else {
         while index > 0 {
-            let character = text.nth(index - 1).unwrap().chars().nth(0).unwrap();
+            let character = text.nth(index - 1).expect("character at index was missing").chars().nth(0).expect("character string was empty");
             if !(character.is_alphanumeric() || character == '_') {
                 let whitespace = character.is_whitespace();
 
@@ -77,7 +77,7 @@ pub fn find_line_boundary(text: &Text, start_index: usize, rightwards: bool) -> 
                 break;
             }
 
-            if character.is_some() && character.unwrap() == "\n" {
+            if character.is_some() && character.expect("character at index was missing") == "\n" {
                 break;
             }
         } else {

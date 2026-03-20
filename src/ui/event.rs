@@ -125,7 +125,7 @@ impl EventArena {
             self.touch_event = Some(TouchEvent::new());
         }
 
-        self.touch_event.as_ref().unwrap().clone()
+        self.touch_event.as_ref().expect("touch_event was just set").clone()
     }
 
     pub(crate) fn scroll_event(&mut self) -> ScrollEvent {
@@ -133,7 +133,7 @@ impl EventArena {
             self.scroll_event = Some(ScrollEvent::new());
         }
 
-        self.scroll_event.as_ref().unwrap().clone()
+        self.scroll_event.as_ref().expect("scroll_event was just set").clone()
     }
 
     pub(crate) fn press_began(&mut self, key: Key) -> PressEvent {
@@ -143,7 +143,7 @@ impl EventArena {
     }
 
     pub(crate) fn press_ended(&mut self, key: Key) -> &PressEvent {
-        &self.press_events.iter().find(|event| event.press().key().key_code() == key.key_code()).unwrap()
+        &self.press_events.iter().find(|event| event.press().key().key_code() == key.key_code()).expect("press event not found for key")
     }
 
     pub(crate) fn touch_began(&mut self, touch: Touch) -> TouchEvent {

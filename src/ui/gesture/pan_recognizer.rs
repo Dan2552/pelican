@@ -70,7 +70,7 @@ impl Recognizer for PanRecognizer {
 
         inner.state = PanState::Possible;
 
-        inner.last_position = touches.first().unwrap().position().clone();
+        inner.last_position = touches.first().expect("touches list was empty").position().clone();
         inner.initial_position = inner.last_position.clone();
         inner.translation = Point::new(0, 0);
     }
@@ -83,7 +83,7 @@ impl Recognizer for PanRecognizer {
     fn touches_moved(&self, touches: &Vec<Touch>, _event: &TouchEvent) {
         let action: Rc<Box<dyn Fn(&PanRecognizer) -> ()>>;
         {
-            let touch_position = touches.first().unwrap().position();
+            let touch_position = touches.first().expect("touches list was empty").position();
             let mut inner = self.inner.borrow_mut();
 
             inner.translation = Point::new(

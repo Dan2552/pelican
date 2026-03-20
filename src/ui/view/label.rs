@@ -47,11 +47,10 @@ custom_view!(
             String::from(attributed_text.text().string())
         }
 
-        pub fn text(&self) -> &Text {
+        pub fn text(&self) -> Text {
             let behavior = self.behavior();
-            let attributed_text = behavior.attributed_text.clone();
-
-            unsafe { attributed_text.as_ptr().as_ref().unwrap().text() }
+            let attributed_text = behavior.attributed_text.borrow();
+            attributed_text.text().clone()
         }
 
         pub fn text_len(&self) -> usize {
@@ -165,18 +164,16 @@ custom_view!(
 
         /// Resizes the view's frame to fit the size of the text.
         pub fn fit_to_text(&self) {
-            // TODO: add size to rendering_result
+            self.generate_rendering_result();
 
-            // let behavior = self.behavior();
-            // let text = behavior.text.borrow().clone();
-            // let font = behavior.font.borrow();
-
-            // let size = font.size_for(&text);
-
-            // let origin = self.view.frame().origin;
-            // let frame = Rectangle { origin, size };
-
-            // self.view.set_frame(frame);
+            let behavior = self.behavior();
+            let rendering_result = behavior.rendering_result.borrow();
+            if let Some(result) = rendering_result.as_ref() {
+                let text_size = result.text_size();
+                let origin = self.view.frame().origin;
+                let frame = Rectangle { origin, size: text_size };
+                self.view.set_frame(frame);
+            }
         }
 
         fn generate_rendering_result(&self) {
@@ -203,18 +200,16 @@ custom_view!(
 
     impl Behavior {
         fn set_needs_display(&self) {
-            self.super_behavior().unwrap().set_needs_display();
-            let label = Label::from_view(self.view.upgrade().unwrap());
+            self.super_behavior().expect("label missing super_behavior").set_needs_display();
+            let label = Label::from_view(self.view.upgrade().expect("label view was deallocated"));
             label.generate_rendering_result();
         }
 
         fn draw(&self) {
-            self.super_behavior().unwrap().draw();
-            let label = Label::from_view(self.view.upgrade().unwrap());
+            self.super_behavior().expect("label missing super_behavior").draw();
+            let label = Label::from_view(self.view.upgrade().expect("label view was deallocated"));
 
-
-
-            let view = self.view.upgrade().unwrap().clone();
+            let view = self.view.upgrade().expect("label view was deallocated").clone();
             let inner_self = view.inner_self.borrow();
 
             let mut needs_generation = false;
@@ -239,7 +234,7 @@ custom_view!(
 
             if let Some(parent_layer) = &inner_self.layer {
                 let rendering_result = self.rendering_result.borrow();
-                let rendering_result = rendering_result.as_ref().unwrap();
+                let rendering_result = rendering_result.as_ref().expect("rendering_result missing during draw");
 
                 for (index, character) in attributed_string.chars().enumerate() {
                     let font_attribute = &attributed_string.get_attribute_for(index, Key::Font);
@@ -274,13 +269,13 @@ custom_view!(
 
 impl LabelBehavior {
     pub fn rendering(&self) -> Ref<'_, rendering::Result> {
-        let label = Label::from_view(self.view.upgrade().unwrap());
+        let label = Label::from_view(self.view.upgrade().expect("label view was deallocated"));
         let rendering_result = self.rendering_result.borrow();
         if rendering_result.is_none() {
             label.generate_rendering_result();
         };
 
-        Ref::map(self.rendering_result.borrow(), |rendering_result| rendering_result.as_ref().unwrap())
+        Ref::map(self.rendering_result.borrow(), |rendering_result| rendering_result.as_ref().expect("rendering_result missing after generation"))
     }
 }
 

@@ -45,15 +45,11 @@ pub(crate) struct SdlTtfContainer {
    ttf: Rc<sdl2::ttf::Sdl2TtfContext>,
 }
 
-impl SdlTtfContainer {
-    // fn get() -> &'static sdl2::ttf::Sdl2TtfContext {
-    //     &SdlTtfContainer::borrow().ttf
-    // }
-}
+impl SdlTtfContainer {}
 
 impl Default for SdlTtfContainer {
     fn default() -> Self {
-        let ttf = sdl2::ttf::init().unwrap();
+        let ttf = sdl2::ttf::init().expect("failed to initialize SDL TTF");
         Self { ttf: Rc::new(ttf) }
     }
 }
@@ -90,14 +86,14 @@ impl Font {
         let font_size = (self.size as f32 * context.render_scale()) as u16;
         let font = self.load_font_for_size(font_size);
 
-        let (width, height) = font.size_of(text).unwrap();
+        let (width, height) = font.size_of(text).expect("failed to measure text size");
 
         let surface = font
             .render(text)
             .blended(color)
-            .unwrap();
+            .expect("failed to render text to surface");
 
-        let texture = surface.as_texture(context.texture_creator()).unwrap();
+        let texture = surface.as_texture(context.texture_creator()).expect("failed to create texture from surface");
 
         Layer::new_prerendered(
             context.clone(),
@@ -110,25 +106,25 @@ impl Font {
     /// Get the size of the given string for this font.
     pub fn size_for(&self, text: &str) -> Size<u32> {
         let font = self.load_font_for_size(self.size);
-        let (width, height) = font.size_of(text).unwrap();
+        let (width, height) = font.size_of(text).expect("failed to measure text size");
         Size { width, height }
     }
 
     /// Loads a font from the given size. This is a lazy operation, so the
     /// font will only be loaded if it is not already loaded (using
     /// `self.font_sizes`).
-    fn load_font_for_size(&self, font_size: u16) -> Rc<sdl2::ttf::Font> {
+    fn load_font_for_size(&self, font_size: u16) -> Rc<sdl2::ttf::Font<'_, '_>> {
         let mut font_sizes = self.font_sizes.borrow_mut();
 
         let ttf_context = SdlTtfContainer::leak_static();
 
         if font_sizes.get(&font_size).is_none() {
-            let mut font = ttf_context.load_font(&self.path, font_size).unwrap();
+            let mut font = ttf_context.load_font(&self.path, font_size).expect("failed to load font");
             font.set_kerning(false);
             font_sizes.insert(font_size, Rc::new(font));
         }
 
-        font_sizes.get(&font_size).unwrap().clone()
+        font_sizes.get(&font_size).expect("font size was not loaded").clone()
     }
 }
 

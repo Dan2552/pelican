@@ -9,14 +9,14 @@ impl Bundle {
                 Ok(mut path) => {
                     path.pop();
 
-                    if path.to_str().unwrap().ends_with("target/debug") {
+                    if path.to_str().expect("path contained invalid UTF-8").ends_with("target/debug") {
                         path.pop();
                         path.pop();
                     }
 
                     path.push("resources");
                     path.push(file);
-                    String::from(path.to_str().unwrap())
+                    String::from(path.to_str().expect("path contained invalid UTF-8"))
                 }
                 Err(_) => format!("./resources/{}", file)
             }

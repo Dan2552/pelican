@@ -34,7 +34,7 @@ impl<'a> Application {
     }
 
     pub fn set_key_window(&mut self, window: &Window) {
-        let position = self.windows.iter().position(|v| v == window).unwrap();
+        let position = self.windows.iter().position(|v| v == window).expect("window not found in application");
         self.key_window_index = Some(position);
     }
 
@@ -54,7 +54,7 @@ impl<'a> Application {
     }
 
     pub(crate) fn assign_targets_to_touch(&self, window_id: u32, touch: &Touch) {
-        let window = self.get_window(window_id).unwrap();
+        let window = self.get_window(window_id).expect("window not found for touch target assignment");
         touch.set_window(window.clone());
 
         if let Some(view) = window.hit_test(&touch.position()) {

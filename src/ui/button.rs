@@ -46,7 +46,7 @@ custom_view!(
         }
 
         fn label(&self) -> Label {
-            let view = self.view.subviews().get(0).unwrap().clone();
+            let view = self.view.subviews().get(0).expect("button missing label subview").clone();
             Label::from_view(view)
         }
 
@@ -69,8 +69,8 @@ custom_view!(
         fn touches_ended(&self, touches: &Vec<Touch>) {
             if let Some(touch) = touches.first() {
 
-                let view = self.view.upgrade().unwrap();
-                let window = touch.window().unwrap();
+                let view = self.view.upgrade().expect("button view was deallocated");
+                let window = touch.window().expect("touch missing window");
 
                 let position = window.view.convert_point_to(&touch.position(), &view);
 
@@ -84,8 +84,8 @@ custom_view!(
 
         fn touches_moved(&self, touches: &Vec<Touch>) {
             if let Some(touch) = touches.first() {
-                let view = self.view.upgrade().unwrap();
-                let window = touch.window().unwrap();
+                let view = self.view.upgrade().expect("button view was deallocated");
+                let window = touch.window().expect("touch missing window");
 
                 let position = window.view.convert_point_to(&touch.position(), &view);
 

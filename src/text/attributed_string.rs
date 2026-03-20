@@ -91,10 +91,10 @@ impl AttributedString {
     pub fn new_matching_default_style(text: String, existing_attributed_string: &AttributedString) -> AttributedString {
         let attributed_string = AttributedString::new(text);
 
-        let existing_color = existing_attributed_string.default_attributes.borrow().get(&Key::Color).unwrap().clone();
+        let existing_color = existing_attributed_string.default_attributes.borrow().get(&Key::Color).expect("default Color attribute was missing").clone();
         attributed_string.set_default_attribute(Key::Color, existing_color);
 
-        let existing_font = existing_attributed_string.default_attributes.borrow().get(&Key::Font).unwrap().clone();
+        let existing_font = existing_attributed_string.default_attributes.borrow().get(&Key::Font).expect("default Font attribute was missing").clone();
         attributed_string.set_default_attribute(Key::Font, existing_font);
 
         attributed_string
@@ -117,7 +117,7 @@ impl AttributedString {
         }
     }
 
-    pub fn lines(&self) -> Vec<AttributedSubstring> {
+    pub fn lines(&self) -> Vec<AttributedSubstring<'_>> {
         let mut lines = Vec::new();
         let mut start = 0;
 
@@ -139,7 +139,7 @@ impl AttributedString {
         lines
     }
 
-    pub fn substring_for_char(&self, char_index: usize) -> AttributedSubstring {
+    pub fn substring_for_char(&self, char_index: usize) -> AttributedSubstring<'_> {
         AttributedSubstring {
             attributed_string: self,
             start: char_index,
@@ -147,7 +147,7 @@ impl AttributedString {
         }
     }
 
-    pub fn chars(&self) -> std::str::Chars {
+    pub fn chars(&self) -> std::str::Chars<'_> {
         self.text.string().chars()
     }
 
@@ -174,7 +174,7 @@ impl AttributedString {
         }
 
         if attributes[index].get(&key).is_some() {
-            Ref::map(attributes, |attrs| attrs[index].get(&key).unwrap())
+            Ref::map(attributes, |attrs| attrs[index].get(&key).expect("attribute was missing for key"))
         } else {
             self.default_attribute(key)
         }
@@ -182,7 +182,7 @@ impl AttributedString {
 
     pub fn default_attribute(&self, key: Key) -> Ref<'_, Attribute> {
         let default_attributes = self.default_attributes.borrow();
-        Ref::map(default_attributes, |attrs| attrs.get(&key).unwrap())
+        Ref::map(default_attributes, |attrs| attrs.get(&key).expect("default attribute was missing for key"))
     }
 
     pub fn replace_range(&mut self, range: std::ops::Range<usize>, string: &str) {
@@ -214,7 +214,7 @@ impl AttributedSubstring<'_> {
         &self.attributed_string.text[self.start..self.end]
     }
 
-    pub fn chars(&self) -> std::str::Chars {
+    pub fn chars(&self) -> std::str::Chars<'_> {
         self.text().chars()
     }
 
@@ -226,7 +226,7 @@ impl AttributedSubstring<'_> {
         self.attributed_string.get_attribute_for(self.start + index, key)
     }
 
-    pub fn substring_for_char(&self, char_index: usize) -> AttributedSubstring {
+    pub fn substring_for_char(&self, char_index: usize) -> AttributedSubstring<'_> {
         self.attributed_string.substring_for_char(self.start + char_index)
     }
 }

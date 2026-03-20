@@ -27,7 +27,7 @@ impl TextBackspace {
     }
 
     fn text_field(&self) -> TextField {
-        let view = self.view.upgrade().unwrap();
+        let view = self.view.upgrade().expect("view was deallocated");
         TextField::from_view(view)
     }
 }
@@ -70,7 +70,7 @@ impl Action for TextBackspace {
             return None
         }
 
-        let other = other.as_any().downcast_ref::<TextBackspace>().unwrap();
+        let other = other.as_any().downcast_ref::<TextBackspace>().expect("unexpected action type");
 
         // Return early if the other action cursors don't match
         if self.cursors_after != other.cursors_before {
@@ -85,7 +85,7 @@ impl Action for TextBackspace {
         let mut combo_texts_deleted = Vec::new();
 
         for (index, text_deleted) in self.texts_deleted.iter().enumerate() {
-            let other_text_deleted = other.texts_deleted.get(index).unwrap();
+            let other_text_deleted = other.texts_deleted.get(index).expect("texts_deleted was missing expected index");
             combo_texts_deleted.push(other_text_deleted.clone() + text_deleted);
         }
 
