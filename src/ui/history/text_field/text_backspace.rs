@@ -119,7 +119,7 @@ mod tests {
         let mut carats = Vec::new();
         carats.push(CaratSnapshot::new(3, None));
 
-        let mut action = TextBackspace::new(text_field.view.downgrade(), 1, CursorMovement::Character, carats);
+        let mut action = TextBackspace::new(text_field.downgrade(), 1, CursorMovement::Character, carats);
         action.forward();
         assert_eq!(text_field.label().text().string(), "ab");
         assert_eq!(text_field.carat_indexes(), vec![2]);
@@ -135,7 +135,7 @@ mod tests {
         let mut carats = Vec::new();
         carats.push(CaratSnapshot::new(3, None));
 
-        let mut action = TextBackspace::new(text_field.view.downgrade(), 2, CursorMovement::Character, carats);
+        let mut action = TextBackspace::new(text_field.downgrade(), 2, CursorMovement::Character, carats);
         action.forward();
         assert_eq!(text_field.label().text().string(), "a");
         assert_eq!(text_field.carat_indexes(), vec![1]);
@@ -151,7 +151,7 @@ mod tests {
         let mut carats = Vec::new();
         carats.push(CaratSnapshot::new(7, None));
 
-        let mut action = TextBackspace::new(text_field.view.downgrade(), 1, CursorMovement::Word, carats);
+        let mut action = TextBackspace::new(text_field.downgrade(), 1, CursorMovement::Word, carats);
         action.forward();
         assert_eq!(text_field.label().text().string(), "abc ");
         assert_eq!(text_field.carat_indexes(), vec![4]);
@@ -167,7 +167,7 @@ mod tests {
         let mut carats = Vec::new();
         carats.push(CaratSnapshot::new(7, None));
 
-        let mut action = TextBackspace::new(text_field.view.downgrade(), 1, CursorMovement::Line, carats);
+        let mut action = TextBackspace::new(text_field.downgrade(), 1, CursorMovement::Line, carats);
         action.forward();
         assert_eq!(text_field.label().text().string(), "");
         assert_eq!(text_field.carat_indexes(), vec![0]);
@@ -184,7 +184,7 @@ mod tests {
         carats.push(CaratSnapshot::new(1, None));
         carats.push(CaratSnapshot::new(3, None));
 
-        let mut action = TextBackspace::new(text_field.view.downgrade(), 1, CursorMovement::Character, carats);
+        let mut action = TextBackspace::new(text_field.downgrade(), 1, CursorMovement::Character, carats);
         action.forward();
         assert_eq!(text_field.label().text().string(), "b");
         assert_eq!(text_field.carat_indexes(), vec![0, 1]);
@@ -201,7 +201,7 @@ mod tests {
         carats.push(CaratSnapshot::new(1, None));
         carats.push(CaratSnapshot::new(3, None));
 
-        let mut action = TextBackspace::new(text_field.view.downgrade(), 1, CursorMovement::Character, carats);
+        let mut action = TextBackspace::new(text_field.downgrade(), 1, CursorMovement::Character, carats);
         action.forward();
         assert_eq!(text_field.label().text().string(), "b");
         assert_eq!(text_field.carat_indexes(), vec![0, 1]);
@@ -218,7 +218,7 @@ mod tests {
         carats.push(CaratSnapshot::new(3, None));
         carats.push(CaratSnapshot::new(7, None));
 
-        let mut action = TextBackspace::new(text_field.view.downgrade(), 1, CursorMovement::Word, carats);
+        let mut action = TextBackspace::new(text_field.downgrade(), 1, CursorMovement::Word, carats);
         action.forward();
         assert_eq!(text_field.label().text().string(), " ");
         assert_eq!(text_field.carat_indexes(), vec![0, 1]);
@@ -235,7 +235,7 @@ mod tests {
         carats.push(CaratSnapshot::new(3, None));
         carats.push(CaratSnapshot::new(7, None));
 
-        let mut action = TextBackspace::new(text_field.view.downgrade(), 1, CursorMovement::Line, carats);
+        let mut action = TextBackspace::new(text_field.downgrade(), 1, CursorMovement::Line, carats);
         action.forward();
         assert_eq!(text_field.label().text().string(), "");
         assert_eq!(text_field.carat_indexes(), vec![0, 0]);
@@ -251,7 +251,7 @@ mod tests {
         let mut carats = Vec::new();
         carats.push(CaratSnapshot::new(0, Some(0..3)));
 
-        let mut action = TextBackspace::new(text_field.view.downgrade(), 1, CursorMovement::Character, carats);
+        let mut action = TextBackspace::new(text_field.downgrade(), 1, CursorMovement::Character, carats);
         action.forward();
         assert_eq!(text_field.label().text().string(), " def");
         let carats = text_field.carat_snapshots();
@@ -277,7 +277,7 @@ mod tests {
         let mut carats = Vec::new();
         carats.push(CaratSnapshot::new(3, Some(1..3)));
 
-        let mut action = TextBackspace::new(text_field.view.downgrade(), 1, CursorMovement::Word, carats);
+        let mut action = TextBackspace::new(text_field.downgrade(), 1, CursorMovement::Word, carats);
         action.forward();
         assert_eq!(text_field.label().text().string(), "a def");
         let carats = text_field.carat_snapshots();
@@ -303,7 +303,7 @@ mod tests {
         let mut carats = Vec::new();
         carats.push(CaratSnapshot::new(3, Some(1..3)));
 
-        let mut action = TextBackspace::new(text_field.view.downgrade(), 1, CursorMovement::Line, carats);
+        let mut action = TextBackspace::new(text_field.downgrade(), 1, CursorMovement::Line, carats);
         action.forward();
         assert_eq!(text_field.label().text().string(), "a def");
         let carats = text_field.carat_snapshots();
@@ -327,7 +327,7 @@ mod tests {
         carats.push(CaratSnapshot::new(0, Some(0..3)));
         carats.push(CaratSnapshot::new(3, Some(3..6)));
 
-        let mut action = TextBackspace::new(text_field.view.downgrade(), 1, CursorMovement::Character, carats);
+        let mut action = TextBackspace::new(text_field.downgrade(), 1, CursorMovement::Character, carats);
         action.forward();
         assert_eq!(text_field.label().text().string(), "f");
         let carats = text_field.carat_snapshots();
@@ -356,7 +356,7 @@ mod tests {
         carats.push(CaratSnapshot::new(7, None));
 
         let mut action1 = TextBackspace::new(
-            text_field.view.downgrade(),
+            text_field.downgrade(),
             4,
             CursorMovement::Character,
             carats
@@ -366,7 +366,7 @@ mod tests {
         carats.push(CaratSnapshot::new(3, None));
 
         let mut action2 = TextBackspace::new(
-            text_field.view.downgrade(),
+            text_field.downgrade(),
             3,
             CursorMovement::Character,
             carats
@@ -399,7 +399,7 @@ mod tests {
         carats.push(CaratSnapshot::new(7, None));
 
         let mut action1 = TextBackspace::new(
-            text_field.view.downgrade(),
+            text_field.downgrade(),
             4,
             CursorMovement::Character,
             carats
@@ -409,7 +409,7 @@ mod tests {
         carats.push(CaratSnapshot::new(2, None));
 
         let mut action2 = TextBackspace::new(
-            text_field.view.downgrade(),
+            text_field.downgrade(),
             2,
             CursorMovement::Character,
             carats

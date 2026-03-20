@@ -25,10 +25,10 @@ custom_view!(
             content_view.set_clips_to_bounds(true);
 
             let scroll_view = Self::new_all(frame);
-            scroll_view.view.set_background_color(Color::clear());
-            scroll_view.view.add_subview(content_view);
-            scroll_view.view.add_subview(vertical_scroll_bar.view.clone());
-            scroll_view.view.add_subview(horizontal_scroll_bar.view.clone());
+            scroll_view.set_background_color(Color::clear());
+            scroll_view.add_subview(content_view);
+            scroll_view.add_subview(vertical_scroll_bar.clone());
+            scroll_view.add_subview(horizontal_scroll_bar.clone());
 
             vertical_scroll_bar.fit_to_superview();
             horizontal_scroll_bar.fit_to_superview();
@@ -55,7 +55,7 @@ custom_view!(
                 gesture_recognizer.set_translation(Point::new(0, 0), &view);
             });
 
-            scroll_view.view.add_gesture_recognizer(Box::new(pan_gesture));
+            scroll_view.add_gesture_recognizer(Box::new(pan_gesture));
 
             scroll_view
         }
@@ -74,10 +74,10 @@ custom_view!(
 
         fn set_content_offset(&self, offset: Point<i32>) {
             let mut content_width = self.content_size().width;
-            let scrollview_width = self.view.frame().size.width;
+            let scrollview_width = self.frame().size.width;
 
             let mut content_height = self.content_size().height;
-            let scrollview_height = self.view.frame().size.height;
+            let scrollview_height = self.frame().size.height;
 
             if content_width < scrollview_width {
                 content_width = scrollview_width;
@@ -97,8 +97,8 @@ custom_view!(
                 Rectangle::new(
                     x,
                     y,
-                    self.view.bounds().size.width,
-                    self.view.bounds().size.height
+                    self.bounds().size.width,
+                    self.bounds().size.height
                 )
             );
 
@@ -110,12 +110,13 @@ custom_view!(
         }
 
         fn inner_content_view(&self) -> View {
-            self.view.subviews().get(0).expect("scroll view missing content subview").clone()
+            self.subviews().get(0).expect("scroll view missing content subview").clone()
         }
 
         /// Set (or replace) the current content view. This is the view that
         /// will actually be scrollable.
-        pub fn set_content_view(&self, view: View) {
+        pub fn set_content_view(&self, view: impl Into<View>) {
+            let view: View = view.into();
             if let Some(existing_subview) = self.inner_content_view().subviews().get(0) {
                 existing_subview.remove_from_superview();
             }
@@ -135,12 +136,12 @@ custom_view!(
         }
 
         fn vertical_scroll_bar(&self) -> ScrollBarView {
-            let view = self.view.subviews().get(1).expect("scroll view missing vertical scroll bar").clone();
+            let view = self.subviews().get(1).expect("scroll view missing vertical scroll bar").clone();
             ScrollBarView::from_view(view)
         }
 
         fn horizontal_scroll_bar(&self) -> ScrollBarView {
-            let view = self.view.subviews().get(2).expect("scroll view missing horizontal scroll bar").clone();
+            let view = self.subviews().get(2).expect("scroll view missing horizontal scroll bar").clone();
             ScrollBarView::from_view(view)
         }
 
@@ -150,7 +151,7 @@ custom_view!(
 
             // set_frame resets bounds.size to frame.size. Restore viewport-
             // sized bounds so the clips_to_bounds layer stays viewport-sized.
-            let viewport_size = self.view.frame().size.clone();
+            let viewport_size = self.frame().size.clone();
             inner_content_view.set_bounds(Rectangle::new(
                 0, 0,
                 viewport_size.width,
@@ -183,8 +184,8 @@ custom_view!(
             handle.set_background_color(Color::new(127, 127, 127, 127));
 
             let scroll_bar_view = Self::new_all(Rectangle::new(0, 0, 10, 10), direction, Cell::new(0));
-            scroll_bar_view.view.set_background_color(Color::clear());
-            scroll_bar_view.view.add_subview(handle);
+            scroll_bar_view.set_background_color(Color::clear());
+            scroll_bar_view.add_subview(handle);
 
             scroll_bar_view
         }
@@ -201,7 +202,7 @@ custom_view!(
         }
 
         fn handle(&self) -> View {
-            self.view.subviews().get(0).expect("scroll view missing content subview").clone()
+            self.subviews().get(0).expect("scroll view missing content subview").clone()
         }
 
         fn direction(&self) -> ScrollBarDirection {
@@ -210,7 +211,7 @@ custom_view!(
         }
 
         fn fit_to_superview(&self) {
-            let superview = self.view.superview().upgrade().expect("scroll view missing superview");
+            let superview = self.superview().upgrade().expect("scroll view missing superview");
             let superview_size = superview.frame().size;
             let frame: Rectangle<i32, u32>;
 
@@ -233,11 +234,11 @@ custom_view!(
                 }
             }
 
-            self.view.set_frame(frame);
+            self.set_frame(frame);
         }
 
         fn update_scroll_handle(&self) {
-            let superview = self.view.superview().upgrade().expect("scroll view missing superview");
+            let superview = self.superview().upgrade().expect("scroll view missing superview");
             let scrollview = ScrollView::from_view(superview);
             let inner_content_view = scrollview.inner_content_view();
             let handle = self.handle();
@@ -245,7 +246,7 @@ custom_view!(
             handle.set_hidden(true);
 
             let content_view_size = inner_content_view.frame().size;
-            let scrollview_size = scrollview.view.frame().size;
+            let scrollview_size = scrollview.frame().size;
 
             match self.direction() {
                 ScrollBarDirection::Vertical => {
@@ -324,7 +325,7 @@ mod tests {
         let scroll_view = ScrollView::new(Rectangle::new(0, 0, 100, 100));
 
         assert_eq!(
-            scroll_view.vertical_scroll_bar().view.frame().size,
+            scroll_view.vertical_scroll_bar().frame().size,
             Size::new(10, 100)
         );
 
@@ -339,7 +340,7 @@ mod tests {
         let scroll_view = ScrollView::new(Rectangle::new(0, 0, 100, 100));
 
         assert_eq!(
-            scroll_view.horizontal_scroll_bar().view.frame().size,
+            scroll_view.horizontal_scroll_bar().frame().size,
             Size::new(100, 10)
         );
 

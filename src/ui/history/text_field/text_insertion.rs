@@ -126,7 +126,7 @@ mod tests {
         carats.push(CaratSnapshot::new(0, None));
 
         let mut text_insertion = TextInsertion::new(
-            text_field.view.downgrade(),
+            text_field.downgrade(),
             "Hello".to_string(),
             carats
         );
@@ -147,7 +147,7 @@ mod tests {
         carats.push(CaratSnapshot::new(1, None));
 
         let mut text_insertion = TextInsertion::new(
-            text_field.view.downgrade(),
+            text_field.downgrade(),
             "Hello".to_string(),
             carats
         );
@@ -168,7 +168,7 @@ mod tests {
         carats.push(CaratSnapshot::new(0, None));
 
         let mut text_insertion = TextInsertion::new(
-            text_field.view.downgrade(),
+            text_field.downgrade(),
             "Hello".to_string(),
             carats
         );
@@ -190,7 +190,7 @@ mod tests {
         carats.push(CaratSnapshot::new(1, None));
 
         let mut text_insertion = TextInsertion::new(
-            text_field.view.downgrade(),
+            text_field.downgrade(),
             "Hello".to_string(),
             carats
         );
@@ -226,7 +226,7 @@ mod tests {
         carats.push(CaratSnapshot::new(0, Some(0..2)));
 
         let mut text_insertion = TextInsertion::new(
-            text_field.view.downgrade(),
+            text_field.downgrade(),
             "Hello".to_string(),
             carats
         );
@@ -256,7 +256,7 @@ mod tests {
         carats.push(CaratSnapshot::new(0, None));
 
         let mut text_insertion1 = TextInsertion::new(
-            text_field.view.downgrade(),
+            text_field.downgrade(),
             "Hello".to_string(),
             carats
         );
@@ -265,7 +265,7 @@ mod tests {
         carats.push(CaratSnapshot::new(5, None));
 
         let mut text_insertion2 = TextInsertion::new(
-            text_field.view.downgrade(),
+            text_field.downgrade(),
             " world".to_string(),
             carats
         );
@@ -293,7 +293,7 @@ mod tests {
         carats.push(CaratSnapshot::new(0, None));
 
         let mut text_insertion1 = TextInsertion::new(
-            text_field.view.downgrade(),
+            text_field.downgrade(),
             " world".to_string(),
             carats
         );
@@ -302,7 +302,7 @@ mod tests {
         carats.push(CaratSnapshot::new(0, None));
 
         let mut text_insertion2 = TextInsertion::new(
-            text_field.view.downgrade(),
+            text_field.downgrade(),
             "Hello".to_string(),
             carats
         );

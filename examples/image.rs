@@ -15,9 +15,9 @@ impl ViewControllerBehavior for ExampleViewController {
         let always1tree = Image::new("always1tree.png");
         let tree3 = ImageView::new(always1tree, Point::new(700, 10));
 
-        view.add_subview(tree.view);
-        view.add_subview(tree2.view);
-        view.add_subview(tree3.view);
+        view.add_subview(tree);
+        view.add_subview(tree2);
+        view.add_subview(tree3);
     }
 }
 

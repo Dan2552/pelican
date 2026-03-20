@@ -33,7 +33,7 @@ custom_view!(
                 text_vertical_alignment,
                 RefCell::new(None)
             );
-            label.view.set_background_color(Color::clear());
+            label.set_background_color(Color::clear());
             label
         }
 
@@ -170,14 +170,14 @@ custom_view!(
             let rendering_result = behavior.rendering_result.borrow();
             if let Some(result) = rendering_result.as_ref() {
                 let text_size = result.text_size();
-                let origin = self.view.frame().origin;
+                let origin = self.frame().origin;
                 let frame = Rectangle { origin, size: text_size };
-                self.view.set_frame(frame);
+                self.set_frame(frame);
             }
         }
 
         fn generate_rendering_result(&self) {
-            let inner_self = self.view.inner_self.borrow();
+            let inner_self = self.inner_self.borrow();
             let behavior = self.behavior();
             let attributed_string = behavior.attributed_text.borrow();
 
@@ -189,7 +189,7 @@ custom_view!(
                 render_scale = 1.0;
             }
 
-            let mut whole_text = rendering::WholeText::from(&attributed_string, self.view.frame(), render_scale);
+            let mut whole_text = rendering::WholeText::from(&attributed_string, self.frame(), render_scale);
             whole_text.align_horizontally(behavior.text_alignment.get());
             whole_text.align_vertically(behavior.text_vertical_alignment.get());
 

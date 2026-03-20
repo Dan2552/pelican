@@ -4,7 +4,6 @@ use pelican::ui::{ApplicationMain, ApplicationDelegate};
 use pelican::ui::{ViewController, ViewControllerBehavior};
 use pelican::text::{HorizontalAlignment, VerticalAlignment};
 use pelican::text::attributed_string::AttributedString;
-use pelican::text::attributed_string::Key;
 use pelican::text::attributed_string::Attribute;
 
 static PADDING: i32 = 10;
@@ -20,16 +19,14 @@ impl ViewControllerBehavior for ExampleViewController {
         let label = Label::new(frame, text.clone());
         label.set_text_alignment(HorizontalAlignment::Center);
         label.set_vertical_alignment(VerticalAlignment::Middle);
-        label.view.set_background_color(Color::gray());
-        view.add_subview(label.view.clone());
+        label.set_background_color(Color::gray());
+        view.add_subview(label.clone());
 
         let attributed_string = AttributedString::new(text);
         let red = Color::red().to_graphics_color();
 
         // highlight the word "fox"
-        attributed_string.set_attribute_for(16, Key::Color, Attribute::Color { color: red });
-        attributed_string.set_attribute_for(17, Key::Color, Attribute::Color { color: red });
-        attributed_string.set_attribute_for(18, Key::Color, Attribute::Color { color: red });
+        attributed_string.set_attribute(16..19, Attribute::Color { color: red });
 
         label.set_attributed_text(attributed_string);
 
@@ -38,41 +35,41 @@ impl ViewControllerBehavior for ExampleViewController {
         let button = Button::new(frame, "Center", move || {
             label_clone.set_text_alignment(HorizontalAlignment::Center);
         });
-        view.add_subview(button.view);
+        view.add_subview(button);
 
         let label_clone = label.clone();
         let frame = Rectangle::new(PADDING, BUTTON_START + ((PADDING + BUTTON_HEIGHT as i32) * 1), INNER_WIDTH, BUTTON_HEIGHT);
         let button = Button::new(frame, "Left", move || {
             label_clone.set_text_alignment(HorizontalAlignment::Left);
         });
-        view.add_subview(button.view);
+        view.add_subview(button);
 
         let label_clone = label.clone();
         let frame = Rectangle::new(PADDING, BUTTON_START + ((PADDING + BUTTON_HEIGHT as i32) * 2), INNER_WIDTH, BUTTON_HEIGHT);
         let button = Button::new(frame, "Right", move || {
             label_clone.set_text_alignment(HorizontalAlignment::Right);
         });
-        view.add_subview(button.view);
+        view.add_subview(button);
 
         let label_clone = label.clone();
         let frame = Rectangle::new(PADDING, BUTTON_START + ((PADDING + BUTTON_HEIGHT as i32) * 3), INNER_WIDTH, BUTTON_HEIGHT);
         let button = Button::new(frame, "Top", move || {
             label_clone.set_vertical_alignment(VerticalAlignment::Top);
         });
-        view.add_subview(button.view);
+        view.add_subview(button);
 
         let label_clone = label.clone();
         let frame = Rectangle::new(PADDING, BUTTON_START + ((PADDING + BUTTON_HEIGHT as i32) * 4), INNER_WIDTH, BUTTON_HEIGHT);
         let button = Button::new(frame, "Middle", move || {
             label_clone.set_vertical_alignment(VerticalAlignment::Middle);
         });
-        view.add_subview(button.view);
+        view.add_subview(button);
 
         let frame = Rectangle::new(PADDING, BUTTON_START + ((PADDING + BUTTON_HEIGHT as i32) * 5), INNER_WIDTH, BUTTON_HEIGHT);
         let button = Button::new(frame, "Bottom", move || {
             label.set_vertical_alignment(VerticalAlignment::Bottom);
         });
-        view.add_subview(button.view);
+        view.add_subview(button);
     }
 }
 

@@ -128,8 +128,8 @@ custom_view!(
                 frame.height() - (LABEL_PADDING * 2)
             );
             let label = Label::new(label_frame, text);
-            label.view.set_tag(1);
-            label.view.set_user_interaction_enabled(false);
+            label.set_tag(1);
+            label.set_user_interaction_enabled(false);
 
             let carats = RefCell::new(Vec::new());
             let text_field = TextField::new_all(
@@ -146,10 +146,10 @@ custom_view!(
                 RefCell::new(None)
             );
 
-            text_field.view.add_subview(label.view);
+            text_field.add_subview(label);
             text_field.spawn_carat(0);
 
-            let weak_text_field = text_field.view.downgrade();
+            let weak_text_field = text_field.downgrade();
             let carat_animation_timer = Timer::new_repeating(Duration::from_millis(CARAT_BLINK_INTERVAL_MS), move || {
                 if let Some(view) = weak_text_field.upgrade() {
                     let text_field = TextField::from_view(view);
@@ -171,14 +171,14 @@ custom_view!(
         }
 
         pub fn label(&self) -> Label {
-            let view = self.view.view_with_tag(1).expect("label subview was not found");
+            let view = self.view_with_tag(1).expect("label subview was not found");
             Label::from_view(view)
         }
 
         fn touch_to_index(&self, touch: &Touch) -> usize {
             let window = touch.window().expect("touch had no associated window");
             let label = self.label();
-            let position = window.view.convert_point_to(&touch.position(), &label.view);
+            let position = window.convert_point_to(&touch.position(), &label);
             let label_behavior = label.behavior();
             let rendering = label_behavior.rendering();
             let render_scale = rendering.render_scale();
@@ -239,7 +239,7 @@ custom_view!(
                 carat_view.set_background_color(CARAT_COLOR);
                 carat_view.set_hidden(true);
                 carat_view.set_user_interaction_enabled(false);
-                self.view.add_subview(carat_view.clone());
+                self.add_subview(carat_view.clone());
 
                 let carat = Carat {
                     view: carat_view.downgrade(),
@@ -250,7 +250,7 @@ custom_view!(
                 carats.push(carat);
             }
             self.consume_and_sort_cursors();
-            self.view.set_needs_display();
+            self.set_needs_display();
         }
 
         fn animate_carats(&self) {
@@ -480,7 +480,7 @@ custom_view!(
 
             for carat in carats.iter() {
                 let character_index = carat.character_index.get();
-                let label_origin = &self.label().view.frame().origin;
+                let label_origin = &self.label().frame().origin;
                 let carat_view = carat.view.upgrade().expect("carat view was deallocated");
                 let cursor_rectangle = rendering.cursor_rectangle_for_character_at_index(character_index);
 
@@ -571,7 +571,7 @@ custom_view!(
 
             selection.views.borrow_mut().clear();
 
-            let label_origin = &self.label().view.frame().origin;
+            let label_origin = &self.label().frame().origin;
 
             let mut character_index = selection.start;
             let mut last_y = -9999999;
@@ -588,7 +588,7 @@ custom_view!(
                     last_y = cursor_rectangle.origin.y;
                     current_view = View::new(Rectangle::new(0, 0, 1, 1));
                     current_view.set_user_interaction_enabled(false);
-                    self.view.add_subview(current_view.clone());
+                    self.add_subview(current_view.clone());
                     current_view.set_frame(Rectangle {
                         origin: Point {
                             x: (cursor_rectangle.origin.x as f32 / render_scale).round() as i32 + label_origin.x,

@@ -54,12 +54,12 @@ impl ViewControllerBehavior for ExampleViewController {
                 &label,
                 move || { println!("Button {} tapped", i + 1); },
             );
-            button.view.set_background_color(Color::white());
-            content_view.add_subview(button.view);
+            button.set_background_color(Color::white());
+            content_view.add_subview(button);
         }
 
         scroll_view.set_content_view(content_view);
-        view.add_subview(scroll_view.view);
+        view.add_subview(scroll_view);
     }
 }
 
