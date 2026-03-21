@@ -24,6 +24,8 @@ pub use view_controller::ViewControllerBehavior;
 pub use view_controller::ViewController;
 pub use view::ScrollView;
 pub use view::TextField;
+#[cfg(target_os = "macos")]
+pub use view::WebView;
 
 pub mod gesture;
 

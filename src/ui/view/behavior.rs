@@ -88,6 +88,22 @@ pub trait Behavior {
         }
     }
 
+    /// Returns `true` if this view handles keyboard input natively (outside
+    /// of SDL2). When the first responder returns `true`, the event loop will
+    /// skip forwarding `TextInput` and `KeyDown` events through SDL2 to avoid
+    /// double input.
+    fn handles_native_keyboard_input(&self) -> bool {
+        false
+    }
+
+    /// Called when this view is no longer the first responder.
+    fn did_resign_first_responder(&self) {}
+
+    /// Called when this view becomes the first responder.
+    fn did_become_first_responder(&self) {}
+
+
+
     fn next_responder(&self) -> Option<Rc<RefCell<Box<dyn Behavior>>>> {
         if let Some(super_behavior) = self.super_behavior() {
             super_behavior.next_responder()

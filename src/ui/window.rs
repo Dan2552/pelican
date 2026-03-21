@@ -111,15 +111,23 @@ impl Window {
     }
 
     pub(crate) fn replace_first_responder(&self, view: View) -> bool {
+        let old_responder = self.first_responder();
+
         // If there is a first responder, ask whether it wants to resign. If it
         // doesn't, then we can't replace it.
-        if !self.first_responder().can_resign_first_responder() {
+        if !old_responder.can_resign_first_responder() {
             return false;
         }
 
         let behavior = self.view.behavior.borrow();
         let behavior = behavior.as_any().downcast_ref::<WindowBehavior>().expect("view is not a Window");
         behavior.first_responder.replace(view.downgrade());
+
+        if old_responder.id() != view.id() {
+            old_responder.did_resign_first_responder();
+            view.did_become_first_responder();
+        }
+
         return true;
     }
 }

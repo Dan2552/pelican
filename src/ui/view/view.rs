@@ -268,8 +268,8 @@ impl View {
         let inner_self = self.inner_self.borrow();
         let superview = inner_self.superview.upgrade();
 
-        if superview.is_none() {
-            return inner_self.frame.origin.clone();
+        if superview.is_none() || self.is_window() {
+            return Point { x: 0, y: 0 };
         }
 
         let superview = superview.expect("superview was checked but missing");
@@ -465,6 +465,23 @@ impl View {
         let behavior = self.behavior.borrow();
         behavior.text_input_did_receive(text);
     }
+
+    pub fn handles_native_keyboard_input(&self) -> bool {
+        let behavior = self.behavior.borrow();
+        behavior.handles_native_keyboard_input()
+    }
+
+    pub(crate) fn did_resign_first_responder(&self) {
+        let behavior = self.behavior.borrow();
+        behavior.did_resign_first_responder();
+    }
+
+    pub(crate) fn did_become_first_responder(&self) {
+        let behavior = self.behavior.borrow();
+        behavior.did_become_first_responder();
+    }
+
+
 }
 
 impl LayerDelegate for View {

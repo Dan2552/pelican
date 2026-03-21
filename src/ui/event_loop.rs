@@ -103,7 +103,9 @@ pub(crate) fn update() {
                 let window = application.get_window(window_id);
                 if let Some(window) = window {
                     let first_responder = window.first_responder();
-                    first_responder.text_input_did_receive(&text);
+                    if !first_responder.handles_native_keyboard_input() {
+                        first_responder.text_input_did_receive(&text);
+                    }
                 }
             },
 
@@ -165,8 +167,10 @@ pub(crate) fn update() {
                     let press = event.press();
                     if let Some(window) = window {
                         let first_responder = window.first_responder();
-                        press.set_first_responder(first_responder.downgrade());
-                        first_responder.press_began(press, &event);
+                        if !first_responder.handles_native_keyboard_input() {
+                            press.set_first_responder(first_responder.downgrade());
+                            first_responder.press_began(press, &event);
+                        }
                     }
                 }
             },

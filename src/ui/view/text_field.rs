@@ -702,6 +702,7 @@ custom_view!(
 
         fn touches_began(&self, touches: &Vec<Touch>) {
             let view = self.view.upgrade().expect("view was deallocated");
+            view.become_first_responder();
             let text_field = TextField::from_view(view.clone());
 
             let touched_character_index = text_field.touch_to_index(touches.first().expect("touches list was empty"));
@@ -768,6 +769,11 @@ custom_view!(
             }
 
             self.last_click.set(Instant::now());
+        }
+
+        fn did_become_first_responder(&self) {
+            // Ensure SDL2 text input is active so we receive TextInput events.
+            unsafe { sdl2::sys::SDL_StartTextInput(); }
         }
 
         fn text_input_did_receive(&self, text: &str) {

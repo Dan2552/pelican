@@ -7,6 +7,8 @@ pub mod image_view;
 pub mod label;
 pub mod scroll_view;
 pub mod text_field;
+#[cfg(target_os = "macos")]
+pub mod web_view;
 
 pub use view::View;
 pub use weak_view::WeakView;
@@ -17,6 +19,8 @@ pub use image_view::ImageView;
 pub use label::Label;
 pub use scroll_view::ScrollView;
 pub use text_field::TextField;
+#[cfg(target_os = "macos")]
+pub use web_view::WebView;
 
 #[cfg(test)]
 mod tests {
