@@ -21,7 +21,7 @@ impl ViewControllerBehavior for ExampleViewController {
                 WINDOW_WIDTH - (PADDING * 2),
                 URL_BAR_HEIGHT,
             ),
-            String::from("https://example.com"),
+            String::from("https://google.com"),
         );
         url_bar.set_background_color(Color::white());
 
@@ -32,7 +32,7 @@ impl ViewControllerBehavior for ExampleViewController {
             WINDOW_WIDTH - (PADDING * 2),
             WINDOW_HEIGHT - URL_BAR_HEIGHT - (PADDING * 3),
         ));
-        web_view.load_url("https://example.com");
+        web_view.load_url("https://google.com");
 
         view.add_subview(url_bar.clone());
         view.add_subview(web_view.clone());

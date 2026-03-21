@@ -9,6 +9,7 @@ use wry::WebViewBuilder;
 use std::ptr::NonNull;
 use std::ffi::c_void;
 use std::cell::{RefCell, Cell};
+
 struct NsContentViewParent {
     ns_view: NonNull<c_void>,
 }
@@ -170,9 +171,6 @@ custom_view!(
             let behavior = self.behavior();
             let wry = behavior.wry_webview.borrow();
             if let Some(webview) = wry.as_ref() {
-                // Stop SDL2 text input so it doesn't intercept/duplicate key
-                // events that the native WKWebView should handle exclusively.
-                unsafe { sdl2::sys::SDL_StopTextInput(); }
                 let _ = webview.focus();
             }
             behavior.focused.set(true);
@@ -183,8 +181,6 @@ custom_view!(
             let wry = behavior.wry_webview.borrow();
             if let Some(webview) = wry.as_ref() {
                 let _ = webview.focus_parent();
-                // Restart SDL2 text input so Houston views can receive text again.
-                unsafe { sdl2::sys::SDL_StartTextInput(); }
             }
             behavior.focused.set(false);
         }
@@ -235,6 +231,9 @@ custom_view!(
         }
 
         fn did_become_first_responder(&self) {
+            // Stop SDL2 text input so it doesn't intercept/duplicate key
+            // events that the native WKWebView should handle exclusively.
+            unsafe { sdl2::sys::SDL_StopTextInput(); }
             let view_type = self.view_type();
             view_type.native_focus();
         }

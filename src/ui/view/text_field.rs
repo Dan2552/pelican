@@ -771,6 +771,11 @@ custom_view!(
             self.last_click.set(Instant::now());
         }
 
+        fn did_become_first_responder(&self) {
+            // Ensure SDL2 text input is active so we receive TextInput events.
+            unsafe { sdl2::sys::SDL_StartTextInput(); }
+        }
+
         fn text_input_did_receive(&self, text: &str) {
             let view = self.view.upgrade().expect("view was deallocated");
             let text_field = TextField::from_view(view.clone());
