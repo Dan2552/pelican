@@ -465,6 +465,21 @@ impl View {
         let behavior = self.behavior.borrow();
         behavior.text_input_did_receive(text);
     }
+
+    pub fn handles_native_keyboard_input(&self) -> bool {
+        let behavior = self.behavior.borrow();
+        behavior.handles_native_keyboard_input()
+    }
+
+    pub(crate) fn did_resign_first_responder(&self) {
+        let behavior = self.behavior.borrow();
+        behavior.did_resign_first_responder();
+    }
+
+    pub(crate) fn did_become_first_responder(&self) {
+        let behavior = self.behavior.borrow();
+        behavior.did_become_first_responder();
+    }
 }
 
 impl LayerDelegate for View {

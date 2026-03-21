@@ -165,6 +165,39 @@ impl Context {
             canvas.clear();
         }).expect("failed to clear texture");
     }
+
+    #[cfg(target_os = "macos")]
+    pub fn ns_content_view(&self) -> Option<std::ptr::NonNull<std::ffi::c_void>> {
+        use sdl2::raw_window_handle::{SDL_SysWMinfo, SDL_bool};
+        use objc::runtime::Object;
+        use objc::{msg_send, sel, sel_impl};
+
+        extern "C" {
+            fn SDL_GetWindowWMInfo(
+                window: *mut sdl2::sys::SDL_Window,
+                info: *mut SDL_SysWMinfo,
+            ) -> SDL_bool;
+        }
+
+        let canvas = self.inner.canvas.borrow();
+        let raw_window = canvas.window().raw();
+
+        let mut wm_info: SDL_SysWMinfo = unsafe { std::mem::zeroed() };
+        unsafe {
+            sdl2::sys::SDL_GetVersion(&mut wm_info.version);
+            if SDL_GetWindowWMInfo(raw_window, &mut wm_info) == SDL_bool::SDL_FALSE {
+                return None;
+            }
+        }
+
+        let ns_window = unsafe { wm_info.info.cocoa }.window;
+        if ns_window.is_null() {
+            return None;
+        }
+
+        let ns_view: *mut Object = unsafe { msg_send![ns_window as *mut Object, contentView] };
+        std::ptr::NonNull::new(ns_view as *mut std::ffi::c_void)
+    }
 }
 
 impl Clone for Context {

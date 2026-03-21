@@ -702,6 +702,7 @@ custom_view!(
 
         fn touches_began(&self, touches: &Vec<Touch>) {
             let view = self.view.upgrade().expect("view was deallocated");
+            view.become_first_responder();
             let text_field = TextField::from_view(view.clone());
 
             let touched_character_index = text_field.touch_to_index(touches.first().expect("touches list was empty"));

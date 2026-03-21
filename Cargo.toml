@@ -44,6 +44,9 @@ name = "text_field"
 [[example]]
 name = "pan_gesture"
 
+[[example]]
+name = "webview"
+
 [[test]]
 name = "main_thread_tests"
 path = "main_thread_tests/main.rs"
